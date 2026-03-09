@@ -220,7 +220,7 @@ exports.login2FA = async (req, res, next) => {
           role: user.role
         },
         process.env.JWT_SECRET,
-        { expiresIn: '7d' }
+        { expiresIn: '24h' }
       );
 
       return res.status(200).json({
@@ -269,7 +269,7 @@ exports.login2FA = async (req, res, next) => {
         role: user.role
       },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '24h' }
     );
 
     res.status(200).json({

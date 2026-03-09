@@ -8,7 +8,7 @@ router.get('/', petController.getAllPets);
 router.get('/:id', petController.getPetById);        
 
 
-router.post('/', authenticate, isAdmin, petController.createPet);      
+router.post('/', authenticate, petController.createPet);      
 router.put('/:id', authenticate, isAdmin, petController.updatePet);    
 router.delete('/:id', authenticate, isAdmin, petController.deletePet); 
 
