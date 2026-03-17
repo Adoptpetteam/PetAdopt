@@ -7,10 +7,12 @@ import Details from "../pages/Details"
 
 import RegisterPage from "../pages/RegisterPage"
 import LoginPage from "../pages/LoginPage"
+import PageAdmin from "../components/layout/Admin/PageAdmin"
+import DashboardAdmin from "../pages/Admin/DashboardAdmin"
+import ListCategory from "../pages/Admin/Category/ListCategory"
 
 export default function AppRoutes() {
   return (
-    <BrowserRouter>
       <Routes>
 
         {/* Pages có Header + Footer */}
@@ -24,7 +26,11 @@ export default function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
 
+        <Route path="/admin" element={<PageAdmin />}>
+          <Route path="" element={<DashboardAdmin />} />
+          <Route path="category" element={<ListCategory />} />
+        </Route>
+
       </Routes>
-    </BrowserRouter>
   )
 }
