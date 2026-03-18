@@ -4,6 +4,9 @@ const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/authMiddleware');
 
 router.post('/register', authController.register);
+router.post('/verify-registration-otp', authController.verifyRegistrationOTP);
+router.post('/resend-registration-otp', authController.resendRegistrationOTP);
+
 router.post('/setup-2fa', authController.setup2FA);
 router.post('/verify-2fa', authController.verify2FA);
 router.post('/login-2fa', authController.login2FA);
