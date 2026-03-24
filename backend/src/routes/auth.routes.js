@@ -4,6 +4,7 @@ const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/authMiddleware');
 
 router.post('/register', authController.register);
+router.post('/veri-register-otp', authController.verifyRegistrationOTP);
 router.post('/verify-registration-otp', authController.verifyRegistrationOTP);
 router.post('/resend-registration-otp', authController.resendRegistrationOTP);
 

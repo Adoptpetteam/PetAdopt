@@ -1,22 +1,42 @@
 
 import Banner from "../assets/images/Banner.png"
 import Pagination from "../components/Pagination"
-
-import { pets } from "../data/pet"
 import PetCard from "../components/PetCard"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { listPets, type PetEntity } from "../api/petApi"
 
 export default function Pets() {
 
   const [currentPage, setCurrentPage] = useState(1)
   const petsPerPage = 12
   const [category, setCategory] = useState("all")
+  const [pets, setPets] = useState<PetEntity[]>([])
+
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const response = await listPets({ limit: 100, status: "available" })
+        setPets(response.data ?? [])
+      } catch (error) {
+        console.error("Load pets failed:", error)
+      }
+    }
+
+    fetchPets()
+  }, [])
 
   // Filter
-  const filteredPets =
-  category === "all"
-  ? pets
-  : pets.filter((pet) => pet.type === category)
+  const filteredPets = useMemo(() => {
+    if (category === "all") {
+      return pets
+    }
+
+    if (category === "other") {
+      return pets.filter((pet) => !["dog", "cat"].includes(pet.species))
+    }
+
+    return pets.filter((pet) => pet.species === category)
+  }, [category, pets])
 
   // Math
   // const startIndex = (currentPage - 1) * petsPerPage
@@ -26,6 +46,14 @@ export default function Pets() {
   const startIndex = (currentPage - 1) * petsPerPage
   const currentPets = filteredPets.slice(startIndex, startIndex + petsPerPage)
   const totalPages = Math.ceil(filteredPets.length / petsPerPage)
+
+  const displayPets = currentPets.map((pet) => ({
+    id: pet._id,
+    name: pet.name,
+    age: pet.age ?? 0,
+    gender: pet.gender ?? "unknown",
+    image: pet.images?.[0] || "/images/Jack.png",
+  }))
 
 
 
@@ -307,7 +335,7 @@ export default function Pets() {
   {/* CARD */}
 <div className="grid grid-cols-4 gap-y-16 gap-x-10 justify-items-center mb-20">
 
-  {currentPets.map((pet) => (
+  {displayPets.map((pet) => (
     <PetCard key={pet.id} pet={pet} />
   ))}
 

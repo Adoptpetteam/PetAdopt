@@ -1,14 +1,42 @@
 // import Sydney from "../assets/images/Sydney.png"
+import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { pets } from "../data/pet"
+import { getPetById, type PetEntity } from "../api/petApi"
 
 export default function PetDetail() {
-    const { id } = useParams()
+    const { id } = useParams<{ id: string }>()
+    const [pet, setPet] = useState<PetEntity | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState("")
 
-  const pet = pets.find((p) => p.id === Number(id))
+  useEffect(() => {
+    if (!id) {
+      setError("Thiếu mã thú cưng.")
+      setLoading(false)
+      return
+    }
 
-  if (!pet) {
-    return <div>Pet not found</div>
+    const fetchPet = async () => {
+      try {
+        const response = await getPetById(id)
+        setPet(response.data)
+      } catch (err) {
+        console.error("Load pet detail failed:", err)
+        setError("Không tìm thấy thú cưng.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPet()
+  }, [id])
+
+  if (loading) {
+    return <div className="max-w-[1200px] mx-auto py-20 px-6">Đang tải dữ liệu...</div>
+  }
+
+  if (!pet || error) {
+    return <div className="max-w-[1200px] mx-auto py-20 px-6">{error || "Pet not found"}</div>
   }
 
 
@@ -20,7 +48,7 @@ export default function PetDetail() {
         {/* IMAGE */}
         <div className="bg-white rounded-[24px] overflow-hidden shadow-md">
           <img
-            src={pet.image}
+            src={pet.images?.[0] || "/images/Jack.png"}
             className="w-full h-[500px] object-cover"
           />
         </div>

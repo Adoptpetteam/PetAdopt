@@ -34,7 +34,7 @@ exports.register = async (req, res, next) => {
       existingUser.name = name;
       existingUser.password = password;
       existingUser.registrationOTP = otp;
-      existingUser.registrationOTPExpires = new Date(Date.now() + 1 * 60 * 1000);
+      existingUser.registrationOTPExpires = new Date(Date.now() + 5 * 60 * 1000);
       existingUser.isVerified = false;
       existingUser.twoFAEnabled = false;
       existingUser.twoFASecret = undefined;
@@ -49,7 +49,7 @@ exports.register = async (req, res, next) => {
         isVerified: false,
         twoFAEnabled: false,
         registrationOTP: otp,
-        registrationOTPExpires: new Date(Date.now() + 1 * 60 * 1000)
+        registrationOTPExpires: new Date(Date.now() + 5 * 60 * 1000)
       });
     }
 
@@ -74,15 +74,19 @@ exports.register = async (req, res, next) => {
 exports.verifyRegistrationOTP = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
+    const normalizedEmail = String(email ?? '')
+      .toLowerCase()
+      .trim();
+    const normalizedOtp = String(otp ?? '')
+      .replace(/\s+/g, '')
+      .trim();
 
-    if (!email || !otp) {
+    if (!normalizedEmail || !normalizedOtp) {
       return res.status(400).json({
         success: false,
         message: 'Vui lòng cung cấp email và mã OTP!'
       });
     }
-
-    const normalizedEmail = email.toLowerCase().trim();
 
     const user = await User.findOne({ email: normalizedEmail })
       .select('+registrationOTP +registrationOTPExpires');
@@ -108,7 +112,7 @@ exports.verifyRegistrationOTP = async (req, res, next) => {
       });
     }
 
-    if (user.registrationOTP !== otp) {
+    if (user.registrationOTP !== normalizedOtp) {
       return res.status(400).json({
         success: false,
         message: 'Mã OTP không đúng!'
@@ -161,7 +165,7 @@ exports.resendRegistrationOTP = async (req, res, next) => {
 
     const otp = generateRandomOTP();
     user.registrationOTP = otp;
-    user.registrationOTPExpires = new Date(Date.now() + 1 * 60 * 1000);
+    user.registrationOTPExpires = new Date(Date.now() + 5 * 60 * 1000);
 
     await user.save();
     await sendRegistrationOTP(user.email, user.name, otp);

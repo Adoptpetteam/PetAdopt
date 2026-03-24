@@ -3,10 +3,34 @@ import pic1 from "../assets/images/pic1.png"
 import pic2 from "../assets/images/pic2.png"
 import pic3 from "../assets/images/pic3.png"
 import PetCard from "../components/PetCard"
-import { pets } from "../data/pet"
+import { useEffect, useState } from "react"
+import { listPets, type PetEntity } from "../api/petApi"
 
 
 export default function Home() {
+  const [pets, setPets] = useState<PetEntity[]>([])
+
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const response = await listPets({ limit: 8, status: "available" })
+        setPets(response.data ?? [])
+      } catch (error) {
+        console.error("Load pets failed:", error)
+      }
+    }
+
+    fetchPets()
+  }, [])
+
+  const displayPets = pets.map((pet) => ({
+    id: pet._id,
+    name: pet.name,
+    age: pet.age ?? 0,
+    gender: pet.gender ?? "unknown",
+    image: pet.images?.[0] || "/images/Jack.png",
+  }))
+
   return (
 <div className="w-full px-[130px]">
 {/* Section 1 - Banner */}
@@ -173,7 +197,7 @@ export default function Home() {
 
       <div className="grid grid-cols-4 gap-6">
 
-        {pets.map((pet) => (
+        {displayPets.map((pet) => (
           <PetCard key={pet.id} pet={pet} />
         ))}
 

@@ -1,4 +1,54 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { message } from "antd";
+import axios from "axios";
+import { login2FA } from "../api/authApi";
+
+function getErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as { message?: string } | undefined;
+    if (data?.message && typeof data.message === "string") {
+      return data.message;
+    }
+  }
+  return "Có lỗi xảy ra, vui lòng thử lại.";
+}
+
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      message.warning("Vui lòng nhập email và mật khẩu.");
+      return;
+    }
+    if (!totpCode.trim()) {
+      message.warning("Vui lòng nhập mã 2FA.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await login2FA({
+        email: email.trim(),
+        password,
+        totpCode: totpCode.trim(),
+      });
+      localStorage.setItem("token", res.token);
+      message.success(res.message);
+      navigate("/");
+    } catch (err) {
+      message.error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white py-20">
 
@@ -25,7 +75,7 @@ export default function LoginPage() {
 
 
       {/* ===== MIDDLE ===== */}
-      <div className="w-[980px] mx-auto flex flex-col gap-10">
+      <form onSubmit={handleLogin} className="w-[980px] mx-auto flex flex-col gap-10">
 
         {/* Email */}
         <div className="flex flex-col">
@@ -34,6 +84,9 @@ export default function LoginPage() {
           </label>
           <input
             type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             className="w-full h-[80px] bg-[#DDEDFF] rounded-[40px] px-6 outline-none"
           />
         </div>
@@ -45,6 +98,24 @@ export default function LoginPage() {
           </label>
           <input
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            className="w-full h-[80px] bg-[#DDEDFF] rounded-[40px] px-6 outline-none"
+          />
+        </div>
+
+        {/* 2FA */}
+        <div className="flex flex-col">
+          <label className="text-[#6272B6] font-medium mb-3">
+            Mã 2FA
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value)}
+            placeholder="Nhập mã 6 số từ Authenticator"
             className="w-full h-[80px] bg-[#DDEDFF] rounded-[40px] px-6 outline-none"
           />
         </div>
@@ -53,21 +124,31 @@ export default function LoginPage() {
         <div className="text-right">
           <span className="text-gray-600">
             Bạn chưa có tài khoản?{" "}
-            <a
-              href="/login"
+            <Link
+              to="/register"
               className="text-[#6272B6] font-medium hover:underline"
             >
               Đăng ký
-            </a>
+            </Link>
           </span>
         </div>
-      </div>
+      </form>
 
 
       {/* ===== BOTTOM ===== */}
       <div className="w-[980px] mx-auto mt-16 text-center">
-        <button className="w-full bg-[#6272B6] text-white py-4 rounded-full font-medium transition duration-300 hover:bg-[#4e5fa8]">
-          Đăng Nhập
+        <button
+          type="submit"
+          form="__none__"
+          disabled={loading}
+          onClick={(e) => {
+            e.preventDefault();
+            const form = (e.currentTarget.closest("div")?.previousElementSibling as HTMLFormElement | null);
+            form?.requestSubmit();
+          }}
+          className="w-full bg-[#6272B6] text-white py-4 rounded-full font-medium transition duration-300 hover:bg-[#4e5fa8] disabled:opacity-60"
+        >
+          {loading ? "Đang đăng nhập…" : "Đăng nhập"}
         </button>
       </div>
 

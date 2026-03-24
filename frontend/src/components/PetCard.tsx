@@ -1,9 +1,14 @@
-import { Link } from "react-router-dom"
-import type { Pet } from "../data/pet"
+import { Link } from "react-router-dom";
 
 type Props = {
-  pet: Pet
-}
+  pet: {
+    id: string;
+    name: string;
+    age: number;
+    gender: string;
+    image: string;
+  };
+};
 
 export default function PetCard({ pet }: Props) {
   return (
@@ -29,5 +34,5 @@ export default function PetCard({ pet }: Props) {
 
       </div>
     </Link>
-  )
+  );
 }
