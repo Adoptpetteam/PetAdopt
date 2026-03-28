@@ -1,8 +1,17 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const speakeasy = require('speakeasy');
-const qrcode = require('qrcode');
-const { generateRandomOTP, sendRegistrationOTP } = require('../utils/otpService');
+const { OAuth2Client } = require('google-auth-library');
+const { generateRandomOTP, sendRegistrationOTP, sendPasswordResetOTP } = require('../utils/otpService');
+
+let googleOAuthClient;
+function getGoogleClient() {
+  if (!process.env.GOOGLE_CLIENT_ID) return null;
+  if (!googleOAuthClient) {
+    googleOAuthClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
+  return googleOAuthClient;
+}
 
 exports.register = async (req, res, next) => {
   try {
@@ -126,7 +135,7 @@ exports.verifyRegistrationOTP = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Xác thực email thành công! Bây giờ bạn có thể thiết lập 2FA.'
+      message: 'Xác thực email thành công! Bạn có thể đăng nhập.'
     });
   } catch (error) {
     next(error);
@@ -179,134 +188,21 @@ exports.resendRegistrationOTP = async (req, res, next) => {
   }
 };
 
-exports.setup2FA = async (req, res, next) => {
+/** Đăng nhập email + mật khẩu (không dùng TOTP/2FA). */
+exports.login = async (req, res, next) => {
   try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng cung cấp email!'
-      });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const user = await User.findOne({ email: normalizedEmail }).select('+twoFASecret');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy người dùng!'
-      });
-    }
-
-    if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Tài khoản chưa xác thực email!'
-      });
-    }
-
-    const secret = speakeasy.generateSecret({
-      name: `PawPalace (${user.email})`,
-      length: 20
-    });
-
-    user.twoFASecret = secret.base32;
-    user.twoFAEnabled = false;
-    await user.save();
-
-    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Quét mã QR bằng Google Authenticator',
-      qrCode: qrCodeUrl,
-      secret: secret.base32
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.verify2FA = async (req, res, next) => {
-  try {
-    const { email, token } = req.body;
-
-    if (!email || !token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng cung cấp email và mã xác thực!'
-      });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const user = await User.findOne({ email: normalizedEmail }).select('+twoFASecret');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy người dùng!'
-      });
-    }
-
-    if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Tài khoản chưa xác thực email!'
-      });
-    }
-
-    if (!user.twoFASecret) {
-      return res.status(400).json({
-        success: false,
-        message: 'Chưa thiết lập 2FA!'
-      });
-    }
-
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFASecret,
-      encoding: 'base32',
-      token,
-      window: 2
-    });
-
-    if (!verified) {
-      return res.status(401).json({
-        success: false,
-        message: 'Mã xác thực không đúng!'
-      });
-    }
-
-    user.twoFAEnabled = true;
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Kích hoạt 2FA thành công!'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.login2FA = async (req, res, next) => {
-  try {
-    const { email, password, totpCode } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng cung cấp email và password!'
+        message: 'Vui lòng cung cấp email và mật khẩu!'
       });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const user = await User.findOne({ email: normalizedEmail })
-      .select('+password +twoFASecret');
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -337,34 +233,6 @@ exports.login2FA = async (req, res, next) => {
       });
     }
 
-    if (!user.twoFAEnabled) {
-      return res.status(403).json({
-        success: false,
-        message: 'Tài khoản chưa kích hoạt 2FA!'
-      });
-    }
-
-    if (!totpCode) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng cung cấp mã 2FA!'
-      });
-    }
-
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFASecret,
-      encoding: 'base32',
-      token: totpCode,
-      window: 2
-    });
-
-    if (!verified) {
-      return res.status(401).json({
-        success: false,
-        message: 'Mã xác thực không đúng!'
-      });
-    }
-
     const authToken = jwt.sign(
       {
         userId: user._id,
@@ -391,6 +259,7 @@ exports.login2FA = async (req, res, next) => {
   }
 };
 
+/** Gửi OTP đặt lại mật khẩu (dùng chung cho quên mật khẩu / gửi lại OTP). */
 exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -402,18 +271,98 @@ exports.forgotPassword = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy email này trong hệ thống!'
+        message:
+          'Email chưa có trong hệ thống. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.'
       });
     }
 
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản đã bị khóa!'
+      });
+    }
+
+    const otp = generateRandomOTP();
+    user.resetPasswordOTP = otp;
+    user.resetPasswordOTPExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+    await sendPasswordResetOTP(user.email, user.name, otp);
+
     return res.status(200).json({
       success: true,
-      message: 'Đã gửi hướng dẫn đặt lại mật khẩu qua email! (Chức năng đang phát triển)'
+      message: 'Đã gửi mã OTP đặt lại mật khẩu đến email của bạn.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Xác nhận OTP + đặt mật khẩu mới (không cần đăng nhập). */
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const normalizedEmail = String(email ?? '')
+      .toLowerCase()
+      .trim();
+    const normalizedOtp = String(otp ?? '')
+      .replace(/\s+/g, '')
+      .trim();
+
+    if (!normalizedEmail || !normalizedOtp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp email, mã OTP và mật khẩu mới!'
+      });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu mới phải có ít nhất 6 ký tự!'
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      '+resetPasswordOTP +resetPasswordOTPExpires'
+    );
+
+    if (!user || !user.resetPasswordOTP || !user.resetPasswordOTPExpires) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Không có yêu cầu đặt lại mật khẩu hợp lệ. Vui lòng yêu cầu gửi OTP lại.'
+      });
+    }
+
+    if (user.resetPasswordOTPExpires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP đã hết hạn!'
+      });
+    }
+
+    if (user.resetPasswordOTP !== normalizedOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không đúng!'
+      });
+    }
+
+    user.password = newPassword;
+    user.resetPasswordOTP = null;
+    user.resetPasswordOTPExpires = null;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.'
     });
   } catch (error) {
     next(error);
@@ -514,6 +463,104 @@ exports.changePassword = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Đổi mật khẩu thành công!'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Đăng nhập bằng Google (Google Identity Services gửi JWT id_token trong field `credential`).
+ */
+exports.googleAuth = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu credential Google'
+      });
+    }
+
+    const client = getGoogleClient();
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        message: 'Chưa cấu hình GOOGLE_CLIENT_ID trên server'
+      });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(401).json({
+        success: false,
+        message: 'Không lấy được email từ Google'
+      });
+    }
+
+    const sub = payload.sub;
+    const normalizedEmail = String(payload.email).toLowerCase().trim();
+    const displayName = payload.name || normalizedEmail.split('@')[0];
+
+    let user = await User.findOne({
+      $or: [{ googleId: sub }, { email: normalizedEmail }]
+    });
+
+    if (!user) {
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      user = await User.create({
+        name: displayName,
+        email: normalizedEmail,
+        password: randomPassword,
+        googleId: sub,
+        role: 'user',
+        isVerified: !!payload.email_verified,
+        twoFAEnabled: false
+      });
+    } else {
+      if (!user.googleId) {
+        user.googleId = sub;
+      }
+      if (displayName) {
+        user.name = displayName;
+      }
+      if (payload.email_verified) {
+        user.isVerified = true;
+      }
+      await user.save();
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản đã bị khóa!'
+      });
+    }
+
+    const authToken = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đăng nhập Google thành công!',
+      token: authToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     next(error);

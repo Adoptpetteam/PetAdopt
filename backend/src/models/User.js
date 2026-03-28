@@ -19,6 +19,12 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email không hợp lệ!']
   },
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true,
+    trim: true
+  },
   password: {
     type: String,
     required: [true, 'Vui lòng nhập mật khẩu!'],
@@ -48,6 +54,16 @@ const userSchema = new mongoose.Schema({
     select: false
   },
   registrationOTPExpires: {
+    type: Date,
+    default: null,
+    select: false
+  },
+  resetPasswordOTP: {
+    type: String,
+    default: null,
+    select: false
+  },
+  resetPasswordOTPExpires: {
     type: Date,
     default: null,
     select: false

@@ -5,12 +5,10 @@ import axios from "axios";
 import {
   registerUser,
   resendRegistrationOtp,
-  setup2FA,
   verifyRegistrationOtp,
-  verify2FA,
 } from "../api/authApi";
 
-type Step = "form" | "otp" | "2fa";
+type Step = "form" | "otp";
 
 function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
@@ -65,7 +63,6 @@ function RegisterBrandingPanel({
               fill="#6272B6"
             />
           </g>
-          {/* Một lần chữ T1 trong SVG — tránh chồng lên path khoét tạo cảm giác "T1 T1" */}
           <text
             x="189.5"
             y="212"
@@ -111,8 +108,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [qrCode, setQrCode] = useState<string>("");
-  const [twoFAToken, setTwoFAToken] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -155,31 +150,6 @@ export default function RegisterPage() {
         otp: otp.trim(),
       });
       message.success(res.message);
-      const setup = await setup2FA(email.trim());
-      message.success(setup.message);
-      setQrCode(setup.qrCode);
-      setTwoFAToken("");
-      setStep("2fa");
-    } catch (err) {
-      message.error(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerify2FA = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!twoFAToken.trim()) {
-      message.warning("Vui lòng nhập mã 2FA trong ứng dụng Authenticator.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await verify2FA({
-        email: email.trim(),
-        token: twoFAToken.trim(),
-      });
-      message.success(res.message);
       navigate("/login");
     } catch (err) {
       message.error(getErrorMessage(err));
@@ -201,22 +171,13 @@ export default function RegisterPage() {
   };
 
   const brandingTitle =
-    step === "form"
-      ? "ĐĂNG KÝ TÀI KHOẢN"
-      : step === "otp"
-        ? "XÁC THỰC EMAIL"
-        : "THIẾT LẬP 2FA";
+    step === "form" ? "ĐĂNG KÝ TÀI KHOẢN" : "XÁC THỰC EMAIL";
   const brandingSubtitle =
-    step === "otp"
-      ? `Mã OTP đã gửi tới ${email}`
-      : step === "2fa"
-        ? `Quét QR và nhập mã 2FA cho ${email}`
-      : undefined;
+    step === "otp" ? `Mã OTP đã gửi tới ${email}` : undefined;
 
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto grid min-h-screen max-w-[1400px] grid-cols-1 lg:grid-cols-2">
-        {/* Cột trái (desktop): form — grid chia đều 50/50, form căn giữa nửa trái */}
         <section className="order-2 flex min-h-0 min-w-0 flex-col justify-center px-6 py-10 sm:px-10 lg:order-1 lg:px-14 lg:py-16 xl:px-20">
           <div className="mx-auto w-full max-w-[520px]">
             {step === "form" ? (
@@ -288,7 +249,7 @@ export default function RegisterPage() {
                   {loading ? "Đang gửi…" : "Đăng ký"}
                 </button>
               </form>
-            ) : step === "otp" ? (
+            ) : (
               <form onSubmit={handleVerifyOtp} className="flex flex-col gap-8">
                 <p className="text-sm text-gray-600">
                   Đã gửi mã OTP tới <strong>{email}</strong>. Nhập đúng mã (có
@@ -332,7 +293,7 @@ export default function RegisterPage() {
                   {loading ? "Đang xác thực…" : "Xác thực OTP"}
                 </button>
                 <p className="text-center text-sm text-gray-600">
-                  Sau khi xác thực, cần thiết lập 2FA rồi mới đăng nhập.{" "}
+                  Sau khi xác thực email, bạn có thể đăng nhập.{" "}
                   <Link
                     to="/login"
                     className="font-medium text-[#6272B6] hover:underline"
@@ -340,57 +301,6 @@ export default function RegisterPage() {
                     Tới đăng nhập
                   </Link>
                 </p>
-              </form>
-            ) : (
-              <form onSubmit={handleVerify2FA} className="flex flex-col gap-8">
-                <p className="text-sm text-gray-600">
-                  Quét QR bằng Google Authenticator (hoặc app tương tự), sau đó
-                  nhập mã 6 số để kích hoạt 2FA.
-                </p>
-                {qrCode ? (
-                  <div className="flex justify-center">
-                    <img
-                      src={qrCode}
-                      alt="QR code 2FA"
-                      className="h-[220px] w-[220px] rounded-xl bg-white p-2 shadow"
-                    />
-                  </div>
-                ) : null}
-                <div className="flex flex-col">
-                  <label className="mb-2 text-sm font-medium text-[#6272B6] sm:mb-3">
-                    Mã 2FA
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={twoFAToken}
-                    onChange={(e) => setTwoFAToken(e.target.value)}
-                    placeholder="Nhập mã 6 số"
-                    className={inputClass}
-                  />
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setStep("otp")}
-                    className="font-medium text-[#6272B6] hover:underline"
-                  >
-                    ← Quay lại OTP
-                  </button>
-                  <Link
-                    to="/login"
-                    className="font-medium text-[#6272B6] hover:underline"
-                  >
-                    Tới đăng nhập
-                  </Link>
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-full bg-[#6272B6] py-4 text-base font-medium text-white transition hover:bg-[#4e5fa8] disabled:opacity-60"
-                >
-                  {loading ? "Đang kích hoạt…" : "Kích hoạt 2FA"}
-                </button>
               </form>
             )}
           </div>

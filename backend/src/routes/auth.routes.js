@@ -8,9 +8,12 @@ router.post('/veri-register-otp', authController.verifyRegistrationOTP);
 router.post('/verify-registration-otp', authController.verifyRegistrationOTP);
 router.post('/resend-registration-otp', authController.resendRegistrationOTP);
 
-router.post('/setup-2fa', authController.setup2FA);
-router.post('/verify-2fa', authController.verify2FA);
-router.post('/login-2fa', authController.login2FA);
+router.post('/login', authController.login);
+router.post('/google', authController.googleAuth);
+
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/resend-reset-password-otp', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 router.get('/profile', authenticate, authController.getProfile);
 router.put('/profile', authenticate, authController.updateProfile);

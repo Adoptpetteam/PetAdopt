@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { message } from "antd";
 import axios from "axios";
-import { login2FA } from "../api/authApi";
+import { GoogleLogin } from "@react-oauth/google";
+import { login, loginWithGoogle } from "../api/authApi";
 
 function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
@@ -18,7 +19,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [totpCode, setTotpCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -27,19 +27,16 @@ export default function LoginPage() {
       message.warning("Vui lòng nhập email và mật khẩu.");
       return;
     }
-    if (!totpCode.trim()) {
-      message.warning("Vui lòng nhập mã 2FA.");
-      return;
-    }
 
     setLoading(true);
     try {
-      const res = await login2FA({
+      const res = await login({
         email: email.trim(),
         password,
-        totpCode: totpCode.trim(),
       });
       localStorage.setItem("token", res.token);
+      localStorage.setItem("user", JSON.stringify(res.user));
+      window.dispatchEvent(new Event("auth-change"));
       message.success(res.message);
       navigate("/");
     } catch (err) {
@@ -75,7 +72,7 @@ export default function LoginPage() {
 
 
       {/* ===== MIDDLE ===== */}
-      <form onSubmit={handleLogin} className="w-[980px] mx-auto flex flex-col gap-10">
+      <form id="login-form" onSubmit={handleLogin} className="w-[980px] mx-auto flex flex-col gap-10">
 
         {/* Email */}
         <div className="flex flex-col">
@@ -105,19 +102,13 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* 2FA */}
-        <div className="flex flex-col">
-          <label className="text-[#6272B6] font-medium mb-3">
-            Mã 2FA
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={totpCode}
-            onChange={(e) => setTotpCode(e.target.value)}
-            placeholder="Nhập mã 6 số từ Authenticator"
-            className="w-full h-[80px] bg-[#DDEDFF] rounded-[40px] px-6 outline-none"
-          />
+        <div className="text-right text-sm">
+          <Link
+            to="/forgot-password"
+            className="text-[#6272B6] font-medium hover:underline"
+          >
+            Quên mật khẩu?
+          </Link>
         </div>
 
         {/* Dòng đăng nhập */}
@@ -134,18 +125,37 @@ export default function LoginPage() {
         </div>
       </form>
 
+      {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+        <div className="w-[980px] mx-auto mt-8 flex flex-col items-center gap-4">
+          <p className="text-sm text-gray-500">hoặc</p>
+          <GoogleLogin
+            onSuccess={async (cred) => {
+              if (!cred.credential) return;
+              setLoading(true);
+              try {
+                const res = await loginWithGoogle({ credential: cred.credential });
+                localStorage.setItem("token", res.token);
+                localStorage.setItem("user", JSON.stringify(res.user));
+                window.dispatchEvent(new Event("auth-change"));
+                message.success(res.message);
+                navigate("/");
+              } catch (err) {
+                message.error(getErrorMessage(err));
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onError={() => message.error("Đăng nhập Google thất bại.")}
+          />
+        </div>
+      ) : null}
 
       {/* ===== BOTTOM ===== */}
       <div className="w-[980px] mx-auto mt-16 text-center">
         <button
           type="submit"
-          form="__none__"
+          form="login-form"
           disabled={loading}
-          onClick={(e) => {
-            e.preventDefault();
-            const form = (e.currentTarget.closest("div")?.previousElementSibling as HTMLFormElement | null);
-            form?.requestSubmit();
-          }}
           className="w-full bg-[#6272B6] text-white py-4 rounded-full font-medium transition duration-300 hover:bg-[#4e5fa8] disabled:opacity-60"
         >
           {loading ? "Đang đăng nhập…" : "Đăng nhập"}

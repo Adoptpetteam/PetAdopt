@@ -30,6 +30,26 @@ const sendRegistrationOTP = async (email, name, otp) => {
   await sendEmail(email, subject, html);
 };
 
+const sendPasswordResetOTP = async (email, name, otp) => {
+  const subject = 'Đặt lại mật khẩu - Pet Adopt';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4F46E5;">Đặt lại mật khẩu</h2>
+      <p>Xin chào <strong>${name}</strong>,</p>
+      <p>Mã OTP đặt lại mật khẩu của bạn là:</p>
+      <div style="background: #F3F4F6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+        <h1 style="color: #4F46E5; font-size: 36px; margin: 0; letter-spacing: 8px;">
+          ${otp}
+        </h1>
+      </div>
+      <p>Mã có hiệu lực trong <strong>15 phút</strong>.</p>
+      <p style="color: #EF4444;">⚠️ Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</p>
+    </div>
+  `;
+
+  await sendEmail(email, subject, html);
+};
+
 
 const generateUserSecret = () => {
   return authenticator.generateSecret();
@@ -47,6 +67,7 @@ const verifyAuthenticatorCode = (token, secret) => {
 module.exports = {
   generateRandomOTP,
   sendRegistrationOTP,
+  sendPasswordResetOTP,
   generateUserSecret,
   generateQRCode,
   verifyAuthenticatorCode

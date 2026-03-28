@@ -1,8 +1,39 @@
 // src/components/layout/Header.tsx
 
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
+type UserBrief = { name: string; email: string }
+
+function readUser(): UserBrief | null {
+  try {
+    const raw = localStorage.getItem("user")
+    if (!raw) return null
+    return JSON.parse(raw) as UserBrief
+  } catch {
+    return null
+  }
+}
+
 export default function Header() {
+  const [user, setUser] = useState<UserBrief | null>(() => readUser())
+
+  useEffect(() => {
+    const sync = () => setUser(readUser())
+    window.addEventListener("storage", sync)
+    window.addEventListener("auth-change", sync)
+    return () => {
+      window.removeEventListener("storage", sync)
+      window.removeEventListener("auth-change", sync)
+    }
+  }, [])
+
+  const logout = () => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    window.dispatchEvent(new Event("auth-change"))
+  }
+
   return (
     <header className="w-full mx-auto">
       
@@ -31,14 +62,35 @@ export default function Header() {
             </span>
         </div>
 
-        <div className="flex gap-4">
-          <Link to="/register" className="hover:underline">
-            Đăng ký
-          </Link>
-          <span>/</span>
-          <Link to="/login" className="hover:underline">
-            Đăng nhập
-          </Link>
+        <div className="flex items-center gap-4">
+          {user ? (
+            <>
+              <Link
+                to="/account"
+                className="max-w-[200px] truncate hover:underline"
+                title="Tài khoản"
+              >
+                Xin chào, {user.name}
+              </Link>
+              <button
+                type="button"
+                onClick={logout}
+                className="hover:underline"
+              >
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/register" className="hover:underline">
+                Đăng ký
+              </Link>
+              <span>/</span>
+              <Link to="/login" className="hover:underline">
+                Đăng nhập
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

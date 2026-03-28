@@ -7,6 +7,8 @@ import Details from "../pages/Details"
 
 import RegisterPage from "../pages/RegisterPage"
 import LoginPage from "../pages/LoginPage"
+import AccountPage from "../pages/AccountPage"
+import ForgotPasswordPage from "../pages/ForgotPasswordPage"
 import PageAdmin from "../components/layout/Admin/PageAdmin"
 import DashboardAdmin from "../pages/Admin/DashboardAdmin"
 import ListCategory from "../pages/Admin/Category/ListCategory"
@@ -20,11 +22,13 @@ export default function AppRoutes() {
           <Route path="/" element={<Home />} />
           <Route path="/adopt" element={<Adopt />} />
           <Route path="/pet/:id" element={<Details />} />
+          <Route path="/account" element={<AccountPage />} />
         </Route>
 
         {/* Pages không có Header Footer */}
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         <Route path="/admin" element={<PageAdmin />}>
           <Route path="" element={<DashboardAdmin />} />
