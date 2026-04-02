@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   HomeOutlined,
@@ -39,6 +39,7 @@ const SideBarAdmin = () => {
 
     { name: "Users", icon: <UserOutlined />, path: "/admin/users" },
     { name: "Reports", icon: <BarChartOutlined />, path: "/admin/reports" },
+    { name: "Đơn nhận nuôi", icon: <UserOutlined />, path: "/admin/adoptions" },
   ];
 
   const toggleMenu = (index: number) => {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { message } from "antd";
+import { message, Alert } from "antd";
 import axios from "axios";
 import { GoogleLogin } from "@react-oauth/google";
 import { login, loginWithGoogle } from "../api/authApi";
@@ -14,6 +14,9 @@ function getErrorMessage(err: unknown): string {
   }
   return "Có lỗi xảy ra, vui lòng thử lại.";
 }
+
+const googleClientId =
+  (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? "";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -125,15 +128,22 @@ export default function LoginPage() {
         </div>
       </form>
 
-      {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
-        <div className="w-[980px] mx-auto mt-8 flex flex-col items-center gap-4">
-          <p className="text-sm text-gray-500">hoặc</p>
+      {/* Đăng nhập Google — ngoài form để tránh submit nhầm */}
+      <div className="w-[980px] mx-auto mt-8 flex flex-col items-center gap-4 border-t border-gray-200 pt-8">
+        <p className="text-sm text-gray-500">hoặc</p>
+        {googleClientId ? (
           <GoogleLogin
+            text="continue_with"
+            shape="rectangular"
+            size="large"
+            width={320}
             onSuccess={async (cred) => {
               if (!cred.credential) return;
               setLoading(true);
               try {
-                const res = await loginWithGoogle({ credential: cred.credential });
+                const res = await loginWithGoogle({
+                  credential: cred.credential,
+                });
                 localStorage.setItem("token", res.token);
                 localStorage.setItem("user", JSON.stringify(res.user));
                 window.dispatchEvent(new Event("auth-change"));
@@ -147,8 +157,42 @@ export default function LoginPage() {
             }}
             onError={() => message.error("Đăng nhập Google thất bại.")}
           />
-        </div>
-      ) : null}
+        ) : (
+          <Alert
+            type="info"
+            showIcon
+            className="w-full max-w-xl text-left"
+            message="Chưa bật đăng nhập Google"
+            description={
+              <>
+                Thêm{" "}
+                <code className="rounded bg-gray-100 px-1 text-xs">
+                  VITE_GOOGLE_CLIENT_ID
+                </code>{" "}
+                vào file{" "}
+                <code className="rounded bg-gray-100 px-1 text-xs">.env</code>{" "}
+                trong thư mục{" "}
+                <code className="rounded bg-gray-100 px-1 text-xs">
+                  frontend
+                </code>{" "}
+                (Client ID loại Web từ Google Cloud Console, trùng với{" "}
+                <code className="rounded bg-gray-100 px-1 text-xs">
+                  GOOGLE_CLIENT_ID
+                </code>{" "}
+                ở backend). Thêm origin{" "}
+                <code className="rounded bg-gray-100 px-1 text-xs">
+                  http://localhost:5173
+                </code>{" "}
+                trong mục Authorized JavaScript origins, rồi chạy lại{" "}
+                <code className="rounded bg-gray-100 px-1 text-xs">
+                  npm run dev
+                </code>
+                .
+              </>
+            }
+          />
+        )}
+      </div>
 
       {/* ===== BOTTOM ===== */}
       <div className="w-[980px] mx-auto mt-16 text-center">

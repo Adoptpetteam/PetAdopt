@@ -8,7 +8,7 @@ let googleOAuthClient;
 function getGoogleClient() {
   if (!process.env.GOOGLE_CLIENT_ID) return null;
   if (!googleOAuthClient) {
-    googleOAuthClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    googleOAutcdhClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
   return googleOAuthClient;
 }

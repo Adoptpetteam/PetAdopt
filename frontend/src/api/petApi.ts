@@ -8,6 +8,12 @@ export type PetEntity = {
   gender?: string;
   images?: string[];
   status?: string;
+  breed?: string;
+  size?: string;
+  vaccinated?: boolean;
+  neutered?: boolean;
+  adoptionFee?: number;
+  description?: string;
 };
 
 export type PetsListResponse = {

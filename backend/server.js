@@ -1,9 +1,12 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./src/config/database');
 const authRoutes = require('./src/routes/auth.routes');
-const petRoutes = require('./src/routes/pet.routes'); 
+const petRoutes = require('./src/routes/pet.routes');
+const sepayRoutes = require('./src/routes/sepay.routes');
+const adoptionRoutes = require('./src/routes/adoption.routes'); 
 
 const app = express();
 
@@ -13,7 +16,9 @@ app.use(express.json());
 connectDB();
 
 app.use('/api/auth', authRoutes);
-app.use('/api/pets', petRoutes);  
+app.use('/api/pets', petRoutes);
+app.use('/api/sepay', sepayRoutes);
+app.use('/api/adoption', adoptionRoutes);  
 
 
 app.use((err, req, res, next) => {
