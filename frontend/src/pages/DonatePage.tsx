@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { sepayApi } from "../api/sepayApi";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { donateApi } from "../api/donateApi";
 
 // Sponsor logos
 const SPONSORS = [
@@ -77,25 +77,19 @@ const PETS = [
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000];
 
 // ============================================================
-// STEP 1: Form nhập số tiền
+// DonatePage - VNPay Integration
 // ============================================================
-function DonateForm({
-  onOrderCreated,
-}: {
-  onOrderCreated: (data: {
-    code: string;
-    amount: number;
-    expiresAt: string;
-    accountNumber: string;
-    bank: string;
-    accountName: string;
-    qrUrl: string;
-  }) => void;
-}) {
+export default function DonatePage() {
+  const [searchParams] = useSearchParams();
   const [amount, setAmount] = useState<number>(100000);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+
+  // Payment result from VNPay callback
+  const status = searchParams.get("status");
+  const ref = searchParams.get("ref");
+  const code = searchParams.get("code");
 
   const handlePresetClick = (val: number) => {
     setAmount(val);
@@ -119,377 +113,12 @@ function DonateForm({
     setLoading(true);
     setError("");
     try {
-      const res = await sepayApi.createOrder(finalAmount);
-      onOrderCreated({
-        code: res.data.code,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
-        accountNumber: res.data.accountNumber,
-        bank: res.data.bank,
-        accountName: res.data.accountName,
-        qrUrl: res.data.qrUrl,
-      });
+      const res = await donateApi.createPayment(finalAmount);
+      window.location.href = res.data.paymentUrl;
     } catch {
       setError("Không thể tạo đơn hàng. Vui lòng thử lại.");
-    } finally {
       setLoading(false);
     }
-  };
-
-  return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-      <h3 className="text-xl font-bold text-[#1446a0] mb-6 flex items-center gap-2">
-        <span className="text-2xl">🧧</span> Ủng hộ trực tuyến qua SePay
-      </h3>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        {PRESET_AMOUNTS.map((val) => (
-          <button
-            key={val}
-            onClick={() => handlePresetClick(val)}
-            className={`py-3 px-4 rounded-xl font-semibold text-sm transition border-2 ${
-              amount === val && !customAmount
-                ? "bg-[#6272B6] text-white border-[#6272B6]"
-                : "bg-white text-[#6272B6] border-[#6272B6] hover:bg-[#6272B6] hover:text-white"
-            }`}
-          >
-            {val.toLocaleString("vi-VN")}đ
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-600 mb-2">
-          Hoặc nhập số tiền tùy ý (VND)
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            inputMode="numeric"
-            value={customAmount}
-            onChange={handleCustomChange}
-            placeholder="Nhập số tiền..."
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 text-lg focus:outline-none focus:border-[#6272B6] transition"
-          />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">VND</span>
-        </div>
-      </div>
-
-      <div className="bg-[#f0f4ff] rounded-xl p-4 mb-6 text-center">
-        <p className="text-sm text-gray-500 mb-1">Số tiền ủng hộ</p>
-        <p className="text-3xl font-bold text-[#6272B6]">
-          {(customAmount ? Number(customAmount) : amount).toLocaleString("vi-VN")}đ
-        </p>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-3 mb-4 text-sm">
-          {error}
-        </div>
-      )}
-
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="w-full bg-[#6272B6] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#4a5ab3] transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Đang tạo đơn hàng...
-          </>
-        ) : (
-          <>💳 Tạo đơn ủng hộ ngay</>
-        )}
-      </button>
-
-      <p className="text-xs text-gray-400 text-center mt-3">
-        Thanh toán an toàn qua SePay. Không thu phí giao dịch.
-      </p>
-    </div>
-  );
-}
-
-// ============================================================
-// STEP 2: Hướng dẫn chuyển khoản + polling trạng thái
-// ============================================================
-function PaymentInstructions({
-  code,
-  amount,
-  expiresAt,
-  accountNumber,
-  bank,
-  accountName,
-  qrUrl,
-  onBack,
-}: {
-  code: string;
-  amount: number;
-  expiresAt: string;
-  accountNumber: string;
-  bank: string;
-  accountName: string;
-  qrUrl: string;
-  onBack: () => void;
-}) {
-  const [status, setStatus] = useState<"PENDING" | "PAID" | "EXPIRED">("PENDING");
-  const [copied, setCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<string>("");
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Copy mã
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-      const el = document.createElement("textarea");
-      el.value = code;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // Poll trạng thái
-  const pollStatus = useCallback(async () => {
-    try {
-      const res = await sepayApi.getOrder(code);
-      const s = res.data.status;
-      if (s === "PAID") {
-        setStatus("PAID");
-        stopPolling();
-      } else if (s === "EXPIRED" || s === "CANCELLED") {
-        setStatus("EXPIRED");
-        stopPolling();
-      }
-    } catch {
-      // ignore polling errors
-    }
-  }, [code]);
-
-  const stopPolling = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (pollingRef.current) clearInterval(pollingRef.current);
-  };
-
-  useEffect(() => {
-    pollingRef.current = setInterval(pollStatus, 3000);
-    return () => stopPolling();
-  }, [pollStatus]);
-
-  // Countdown timer
-  useEffect(() => {
-    const updateTimer = () => {
-      const now = new Date();
-      const exp = new Date(expiresAt);
-      const diff = exp.getTime() - now.getTime();
-      if (diff <= 0) {
-        setTimeLeft("Đã hết hạn");
-        setStatus("EXPIRED");
-        stopPolling();
-        return;
-      }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setTimeLeft(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
-    };
-    updateTimer();
-    intervalRef.current = setInterval(updateTimer, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [expiresAt]);
-
-  // ========== SUCCESS ==========
-  if (status === "PAID") {
-    return (
-      <div className="bg-white rounded-2xl shadow-lg p-10 border border-gray-100 text-center">
-        <div className="text-7xl mb-6">🎉</div>
-        <h2 className="text-3xl font-bold text-[#6272B6] mb-3">Cảm ơn bạn!</h2>
-        <p className="text-gray-600 mb-2">
-          Đóng góp của bạn đã được ghi nhận thành công.
-        </p>
-        <p className="text-sm text-gray-400 mb-6">
-          Mã giao dịch: <span className="font-mono font-medium text-gray-600">{code}</span>
-        </p>
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 text-sm text-green-700">
-          Cảm ơn bạn đã chung tay cứu hộ những bé cưng. Mọi đóng góp đều được ghi nhận!
-        </div>
-        <Link
-          to="/"
-          className="inline-block bg-[#6272B6] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#4a5ab3] transition"
-        >
-          Về trang chủ
-        </Link>
-      </div>
-    );
-  }
-
-  // ========== EXPIRED ==========
-  if (status === "EXPIRED") {
-    return (
-      <div className="bg-white rounded-2xl shadow-lg p-10 border border-gray-100 text-center">
-        <div className="text-7xl mb-6">⏰</div>
-        <h2 className="text-3xl font-bold text-red-500 mb-3">Đơn hàng đã hết hạn</h2>
-        <p className="text-gray-600 mb-8">
-          Phiên thanh toán đã hết hạn. Vui lòng tạo đơn mới.
-        </p>
-        <button
-          onClick={onBack}
-          className="bg-[#6272B6] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#4a5ab3] transition"
-        >
-          Tạo đơn mới
-        </button>
-      </div>
-    );
-  }
-
-  // ========== WAITING FOR PAYMENT ==========
-  return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-      <h3 className="text-xl font-bold text-[#1446a0] mb-2 flex items-center gap-2">
-        <span className="text-2xl">📋</span> Hướng dẫn thanh toán
-      </h3>
-
-      <div className="flex items-center justify-between mb-6">
-        <span className="text-sm text-gray-500">Mã đơn hàng</span>
-        <span className="text-sm text-gray-500">Hết hạn: {timeLeft}</span>
-      </div>
-
-      {/* Mã nổi bật */}
-      <div className="bg-[#6272B6] text-white rounded-xl p-6 mb-6 text-center">
-        <p className="text-sm opacity-80 mb-2">Sao chép mã này và dán vào nội dung chuyển khoản</p>
-        <div className="flex items-center justify-center gap-3">
-          <span className="text-3xl font-mono font-bold tracking-widest select-all">{code}</span>
-          <button
-            onClick={handleCopy}
-            className="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg text-sm transition flex-shrink-0"
-          >
-            {copied ? "✅ Đã copy!" : "📋 Copy"}
-          </button>
-        </div>
-      </div>
-
-      {/* Số tiền */}
-      <div className="bg-[#f0f4ff] rounded-xl p-4 mb-6 text-center">
-        <p className="text-sm text-gray-500 mb-1">Số tiền cần chuyển</p>
-        <p className="text-3xl font-bold text-[#6272B6]">
-          {amount.toLocaleString("vi-VN")}đ
-        </p>
-      </div>
-
-      {/* Thông tin tài khoản */}
-      <div className="bg-gray-50 rounded-xl p-5 mb-6 space-y-3 text-sm">
-        <div className="flex items-start gap-3">
-          <span className="font-semibold text-gray-700 w-28 flex-shrink-0">Ngân hàng:</span>
-          <span className="text-gray-600">{bank === 'MB' ? 'MB Bank' : bank}</span>
-        </div>
-        <div className="flex items-start gap-3">
-          <span className="font-semibold text-gray-700 w-28 flex-shrink-0">Số tài khoản:</span>
-          <span className="text-gray-600 font-mono">{accountNumber || 'Chưa cấu hình'}</span>
-        </div>
-        <div className="flex items-start gap-3">
-          <span className="font-semibold text-gray-700 w-28 flex-shrink-0">Tên tài khoản:</span>
-          <span className="text-gray-600">{accountName}</span>
-        </div>
-        <div className="flex items-start gap-3">
-          <span className="font-semibold text-gray-700 w-28 flex-shrink-0">Nội dung:</span>
-          <span className="text-[#6272B6] font-bold font-mono">{code}</span>
-        </div>
-      </div>
-
-      {/* QR Code SePay */}
-      {qrUrl ? (
-        <div className="flex flex-col items-center gap-3 mb-6">
-          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qrUrl}
-              alt="QR thanh toán SePay"
-              className="w-48 h-48 object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          </div>
-          <p className="text-xs text-gray-400">Quét mã QR để chuyển khoản nhanh hơn</p>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-3 mb-6">
-          <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-300">
-            <span className="text-gray-400 text-sm text-center px-4">QR chưa có<br/>(chưa cấu hình SePay)</span>
-          </div>
-          <p className="text-xs text-gray-400">Chuyển khoản thủ công theo thông tin bên trên</p>
-        </div>
-      )}
-      {/* Trạng thái đang chờ */}
-      <div className="flex items-center justify-center gap-2 mb-4">
-        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-        <span className="text-sm text-yellow-600 font-medium">
-          Đang chờ thanh toán — trang sẽ tự cập nhật khi bạn chuyển khoản xong
-        </span>
-      </div>
-
-      {/* Spinner */}
-      <div className="flex justify-center mb-6">
-        <svg className="animate-spin h-8 w-8 text-[#6272B6]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      </div>
-
-      <button
-        onClick={onBack}
-        className="w-full border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition"
-      >
-        ← Hủy và tạo đơn khác
-      </button>
-    </div>
-  );
-}
-
-// ============================================================
-// MAIN PAGE
-// ============================================================
-export default function DonatePage() {
-  const [step, setStep] = useState<"form" | "payment">("form");
-  const [orderData, setOrderData] = useState<{
-    code: string;
-    amount: number;
-    expiresAt: string;
-    accountNumber: string;
-    bank: string;
-    accountName: string;
-    qrUrl: string;
-  } | null>(null);
-
-  const handleOrderCreated = (data: {
-    code: string;
-    amount: number;
-    expiresAt: string;
-    accountNumber: string;
-    bank: string;
-    accountName: string;
-    qrUrl: string;
-  }) => {
-    setOrderData(data);
-    setStep("payment");
-  };
-
-  const handleBack = () => {
-    setOrderData(null);
-    setStep("form");
   };
 
   return (
@@ -537,22 +166,123 @@ export default function DonatePage() {
                 cung cấp thông tin thẻ hoặc mã OTP.
               </p>
 
-              {/* FORM / PAYMENT INSTRUCTIONS */}
-              {step === "form" ? (
-                <DonateForm onOrderCreated={handleOrderCreated} />
-              ) : (
-                orderData && (
-                  <PaymentInstructions
-                    code={orderData.code}
-                    amount={orderData.amount}
-                    expiresAt={orderData.expiresAt}
-                    accountNumber={orderData.accountNumber}
-                    bank={orderData.bank}
-                    accountName={orderData.accountName}
-                    qrUrl={orderData.qrUrl}
-                    onBack={handleBack}
-                  />
-                )
+              {/* ===== PAYMENT RESULT ===== */}
+              {status === "success" && (
+                <div className="bg-white rounded-2xl shadow-lg p-10 border border-gray-100 text-center">
+                  <div className="text-7xl mb-6">🎉</div>
+                  <h2 className="text-3xl font-bold text-green-600 mb-3">Cảm ơn bạn!</h2>
+                  <p className="text-gray-600 mb-2">
+                    Đóng góp của bạn đã được ghi nhận thành công.
+                  </p>
+                  <p className="text-sm text-gray-400 mb-6">
+                    Mã giao dịch: <span className="font-mono font-medium text-gray-600">{ref}</span>
+                  </p>
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 text-sm text-green-700">
+                    Cảm ơn bạn đã chung tay cứu hộ những bé cưng. Mọi đóng góp đều được ghi nhận!
+                  </div>
+                  <Link
+                    to="/"
+                    className="inline-block bg-[#6272B6] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#4a5ab3] transition"
+                  >
+                    Về trang chủ
+                  </Link>
+                </div>
+              )}
+
+              {status === "failed" && (
+                <div className="bg-white rounded-2xl shadow-lg p-10 border border-gray-100 text-center">
+                  <div className="text-7xl mb-6">❌</div>
+                  <h2 className="text-3xl font-bold text-red-500 mb-3">Thanh toán thất bại</h2>
+                  <p className="text-gray-600 mb-6">
+                    Rất tiếc, thanh toán của bạn không thành công. Vui lòng thử lại.
+                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8 text-sm text-red-700">
+                    Mã lỗi: {code}
+                  </div>
+                  <button
+                    onClick={() => window.location.href = '/donate'}
+                    className="inline-block bg-[#6272B6] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#4a5ab3] transition"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              )}
+
+              {/* ===== DONATION FORM ===== */}
+              {!status && (
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <h3 className="text-xl font-bold text-[#6272B6] mb-6 flex items-center gap-2">
+                    <span className="text-2xl">💳</span> Ủng hộ qua VNPay
+                  </h3>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    {PRESET_AMOUNTS.map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => handlePresetClick(val)}
+                        className={`py-3 px-4 rounded-xl font-semibold text-sm transition border-2 ${
+                          amount === val && !customAmount
+                            ? "bg-[#6272B6] text-white border-[#6272B6]"
+                            : "bg-white text-[#6272B6] border-[#6272B6] hover:bg-[#6272B6] hover:text-white"
+                        }`}
+                      >
+                        {val.toLocaleString("vi-VN")}đ
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      Hoặc nhập số tiền tùy ý (VND)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={customAmount}
+                        onChange={handleCustomChange}
+                        placeholder="Nhập số tiền..."
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 text-lg focus:outline-none focus:border-[#6272B6] transition"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">VND</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f0f4ff] rounded-xl p-4 mb-6 text-center">
+                    <p className="text-sm text-gray-500 mb-1">Số tiền ủng hộ</p>
+                    <p className="text-3xl font-bold text-[#6272B6]">
+                      {(customAmount ? Number(customAmount) : amount).toLocaleString("vi-VN")}đ
+                    </p>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-3 mb-4 text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="w-full bg-[#6272B6] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#4a5ab3] transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Đang chuyển đến VNPay...
+                      </>
+                    ) : (
+                      <>💳 Thanh toán qua VNPay</>
+                    )}
+                  </button>
+
+                  <p className="text-xs text-gray-400 text-center mt-3">
+                    Thanh toán an toàn qua VNPay. Không thu phí giao dịch.
+                  </p>
+                </div>
               )}
 
               <p className="font-medium mt-8">

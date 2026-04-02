@@ -5,8 +5,8 @@ const cors = require('cors');
 const connectDB = require('./src/config/database');
 const authRoutes = require('./src/routes/auth.routes');
 const petRoutes = require('./src/routes/pet.routes');
-const sepayRoutes = require('./src/routes/sepay.routes');
 const adoptionRoutes = require('./src/routes/adoption.routes'); 
+const donateRoutes = require('./src/routes/donate.routes'); 
 
 const app = express();
 
@@ -17,8 +17,8 @@ connectDB();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
-app.use('/api/sepay', sepayRoutes);
 app.use('/api/adoption', adoptionRoutes);  
+app.use('/api/donate', donateRoutes);  
 
 
 app.use((err, req, res, next) => {
