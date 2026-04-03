@@ -8,7 +8,11 @@ exports.getDashboardStats = async (req, res, next) => {
       Pet.countDocuments({ status: 'available' }),
       Pet.countDocuments({ status: { $in: ['pending', 'reserved'] } }),
       User.countDocuments(),
-      AdoptionRequest.countDocuments({ status: 'pending' }),
+
+     AdoptionRequest.countDocuments({ status: 'pending' }),
+
+      AdoptionRequest.countDocuments({ status: { $in: ['pending_payment', 'paid'] } }),
+
       AdoptionRequest.countDocuments({ status: 'approved' }),
       User.countDocuments({ role: 'admin' })
     ]);
@@ -69,7 +73,6 @@ exports.getAllPetsAdmin = async (req, res, next) => {
   }
 };
 
-
 exports.approvePet = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id);
@@ -92,7 +95,6 @@ exports.approvePet = async (req, res, next) => {
     next(error);
   }
 };
-
 
 exports.rejectPet = async (req, res, next) => {
   try {
@@ -120,7 +122,6 @@ exports.rejectPet = async (req, res, next) => {
   }
 };
 
-
 exports.banUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -143,7 +144,6 @@ exports.banUser = async (req, res, next) => {
     next(error);
   }
 };
-
 
 exports.unbanUser = async (req, res, next) => {
   try {
