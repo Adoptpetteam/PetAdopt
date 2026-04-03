@@ -7,31 +7,45 @@ const petSchema = new mongoose.Schema(
       required: [true, 'Vui lòng nhập tên thú cưng'],
       trim: true
     },
-    species: {
-      type: String,
-      enum: ['dog', 'cat', 'bird', 'rabbit', 'hamster', 'other'],
-      lowercase: true,
-      trim: true
-    },
-    breed: {
-      type: String,
-      trim: true
-    },
     age: {
       type: Number,
-      min: 0,
+      min: [0, 'Tuổi không hợp lệ'],
       default: 0
     },
     gender: {
       type: String,
       enum: ['male', 'female', 'unknown'],
       default: 'unknown',
-      lowercase: true
+      lowercase: true,
+      trim: true
     },
-    size: {
+    image: {
       type: String,
-      enum: ['small', 'medium', 'large'],
-      default: 'medium'
+      trim: true,
+      default: ''
+    },
+
+    // có thể giữ lại nếu bạn vẫn muốn lưu loại text
+    type: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+
+    // thêm field category
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: [true, 'Vui lòng chọn danh mục']
+    },
+
+    sterilized: {
+      type: Boolean,
+      default: false
+    },
+    vaccinated: {
+      type: Boolean,
+      default: false
     },
     color: {
       type: String,
@@ -40,44 +54,18 @@ const petSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      trim: true
-    },
-    healthStatus: {
-      type: String,
-      enum: ['excellent', 'good', 'fair', 'needs_care'],
-      default: 'good'
-    },
-    vaccinated: {
-      type: Boolean,
-      default: false
-    },
-    sterilized: {
-      type: Boolean,
-      default: false
+      trim: true,
+      default: ''
     },
     status: {
       type: String,
       enum: ['available', 'adopted', 'pending', 'reserved', 'rejected'],
       default: 'available'
     },
-    adoptionFee: {
-      type: Number,
-      min: 0,
-      default: 0
-    },
-    location: {
-      type: String,
-      trim: true
-    },
-    images: [
-      {
-        type: String
-      }
-    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      default: null
     },
     adminNote: {
       type: String,
@@ -88,12 +76,10 @@ const petSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// index
-petSchema.index({ name: 'text', breed: 'text', description: 'text' });
-petSchema.index({ species: 1, status: 1 });
+petSchema.index({ name: 'text', color: 'text', description: 'text', type: 'text' });
+petSchema.index({ category: 1, status: 1 });
 petSchema.index({ createdAt: -1 });
 
-// transform
 petSchema.set('toJSON', {
   transform: (_doc, ret) => {
     ret.id = ret._id;
