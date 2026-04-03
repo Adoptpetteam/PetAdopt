@@ -1,36 +1,4 @@
-import axios from "axios";
-
-
-//dùng khi mà có đường dẫn api từ back-end
-// const axiosClient = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL,
-// });
-
-// axiosClient.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token");
-//   if (token) {
-//     config.headers = config.headers || {};
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
-
-
-const axiosClient = axios.create({
-  baseURL: "http://localhost:3000",
-});
-
-axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
+import { apiClient } from "../api/http";
 
 export type Props = {
   resource: string;
@@ -38,45 +6,82 @@ export type Props = {
   values?: any;
 };
 
-export const getListCategory = async ({resource = "category"} : Props) => {
-  const {data} = await axiosClient.get(resource);
-  return data
-}
-export const getCategoryDetail = async ({ id, resource = "category" }: Props) => {
-  if (!id) throw new Error("Thiếu ID phim");
-  const { data } = await axiosClient.get(`${resource}/${id}`);
-  return data;
+const unwrap = <T = any>(payload: any): T => payload?.data ?? payload;
+
+const buildPath = (resource: string, id?: string | number) =>
+  id !== undefined ? `/${resource}/${id}` : `/${resource}`;
+
+export const getListCategory = async ({ resource = "category" }: Props) => {
+  const { data } = await apiClient.get(buildPath(resource));
+  return unwrap(data);
 };
 
+export const getCategoryDetail = async ({ id, resource = "category" }: Props) => {
+  if (!id) throw new Error("Thiếu ID danh mục");
+  const { data } = await apiClient.get(buildPath(resource, id));
+  return unwrap(data);
+};
 
-export const getDeleteCategory = async ({resource = "category" , id} : Props) => {
-  if(!id) return;
-  const {data} = await axiosClient.delete(`${resource}/${id}`)
-  return data;
-}
+export const getDeleteCategory = async ({ resource = "category", id }: Props) => {
+  if (!id) return null;
+  const { data } = await apiClient.delete(buildPath(resource, id));
+  return unwrap(data);
+};
 
 export const getCreateCategory = async ({ resource = "category", values }: Props) => {
-  const { data } = await axiosClient.post(resource, values);
-  return data;
+  const { data } = await apiClient.post(buildPath(resource), values);
+  return unwrap(data);
 };
 
-
 export const getUpdateCategory = async ({ resource = "category", id, values }: Props) => {
-  if (!id) return;
+  if (!id) return null;
+  const { data } = await apiClient.put(buildPath(resource, id), values);
+  return unwrap(data);
+};
 
-  // Trường hợp values là FormData (thường dùng khi có upload ảnh)
-  if (values instanceof FormData) {
-    values.append("_method", "PUT");
-    const { data } = await axiosClient.post(`${resource}/${id}`, values, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return data;
-  }
+export const getListPet = async ({ resource = "pets" }: Props) => {
+  const { data } = await apiClient.get(buildPath(resource));
+  return unwrap(data);
+};
 
-  // TRƯỜNG HỢP CẦN THÊM: values là Object bình thường (JSON)
-  // Sử dụng PUT hoặc PATCH tùy theo API của bạn
-  const { data } = await axiosClient.put(`${resource}/${id}`, values); 
-  return data;
+export const getPetDetail = async ({ resource = "pets", id }: any) => {
+  const { data } = await apiClient.get(buildPath(resource, id));
+  return unwrap(data);
+};
+
+export const createPet = async ({ resource = "pets", values }: Props) => {
+  const { data } = await apiClient.post(buildPath(resource), values);
+  return unwrap(data);
+};
+
+export const updatePet = async ({ resource = "pets", id, values }: Props) => {
+  if (!id) return null;
+  const { data } = await apiClient.put(buildPath(resource, id), values);
+  return unwrap(data);
+};
+
+export const deletePet = async ({ resource = "pets", id }: Props) => {
+  if (!id) return null;
+  const { data } = await apiClient.delete(buildPath(resource, id));
+  return unwrap(data);
+};
+
+export const createAdoption = async ({ resource = "adoptions", values }: any) => {
+  const { data } = await apiClient.post(buildPath(resource), values);
+  return unwrap(data);
+};
+
+export const getAdoptions = async ({ resource = "adoptions" }: any) => {
+  const { data } = await apiClient.get(buildPath(resource));
+  return unwrap(data);
+};
+
+export const getListAdoption = async ({ resource = "adoptions" }: any) => {
+  const { data } = await apiClient.get(buildPath(resource));
+  return unwrap(data);
+};
+
+export const deleteAdoption = async ({ resource = "adoptions", id }: any) => {
+  const { data } = await apiClient.delete(buildPath(resource, id));
+  return unwrap(data);
 };
