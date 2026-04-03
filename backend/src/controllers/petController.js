@@ -1,131 +1,203 @@
+const Category = require('../models/Category');
+const mongoose = require('mongoose');
 const Pet = require('../models/Pet');
+
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const canManagePet = (pet, user) => {
+  if (!user) return true;
+  if (!pet.createdBy) return true;
+  return String(pet.createdBy) === String(user.userId) || user.role === 'admin';
+};
+
+const canViewPet = (_pet, _user) => true;
+
+const normalizeGender = (value) => {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  if (['male', 'm', 'duc', 'đực', 'boy'].includes(normalized)) return 'male';
+  if (['female', 'f', 'cai', 'cái', 'girl'].includes(normalized)) return 'female';
+  return 'unknown';
+};
+
+const toBoolean = (value, fallback = false) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false;
+  }
+  return Boolean(value);
+};
+
+const normalizePetPayload = (body = {}) => ({
+  name: body.name !== undefined ? body.name.toString().trim() : undefined,
+  age: body.age !== undefined && body.age !== '' ? Number(body.age) : undefined,
+  gender: body.gender !== undefined ? normalizeGender(body.gender) : undefined,
+  image: body.image !== undefined ? body.image.toString().trim() : undefined,
+  type: body.type !== undefined ? body.type.toString().trim().toLowerCase() : undefined,
+  category: body.category !== undefined ? body.category.toString().trim() : undefined,
+  sterilized: body.sterilized !== undefined ? toBoolean(body.sterilized) : undefined,
+  vaccinated: body.vaccinated !== undefined ? toBoolean(body.vaccinated) : undefined,
+  color: body.color !== undefined ? body.color.toString().trim() : undefined,
+  description: body.description !== undefined ? body.description.toString().trim() : undefined,
+  status: body.status !== undefined ? body.status.toString().trim() : undefined,
+  adminNote: body.adminNote !== undefined ? body.adminNote.toString().trim() : undefined
+});
 
 exports.createPet = async (req, res, next) => {
   try {
-    const {
-      name, species, breed, age, gender, size, color,
-      description, healthStatus, vaccinated, neutered,
-      adoptionFee, location
-    } = req.body;
+    const payload = normalizePetPayload(req.body);
 
-    if (!name || !species) {
+    if (!payload.name || !payload.category) {
       return res.status(400).json({
         success: false,
-        message: 'Tên và loài thú cưng là bắt buộc'
+        message: 'Tên và danh mục thú cưng là bắt buộc'
       });
     }
 
-    const pet = new Pet({
-      name,
-      species,
-      breed,
-      age,
-      gender,
-      size,
-      color,
-      description,
-      healthStatus,
-      vaccinated,
-      neutered,
-      adoptionFee,
-      location,
-      createdBy: req.user.userId  
+    if (!isValidObjectId(payload.category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Danh mục không hợp lệ'
+      });
+    }
+
+    const categoryExists = await Category.findById(payload.category);
+    if (!categoryExists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Danh mục không tồn tại'
+      });
+    }
+
+    const pet = await Pet.create({
+      name: payload.name,
+      age: payload.age,
+      gender: payload.gender,
+      image: payload.image,
+      type: payload.type || categoryExists.name?.toString().trim().toLowerCase() || '',
+      category: payload.category,
+      sterilized: payload.sterilized,
+      vaccinated: payload.vaccinated,
+      color: payload.color,
+      description: payload.description,
+      status: payload.status || 'available',
+      createdBy: req.user?.userId || null,
+      adminNote: payload.adminNote || ''
     });
 
-    await pet.save();
+    const createdPet = await Pet.findById(pet._id)
+      .populate('createdBy', 'name email')
+      .populate('category', 'name status');
 
-    res.status(201).json({
-      success: true,
-      message: 'Tạo thú cưng thành công!',
-      data: pet
-    });
+    return res.status(201).json(createdPet);
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
 exports.getAllPets = async (req, res, next) => {
   try {
     const {
-      page = 1,
-      limit = 10,
-      species,
       status,
       gender,
-      size,
       minAge,
       maxAge,
-      search
+      search,
+      color,
+      sterilized,
+      vaccinated,
+      type,
+      category
     } = req.query;
 
     const filter = {};
 
-    if (species) filter.species = species;
+    if (type) filter.type = type.toString().trim().toLowerCase();
+    if (gender) filter.gender = normalizeGender(gender);
+    if (color) filter.color = { $regex: color.toString().trim(), $options: 'i' };
+    if (sterilized !== undefined) filter.sterilized = toBoolean(sterilized);
+    if (vaccinated !== undefined) filter.vaccinated = toBoolean(vaccinated);
     if (status) filter.status = status;
-    if (gender) filter.gender = gender;
-    if (size) filter.size = size;
-    
-    if (minAge || maxAge) {
-      filter.age = {};
-      if (minAge) filter.age.$gte = parseInt(minAge);
-      if (maxAge) filter.age.$lte = parseInt(maxAge);
+
+    if (category) {
+      if (!isValidObjectId(category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Danh mục không hợp lệ'
+        });
+      }
+      filter.category = category;
     }
 
-    if (search) {
+    if (minAge || maxAge) {
+      filter.age = {};
+      if (minAge !== undefined) filter.age.$gte = parseInt(minAge, 10);
+      if (maxAge !== undefined) filter.age.$lte = parseInt(maxAge, 10);
+    }
+
+    if (search && search.trim()) {
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { breed: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { name: { $regex: search.trim(), $options: 'i' } },
+        { description: { $regex: search.trim(), $options: 'i' } },
+        { color: { $regex: search.trim(), $options: 'i' } },
+        { type: { $regex: search.trim(), $options: 'i' } }
       ];
     }
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Pet.countDocuments(filter);
 
     const pets = await Pet.find(filter)
       .populate('createdBy', 'name email')
-      .skip(skip)
-      .limit(parseInt(limit))
+      .populate('category', 'name status')
       .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      data: pets,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit))
-      }
-    });
+    return res.json(pets);
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
 exports.getPetById = async (req, res, next) => {
   try {
-    const pet = await Pet.findById(req.params.id)
-      .populate('createdBy', 'name email');
+    const { id } = req.params;
 
-    if (!pet) {
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pet id không hợp lệ'
+      });
+    }
+
+    const pet = await Pet.findById(id)
+      .populate('createdBy', 'name email')
+      .populate('category', 'name status');
+
+    if (!pet || !canViewPet(pet, req.user)) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy thú cưng'
       });
     }
 
-    res.json({
-      success: true,
-      data: pet
-    });
+    return res.json(pet);
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
 exports.updatePet = async (req, res, next) => {
   try {
-    const pet = await Pet.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pet id không hợp lệ'
+      });
+    }
+
+    const pet = await Pet.findById(id);
 
     if (!pet) {
       return res.status(404).json({
@@ -134,33 +206,79 @@ exports.updatePet = async (req, res, next) => {
       });
     }
 
+    if (!canManagePet(pet, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền cập nhật thú cưng này'
+      });
+    }
+
+    const payload = normalizePetPayload(req.body);
+
+    if (payload.category !== undefined) {
+      if (!isValidObjectId(payload.category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Danh mục không hợp lệ'
+        });
+      }
+
+      const categoryExists = await Category.findById(payload.category);
+      if (!categoryExists) {
+        return res.status(404).json({
+          success: false,
+          message: 'Danh mục không tồn tại'
+        });
+      }
+
+      if (!payload.type || !payload.type.trim()) {
+        payload.type = categoryExists.name?.toString().trim().toLowerCase() || '';
+      }
+    }
+
     const allowedFields = [
-      'name', 'species', 'breed', 'age', 'gender', 'size', 'color',
-      'description', 'healthStatus', 'vaccinated', 'neutered',
-      'status', 'adoptionFee', 'location'
+      'name',
+      'age',
+      'gender',
+      'image',
+      'type',
+      'category',
+      'sterilized',
+      'vaccinated',
+      'color',
+      'description',
+      'status',
+      'adminNote'
     ];
 
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        pet[field] = req.body[field];
-      }
+    allowedFields.forEach((field) => {
+      if (payload[field] !== undefined) pet[field] = payload[field];
     });
 
     await pet.save();
 
-    res.json({
-      success: true,
-      message: 'Cập nhật thú cưng thành công!',
-      data: pet
-    });
+    const updatedPet = await Pet.findById(pet._id)
+      .populate('createdBy', 'name email')
+      .populate('category', 'name status');
+
+    return res.json(updatedPet);
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
 exports.deletePet = async (req, res, next) => {
   try {
-    const pet = await Pet.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pet id không hợp lệ'
+      });
+    }
+
+    const pet = await Pet.findById(id);
 
     if (!pet) {
       return res.status(404).json({
@@ -169,13 +287,16 @@ exports.deletePet = async (req, res, next) => {
       });
     }
 
-    await pet.deleteOne();
+    if (!canManagePet(pet, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền xóa thú cưng này'
+      });
+    }
 
-    res.json({
-      success: true,
-      message: 'Xóa thú cưng thành công!'
-    });
+    await pet.deleteOne();
+    return res.json({ success: true, message: 'Xóa thú cưng thành công' });
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
