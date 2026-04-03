@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const petController = require('../controllers/petController');
-const { authenticate } = require('../middleware/authMiddleware');
+const categoryController = require('../controllers/categoryController');
 
-router.get('/', petController.getAllPets);           
-router.get('/:id', petController.getPetById);        
-
-router.post('/', authenticate, petController.createPet);      
-router.put('/:id', authenticate, petController.updatePet);    
-router.delete('/:id', authenticate, petController.deletePet); 
+router.get('/', categoryController.getCategories);
+router.get('/:id', categoryController.getCategoryById);
+router.post('/', categoryController.createCategory);
+router.put('/:id', categoryController.updateCategory);
+router.delete('/:id', categoryController.deleteCategory);
 
 module.exports = router;
