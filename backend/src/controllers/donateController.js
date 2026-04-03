@@ -1,8 +1,9 @@
 const crypto = require('crypto');
 const moment = require('moment');
+const { sendDonationThankYou } = require('../utils/donateService');
 
 // ====== In-memory store (thay bằng MongoDB nếu cần) ======
-// Key: orderId, Value: { amount, createdAt }
+// Key: orderId, Value: { amount, email, name, createdAt }
 const pendingOrders = new Map();
 
 // ====== Helpers ======
@@ -12,6 +13,15 @@ function sortObject(obj) {
         sorted[key] = encodeURIComponent(obj[key]).replace(/%20/g, '+');
     });
     return sorted;
+}
+
+function removeVietnameseTones(str) {
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, (m) => (m === 'đ' ? 'd' : 'D'))
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .trim();
 }
 
 function getClientIp(req) {
@@ -42,7 +52,7 @@ function verifyVNPaySignature(vnp_Params, secretKey) {
 exports.createPayment = (req, res) => {
     process.env.TZ = 'Asia/Ho_Chi_Minh';
 
-    const { amount, orderInfo } = req.body;
+    const { amount, email, name } = req.body;
 
     // Validate
     if (!amount || isNaN(amount) || Number(amount) < 1000) {
@@ -54,15 +64,24 @@ exports.createPayment = (req, res) => {
     const orderId = `${moment(date).format('YYMMDD')}${moment(date).format('HHmmss')}`;
     const ipAddr = getClientIp(req);
 
-    const tmnCode = process.env.VNP_TMNCODE;
-    const secretKey = process.env.VNP_HASHSECRET;
+    // Thời hạn thanh toán: 15 phút
+    const expireDate = moment(date).add(15, 'minutes').format('YYYYMMDDHHmmss');
+
+    // Order info: tiếng Việt không dấu
+    const orderDescription = `Ung ho PawPalace ${Number(amount).toLocaleString('vi-VN')} VND`;
+    const orderInfoNoAccent = removeVietnameseTones(orderDescription);
+
+    const vnp_TmnCode = process.env.VNP_TMNCODE;
+    const vnp_HashSecret = process.env.VNP_HASHSECRET;
     const vnpUrl = process.env.VNP_URL;
     const returnUrl = process.env.VNP_RETURN_URL;
 
-    // Lưu đơn chờ để verify IPN
+    // Lưu đơn chờ để verify IPN (chứa cả email + name để gửi mail cảm ơn)
     pendingOrders.set(orderId, {
         amount: Number(amount),
-        orderInfo: orderInfo || `Ung ho PawPalace ${Number(amount).toLocaleString('vi-VN')} VND`,
+        email: email || null,
+        name: name || null,
+        orderInfo: orderDescription,
         createdAt: date,
     });
 
@@ -73,12 +92,13 @@ exports.createPayment = (req, res) => {
         vnp_Locale: 'vn',
         vnp_CurrCode: 'VND',
         vnp_TxnRef: orderId,
-        vnp_OrderInfo: orderInfo || `Ung ho PawPalace ${Number(amount).toLocaleString('vi-VN')} VND`,
+        vnp_OrderInfo: orderInfoNoAccent,
         vnp_OrderType: 'billpayment',
         vnp_Amount: String(Number(amount) * 100), // VNPay nhân 100
         vnp_ReturnUrl: returnUrl,
         vnp_IpAddr: ipAddr,
         vnp_CreateDate: createDate,
+        vnp_ExpireDate: expireDate,
     };
 
     // Build signature
@@ -86,7 +106,7 @@ exports.createPayment = (req, res) => {
     const signData = Object.entries(sorted)
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
-    const hmac = crypto.createHmac('sha512', secretKey);
+    const hmac = crypto.createHmac('sha512', vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
     const paymentUrl = `${vnpUrl}?${Object.entries({ ...sorted, vnp_SecureHash: signed })
@@ -98,12 +118,12 @@ exports.createPayment = (req, res) => {
 
 // ====== GET /api/donate/vnpay-return ======
 // Xử lý khi VNPay redirect khách hàng quay về
-exports.vnpayReturn = (req, res) => {
+exports.vnpayReturn = async (req, res) => {
     const vnp_Params = { ...req.query };
-    const secretKey = process.env.VNP_HASHSECRET;
+    const vnp_HashSecret = process.env.VNP_HASHSECRET;
     const base = process.env.CLIENT_URL || 'http://localhost:5173';
 
-    const isValidSignature = verifyVNPaySignature(vnp_Params, secretKey);
+    const isValidSignature = verifyVNPaySignature(vnp_Params, vnp_HashSecret);
     const rspCode = vnp_Params['vnp_ResponseCode'];
     const orderId = vnp_Params['vnp_TxnRef'];
     const amount = vnp_Params['vnp_Amount'];
@@ -111,30 +131,38 @@ exports.vnpayReturn = (req, res) => {
     if (isValidSignature && rspCode === '00') {
         // Thanh toán thành công
         console.log(`[Donate] Success: Order ${orderId}, Amount ${amount}`);
-        // Xóa đơn chờ
-        pendingOrders.delete(orderId);
-        res.redirect(`${base}/donate/callback?status=success&code=${rspCode}&ref=${orderId}`);
+        // Lấy thông tin order để gửi mail cảm ơn
+        const order = pendingOrders.get(orderId);
+        if (order) {
+            pendingOrders.delete(orderId);
+            // Gửi email cảm ơn (async, không block redirect)
+            if (order.email) {
+                sendDonationThankYou(order.email, order.name, order.amount)
+                    .catch(err => console.error('[Donate] Send thank-you email failed:', err.message));
+            }
+        }
+        res.redirect(`${base}/donate?status=success&code=${rspCode}&ref=${orderId}`);
     } else {
         console.log(`[Donate] Failed: Order ${orderId}, Code ${rspCode}`);
-        res.redirect(`${base}/donate/callback?status=failed&code=${rspCode}&ref=${orderId}`);
+        pendingOrders.delete(orderId);
+        res.redirect(`${base}/donate?status=failed&code=${rspCode}&ref=${orderId}`);
     }
 };
 
 // ====== GET /api/donate/vnpay-ipn ======
 // VNPay gọi server-to-server (IPN) — cần trả JSON cho VNPay
-exports.vnpayIPN = (req, res) => {
+exports.vnpayIPN = async (req, res) => {
     const vnp_Params = { ...req.query };
-    const secretKey = process.env.VNP_HASHSECRET;
+    const vnp_HashSecret = process.env.VNP_HASHSECRET;
 
     const orderId = vnp_Params['vnp_TxnRef'];
     const rspCode = vnp_Params['vnp_ResponseCode'];
     const amount = vnp_Params['vnp_Amount'];
-    const secureHash = vnp_Params['vnp_SecureHash'];
 
     console.log(`[Donate IPN] Received: order=${orderId}, code=${rspCode}, amount=${amount}`);
 
     // 1. Verify signature
-    const isValidSignature = verifyVNPaySignature(vnp_Params, secretKey);
+    const isValidSignature = verifyVNPaySignature(vnp_Params, vnp_HashSecret);
     if (!isValidSignature) {
         console.log(`[Donate IPN] Invalid signature for order ${orderId}`);
         return res.status(200).json({ RspCode: '97', Message: 'Checksum failed' });
@@ -156,10 +184,17 @@ exports.vnpayIPN = (req, res) => {
 
     // 4. Update payment status
     if (rspCode === '00') {
-        // ✅ Thành công — lưu vào DB (đánh dấu đã thanh toán)
+        // ✅ Thành công — gửi email cảm ơn + lưu vào DB (đánh dấu đã thanh toán)
         console.log(`[Donate IPN] Payment SUCCESS: order=${orderId}, amount=${paidAmount}`);
-        // TODO: Lưu Donation record vào MongoDB
         pendingOrders.delete(orderId);
+
+        // Gửi email cảm ơn (async, không block IPN response)
+        if (order.email) {
+            sendDonationThankYou(order.email, order.name, order.amount)
+                .catch(err => console.error('[Donate IPN] Send thank-you email failed:', err.message));
+        }
+
+        // TODO: Lưu Donation record vào MongoDB nếu cần
         return res.status(200).json({ RspCode: '00', Message: 'Success' });
     } else {
         // ❌ Thất bại

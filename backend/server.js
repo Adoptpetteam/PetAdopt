@@ -5,8 +5,12 @@ const cors = require('cors');
 const connectDB = require('./src/config/database');
 const authRoutes = require('./src/routes/auth.routes');
 const petRoutes = require('./src/routes/pet.routes');
-const adoptionRoutes = require('./src/routes/adoption.routes'); 
-const donateRoutes = require('./src/routes/donate.routes'); 
+const adoptionRoutes = require('./src/routes/adoption.routes');
+const donateRoutes = require('./src/routes/donate.routes');
+const newsRoutes = require('./src/routes/news.routes');
+const volunteerRoutes = require('./src/routes/volunteer.routes');
+const contactRoutes = require('./src/routes/contact.routes');
+const categoryRoutes = require('./src/routes/category.routes'); 
 
 const app = express();
 
@@ -17,8 +21,12 @@ connectDB();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
-app.use('/api/adoption', adoptionRoutes);  
-app.use('/api/donate', donateRoutes);  
+app.use('/api/adoption', adoptionRoutes);
+app.use('/api/donate', donateRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/volunteer', volunteerRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/category', categoryRoutes);
 
 
 app.use((err, req, res, next) => {

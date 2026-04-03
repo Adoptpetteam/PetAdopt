@@ -1,16 +1,24 @@
 const crypto = require('crypto');
+const { jwtVerify, createRemoteJWKSet } = require('jose');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
 const { generateRandomOTP, sendRegistrationOTP, sendPasswordResetOTP } = require('../utils/otpService');
 
-let googleOAuthClient;
-function getGoogleClient() {
-  if (!process.env.GOOGLE_CLIENT_ID) return null;
-  if (!googleOAuthClient) {
-    googleOAutcdhClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// JWKS endpoint của Google — dùng để verify JWT từ Google
+const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
+
+// Verify Google JWT credential
+async function verifyGoogleCredential(credential, expectedAudience) {
+  try {
+    const { payload } = await jwtVerify(credential, GOOGLE_JWKS, {
+      issuer: ['https://accounts.google.com', 'accounts.google.com'],
+      audience: expectedAudience,
+    });
+    return payload;
+  } catch (err) {
+    console.error('[Google Auth] JWT verify failed:', err.message);
+    return null;
   }
-  return googleOAuthClient;
 }
 
 exports.register = async (req, res, next) => {
@@ -482,23 +490,11 @@ exports.googleAuth = async (req, res, next) => {
       });
     }
 
-    const client = getGoogleClient();
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        message: 'Chưa cấu hình GOOGLE_CLIENT_ID trên server'
-      });
-    }
-
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
+    const payload = await verifyGoogleCredential(credential, process.env.GOOGLE_CLIENT_ID);
     if (!payload || !payload.email) {
       return res.status(401).json({
         success: false,
-        message: 'Không lấy được email từ Google'
+        message: 'Token Google không hợp lệ hoặc không lấy được email'
       });
     }
 
@@ -563,6 +559,10 @@ exports.googleAuth = async (req, res, next) => {
       }
     });
   } catch (error) {
-    next(error);
+    console.error('[Google Auth] Lỗi:', error.message, error.code);
+    return res.status(500).json({
+      success: false,
+      message: 'Đăng nhập Google thất bại: ' + (error.message || 'Lỗi không xác định')
+    });
   }
 };
