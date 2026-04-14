@@ -36,7 +36,7 @@ export type AdoptionListResponse = {
   };
 };
 
-/** Tạo đơn nhận nuôi mới */
+
 export async function createAdoptionRequest(
   body: AdoptionRequestBody
 ): Promise<AdoptionRequestResponse> {
@@ -47,7 +47,7 @@ export async function createAdoptionRequest(
   return data;
 }
 
-/** Lấy danh sách đơn nhận nuôi (admin) */
+
 export async function getAdoptionRequests(params?: {
   status?: string;
   page?: number;
@@ -59,7 +59,6 @@ export async function getAdoptionRequests(params?: {
   return data;
 }
 
-/** Lấy đơn của user hiện tại */
 export async function getMyAdoptionRequests(): Promise<AdoptionListResponse> {
   const { data } = await apiClient.get<AdoptionListResponse>(
     "/adoption/my-requests"
@@ -67,7 +66,7 @@ export async function getMyAdoptionRequests(): Promise<AdoptionListResponse> {
   return data;
 }
 
-/** Lấy chi tiết một đơn nhận nuôi */
+
 export async function getAdoptionRequestById(
   id: string
 ): Promise<{ success: boolean; data: any }> {
@@ -75,7 +74,6 @@ export async function getAdoptionRequestById(
   return data;
 }
 
-/** Hủy đơn nhận nuôi */
 export async function cancelAdoptionRequest(
   id: string
 ): Promise<AdoptionRequestResponse> {
@@ -85,7 +83,7 @@ export async function cancelAdoptionRequest(
   return data;
 }
 
-/** Duyệt đơn nhận nuôi (admin) */
+
 export async function approveAdoptionRequest(
   id: string,
   adminNote?: string
@@ -97,7 +95,7 @@ export async function approveAdoptionRequest(
   return data;
 }
 
-/** Từ chối đơn nhận nuôi (admin) */
+
 export async function rejectAdoptionRequest(
   id: string,
   adminNote?: string
