@@ -3,12 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { apiClient } from "../../api/http";
 import { useUpdatePet, useListCategory } from "../../hook/huyHook";
 
+
+
+
 export default function EditPet() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { mutate, isPending } = useUpdatePet({ resource: "pets" });
   const { data: categories = [] } = useListCategory({ resource: "category" });
   const [form, setForm] = useState<any>(null);
+
 
   useEffect(() => {
     if (!id) return;
@@ -34,7 +38,6 @@ export default function EditPet() {
       [name]: type === "checkbox" ? checked : name === "age" ? Number(value) : value,
     });
   };
-
   const handleSubmit = (e: any) => {
     e.preventDefault();
     if (!id) return;
@@ -49,7 +52,6 @@ export default function EditPet() {
       }
     );
   };
-
   if (!form) return null;
 
   return (
@@ -93,13 +95,13 @@ export default function EditPet() {
         />
 
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="vaccinated" checked={!!form.vaccinated} onChange={handleChange} />
-          Đã tiêm phòng
-        </label>
-
-        <label className="flex items-center gap-2">
           <input type="checkbox" name="sterilized" checked={!!form.sterilized} onChange={handleChange} />
           Đã triệt sản
+        </label>
+
+          <label className="flex items-center gap-2">
+          <input type="checkbox" name="vaccinated" checked={!!form.vaccinated} onChange={handleChange} />
+          Đã tiêm phòng
         </label>
 
         <button disabled={isPending} className="w-full bg-[#6272B6] text-white py-3 rounded-full disabled:opacity-60">
