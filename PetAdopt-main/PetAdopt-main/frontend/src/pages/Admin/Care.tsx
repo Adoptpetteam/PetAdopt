@@ -14,7 +14,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
 import dayjs from "dayjs";
-import emailjs from "emailjs-com"; 
+import emailjs from "emailjs-com";
 
 interface Care {
   id: number;
@@ -25,6 +25,7 @@ interface Care {
   address: string;
   vaccineDate: string;
   createdAt: string;
+  mailSent?: boolean; // 🔥 chống gửi spam
 }
 
 const CarePage = () => {
@@ -45,57 +46,68 @@ const CarePage = () => {
     fetchData();
   }, []);
 
-  // 🔥 AUTO GỬI MAIL KHI ĐẾN NGÀY
+  // 🔥 AUTO GỬI MAIL KHI ĐẾN NGÀY (KHÔNG SPAM)
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = dayjs().format("YYYY-MM-DD");
 
     data.forEach((item) => {
-      if (item.vaccineDate === today) {
+      if (item.vaccineDate === today && !item.mailSent) {
         sendMail(item);
+
+        // update lại DB để không gửi lại
+        axios.patch(`http://localhost:3000/care/${item.id}`, {
+          mailSent: true,
+        });
       }
     });
   }, [data]);
 
   // 👉 gửi mail
-  const sendMail = (item: any) => {
+  const sendMail = (item: Care) => {
     emailjs
       .send(
-        "service_4bt161g", // 
-        "YOUR_TEMPLATE_ID", // 
+        "service_4bt161g",
+        "template_7qxsmme", 
         {
-          to_email: item.email,
+          email: item.email, 
           name: item.name,
           date: item.vaccineDate,
         },
-        "YOUR_PUBLIC_KEY" // 
+        "YOUR_PUBLIC_KEY" 
       )
       .then(() => {
         message.success(`Đã gửi mail cho ${item.name}`);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log(err);
         message.error("Lỗi gửi mail");
       });
   };
 
+  // 👉 filter
   const handleFilter = (date: any) => {
     if (!date) {
       setFilteredData(data);
       return;
     }
+
     const filtered = data.filter(
       (item) =>
         dayjs(item.vaccineDate).format("YYYY-MM-DD") ===
         date.format("YYYY-MM-DD")
     );
+
     setFilteredData(filtered);
   };
 
+  // 👉 thêm
   const handleAdd = () => {
     setEditing(null);
     form.resetFields();
     setIsModalOpen(true);
   };
 
+  // 👉 sửa
   const handleEdit = (record: Care) => {
     setEditing(record);
     form.setFieldsValue({
@@ -105,15 +117,16 @@ const CarePage = () => {
     setIsModalOpen(true);
   };
 
+
   const handleDelete = async (id: number) => {
     await axios.delete(`http://localhost:3000/care/${id}`);
     message.success("Xóa thành công");
     fetchData();
   };
 
+  
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-
+const values = await form.validateFields();
     if (editing) {
       await axios.patch(`http://localhost:3000/care/${editing.id}`, {
         phone: values.phone,
@@ -128,6 +141,7 @@ const CarePage = () => {
         address: values.address,
         vaccineDate: values.vaccineDate.format("YYYY-MM-DD"),
         createdAt: new Date().toLocaleDateString(),
+        mailSent: false, 
       };
 
       await axios.post("http://localhost:3000/care", newItem);
@@ -157,7 +171,7 @@ const CarePage = () => {
       dataIndex: "vaccineDate",
       render: (date) => (
         <Tag color={isNearDate(date) ? "red" : "blue"}>
-          {date} {isNearDate(date) && " (Đến hạn tiêm)"}
+          {date} {isNearDate(date) && " (Sắp đến hạn)"}
         </Tag>
       ),
     },
@@ -168,10 +182,7 @@ const CarePage = () => {
         <Space>
           <Button onClick={() => handleEdit(record)}>Sửa SĐT</Button>
 
-          {/* 👉 nút gửi mail */}
-          <Button onClick={() => sendMail(record)}>
-            Gửi mail
-          </Button>
+          <Button onClick={() => sendMail(record)}>Gửi mail</Button>
 
           <Button danger onClick={() => handleDelete(record.id)}>
             Xóa
@@ -180,30 +191,23 @@ const CarePage = () => {
       ),
     },
   ];
-
   return (
     <div style={{ padding: 20 }}>
       <h2>Chăm sóc khách hàng</h2>
-
       <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
         <Card> Tổng khách: {total}</Card>
         <Card> Sắp tiêm: {near}</Card>
       </div>
-
       <DatePicker
         onChange={handleFilter}
         style={{ marginBottom: 10 }}
         placeholder="Lọc theo ngày tiêm"
       />
-
       <br />
-
       <Button type="primary" onClick={handleAdd} style={{ marginBottom: 10 }}>
         Thêm
       </Button>
-
       <Table rowKey="id" columns={columns} dataSource={filteredData} />
-
       <Modal
         title={editing ? "Sửa SĐT" : "Thêm khách"}
         open={isModalOpen}
@@ -215,7 +219,11 @@ const CarePage = () => {
             <Input disabled={!!editing} />
           </Form.Item>
 
-          <Form.Item name="petName" label="Tên thú cưng" rules={[{ required: true }]}>
+          <Form.Item
+            name="petName"
+            label="Tên thú cưng"
+            rules={[{ required: true }]}
+          >
             <Input disabled={!!editing} />
           </Form.Item>
 
@@ -239,5 +247,4 @@ const CarePage = () => {
     </div>
   );
 };
-
 export default CarePage;
