@@ -42,10 +42,10 @@ export default function AddPet() {
 
   return (
     <div className="max-w-[600px] mx-auto py-20 px-6">
-      <h1 className="text-3xl font-bold text-center text-[#6272B6] mb-10">
+      
+<h1 className="text-3xl font-bold text-center text-[#6272B6] mb-10">
         Thêm thú cưng
       </h1>
-
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-xl shadow">
         <input
           name="name"
@@ -89,19 +89,20 @@ export default function AddPet() {
           ))}
         </select>
 
-        <input
-          name="color"
-          placeholder="Màu sắc"
-          onChange={handleChange}
-          className="input"
-        />
-
-        <input
+          <input
           name="image"
           placeholder="Link ảnh"
           onChange={handleChange}
           className="input"
         />
+
+        <input
+          name="color"
+          placeholder="Màu"
+          onChange={handleChange}
+          className="input"
+        />
+
 
         <textarea
           name="description"
