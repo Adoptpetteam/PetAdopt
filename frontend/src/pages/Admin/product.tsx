@@ -1,4 +1,5 @@
-import { useEffect, useState, type Key } from "react";
+import React, { useState } from "react";
+import { useEffect } from "react";
 import {
   Table,
   Button,
@@ -9,33 +10,38 @@ import {
   InputNumber,
   message,
   Popconfirm,
-  Alert,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import type { Product } from "../../data/products";
-import {
-  listProducts as listProductsApi,
-  createProduct as createProductApi,
-  updateProduct as updateProductApi,
-  deleteProduct as deleteProductApi,
-} from "../../api/productApi";
+
+interface Product {
+  id: number
+  key: string;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+  description: string;
+}
 
 const ProductPage = () => {
   const [data, setData] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
 
   const [form] = Form.useForm();
 
-  async function refresh() {
-    const res = await listProductsApi();
-    setData(res.data);
-  }
-
   useEffect(() => {
-    refresh().catch(() => message.error("Không tải được danh sách sản phẩm."));
-  }, []);
+  fetch("http://localhost:3000/products")
+    .then(res => res.json())
+    .then(data => {
+      // ⚠️ map id → key (antd cần key)
+      const formatted = data.map((item: any) => ({
+        ...item,
+        key: item.id.toString(),
+      }));
+      setData(formatted);
+    });
+}, []);
 
   // 👉 mở modal thêm
   const handleAdd = () => {
@@ -53,84 +59,58 @@ const ProductPage = () => {
 
   // 👉 submit form
   const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      const payload = {
-        name: String(values.name ?? ""),
-        image: String(values.image ?? ""),
-        price: Number(values.price ?? 0),
-        quantity: Number(values.quantity ?? 0),
-        description: String(values.description ?? ""),
-      };
-
-      if (editingProduct) {
-        updateProductApi(editingProduct.id, payload)
-          .then(() => {
-            message.success("Cập nhật sản phẩm thành công");
-          })
-          .catch((e: any) => {
-            message.error(e?.response?.data?.message || "Cập nhật thất bại");
-          })
-          .finally(() => {
-            setIsModalOpen(false);
-            refresh().catch(() => {});
-          });
-      } else {
-        createProductApi(payload)
-          .then(() => {
-            message.success("Thêm sản phẩm thành công");
-          })
-          .catch((e: any) => {
-            message.error(e?.response?.data?.message || "Thêm thất bại");
-          })
-          .finally(() => {
-            setIsModalOpen(false);
-            refresh().catch(() => {});
-          });
-      }
-    });
-  };
-
-  // 👉 xóa một dòng
-  const handleDelete = (id: number) => {
-    deleteProductApi(id)
-      .then(() => {
-        message.success("Đã xóa sản phẩm");
-        setSelectedRowKeys((keys) => keys.filter((k) => k !== id));
-        refresh().catch(() => {});
-      })
-      .catch((e: any) => {
-        message.error(e?.response?.data?.message || "Xóa thất bại");
+  form.validateFields().then(async (values) => {
+    if (editingProduct) {
+      // 👉 UPDATE
+      await fetch(`http://localhost:3000/products/${editingProduct.key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...values,
+          id: Number(editingProduct.key),
+        }),
       });
-  };
 
-  // 👉 xóa nhiều dòng đã chọn
-  const handleDeleteSelected = () => {
-    const ids = selectedRowKeys.map((k) => Number(k)).filter((n) => Number.isFinite(n));
-    if (ids.length === 0) return;
-    Modal.confirm({
-      title: `Xóa ${ids.length} sản phẩm?`,
-      content: "Thao tác không thể hoàn tác. Đảm bảo không còn đơn hàng / giỏ hàng phụ thuộc nếu cần.",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
-      onOk: async () => {
-        let ok = 0;
-        let fail = 0;
-        for (const id of ids) {
-          try {
-            await deleteProductApi(id);
-            ok += 1;
-          } catch {
-            fail += 1;
-          }
-        }
-        if (ok) message.success(`Đã xóa ${ok} sản phẩm.`);
-        if (fail) message.warning(`${fail} sản phẩm không xóa được.`);
-        setSelectedRowKeys([]);
-        await refresh().catch(() => {});
-      },
-    });
-  };
+      message.success("Cập nhật sản phẩm thành công");
+    } else {
+      // 👉 CREATE
+      await fetch("http://localhost:3000/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      message.success("Thêm sản phẩm thành công");
+    }
+
+    // 👉 reload lại data
+    const res = await fetch("http://localhost:3000/products");
+    const newData = await res.json();
+
+    setData(
+      newData.map((item: any) => ({
+        ...item,
+        key: item.id.toString(),
+      }))
+    );
+
+    setIsModalOpen(false);
+  });
+};
+
+  // 👉 xóa
+const handleDelete = async (key: string) => {
+  await fetch(`http://localhost:3000/products/${key}`, {
+    method: "DELETE",
+  });
+
+  setData(data.filter((item) => item.key !== key));
+  message.success("Đã xóa sản phẩm");
+};
 
   const columns: ColumnsType<Product> = [
     {
@@ -159,26 +139,21 @@ const ProductPage = () => {
     },
     {
       title: "Hành động",
-      width: 220,
       render: (_, record) => (
-        <Space wrap>
+        <Space>
           <Button type="primary" onClick={() => handleEdit(record)}>
             Sửa
           </Button>
-          <Popconfirm
-            title="Xóa sản phẩm này?"
-            description={
-              record.quantity > 0
-                ? `Còn ${record.quantity} sản phẩm trong kho. Vẫn xóa khỏi hệ thống?`
-                : "Sản phẩm sẽ bị xóa vĩnh viễn."
-            }
-            okText="Xóa"
-            okType="danger"
-            cancelText="Hủy"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button danger>Xóa</Button>
-          </Popconfirm>
+
+          {/* 👉 chỉ cho xóa khi hết hàng */}
+          {record.quantity === 0 && (
+            <Popconfirm
+              title="Xóa sản phẩm?"
+              onConfirm={() => handleDelete(record.key)}
+            >
+              <Button danger>Xóa</Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -188,47 +163,11 @@ const ProductPage = () => {
     <div style={{ padding: 20 }}>
       <h2>Quản lý sản phẩm</h2>
 
-      <Space style={{ marginBottom: 16 }} wrap>
-        <Button type="primary" onClick={handleAdd}>
-          Thêm sản phẩm
-        </Button>
-      </Space>
+      <Button type="primary" onClick={handleAdd} style={{ marginBottom: 16 }}>
+        Thêm sản phẩm
+      </Button>
 
-      <Alert
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-        message="Xóa sản phẩm"
-        description={
-          <>
-            Chọn một hoặc nhiều dòng bằng ô checkbox, rồi dùng nút <strong>Xóa đã chọn</strong>. Hoặc dùng nút{" "}
-            <strong>Xóa</strong> trên từng dòng. Xóa trên server là vĩnh viễn.
-          </>
-        }
-      />
-
-      <Space style={{ marginBottom: 12 }} wrap>
-        <span style={{ color: "#666" }}>
-          Đã chọn: <strong>{selectedRowKeys.length}</strong> sản phẩm
-        </span>
-        <Button
-          danger
-          disabled={selectedRowKeys.length === 0}
-          onClick={handleDeleteSelected}
-        >
-          Xóa đã chọn
-        </Button>
-      </Space>
-
-      <Table
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-      />
+      <Table columns={columns} dataSource={data} rowKey="key" />
 
       {/* MODAL */}
       <Modal
