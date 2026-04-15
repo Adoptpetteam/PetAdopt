@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { jwtVerify, createRemoteJWKSet } = require('jose');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'petadopt_local_dev_secret';
 const { generateRandomOTP, sendRegistrationOTP, sendPasswordResetOTP } = require('../utils/otpService');
 
 // JWKS endpoint của Google — dùng để verify JWT từ Google
@@ -247,7 +248,7 @@ exports.login = async (req, res, next) => {
         email: user.email,
         role: user.role
       },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
     );
 
@@ -543,7 +544,7 @@ exports.googleAuth = async (req, res, next) => {
         email: user.email,
         role: user.role
       },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
     );
 

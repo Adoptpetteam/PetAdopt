@@ -179,6 +179,7 @@ export default function Header() {
         <Link to="/news" className="hover:text-[#6272B6]">Tin tức</Link>
         <Link to="/products" className="hover:text-[#6272B6]">Sản phẩm</Link>
         <Link to="/contact" className="hover:text-[#6272B6]">Liên hệ</Link>
+        <Link to="/vaccination-schedule" className="hover:text-[#6272B6]">Lịch tiêm phòng</Link>
       </nav>
 
     </header>
