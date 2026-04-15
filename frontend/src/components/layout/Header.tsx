@@ -1,38 +1,35 @@
 // src/components/layout/Header.tsx
 
-import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { loadCartItems } from "../../utils/cartStore"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 export default function Header() {
-  const [cartCount, setCartCount] = useState(0)
+  const [searchTerm, setSearchTerm] = useState("")
+const [pets, setPets] = useState<any[]>([])
+const [filteredPets, setFilteredPets] = useState<any[]>([])
+const [showDropdown, setShowDropdown] = useState(false)
 
-  useEffect(() => {
-    const update = () => {
-      try {
-        const items = loadCartItems()
-        const total = items.reduce((sum, i) => sum + i.quantity, 0)
-        setCartCount(total)
-      } catch {
-        setCartCount(0)
-      }
-    }
+const navigate = useNavigate()
 
-    update()
-    const timer = window.setInterval(update, 1500)
+useEffect(() => {
+  fetch("http://localhost:3000/pets")
+    .then(res => res.json())
+    .then(data => setPets(data))
+}, [])
 
-    // Also update when another tab changes cart.
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "cart") update()
-    }
-    window.addEventListener("storage", onStorage)
+useEffect(() => {
+  if (searchTerm.trim() === "") {
+    setFilteredPets([])
+    return
+  }
 
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener("storage", onStorage)
-    }
-  }, [])
+  const result = pets.filter((pet) =>
+    pet.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
+  setFilteredPets(result)
+}, [searchTerm, pets])
   return (
     <header className="w-full mx-auto">
       
@@ -73,11 +70,12 @@ export default function Header() {
       </div>
 
       {/* ===== MIDDLE ===== */}
+      
       <div className="h-[100px] flex items-center justify-between px-[130px]">
         
         {/* Logo */}
         <div className="flex items-center gap-2">
-
+        <Link to="/">
           <svg xmlns="http://www.w3.org/2000/svg" width="180" height="54" viewBox="0 0 180 54" fill="none">
 <g clip-path="url(#clip0_33_482)">
 <path d="M39.8839 34.3576C38.7601 33.5396 37.5517 32.9437 36.4801 32.0163C32.4206 28.5049 31.3089 22.0033 25.1507 22.0033C18.9925 22.0033 17.8764 28.5038 13.8212 32.0163C12.7485 32.9437 11.5412 33.5396 10.4175 34.3576C9.29377 35.1756 8.20914 36.2525 7.59463 37.7584C6.88674 39.4778 6.89325 41.5851 7.42525 43.311C7.91966 44.9015 8.86184 46.3167 10.1395 47.3879C12.7018 49.5548 16.1023 49.9264 19.0674 48.3717C21.0999 47.3067 23.039 45.3662 25.1583 45.4323C27.2765 45.3662 29.2167 47.3067 31.2491 48.3717C34.2142 49.9264 37.6136 49.5515 40.177 47.3879C41.4551 46.3171 42.3974 44.9018 42.8913 43.311C43.4244 41.5851 43.4342 39.4778 42.723 37.7584C42.0922 36.2525 41.0054 35.1766 39.8839 34.3576ZM26.2038 35.0477H23.9944V40.8451H21.9576V35.0477H19.7471V33.3879H26.2027L26.2038 35.0477ZM30.5532 40.8451H28.5338V35.1485H28.4882L26.8498 36.2319V34.5082L28.5544 33.3879H30.5489L30.5532 40.8451Z" fill="#6272B6"/>
@@ -102,6 +100,7 @@ export default function Header() {
 </clipPath>
 </defs>
 </svg>
+</Link>
         </div>
 
         {/* Search */}
@@ -131,36 +130,68 @@ export default function Header() {
   </svg>
 
   {/* Input */}
-  <input
-    type="text"
-    placeholder="Tìm kiếm thú cưng..."
-    className="w-full border rounded-full pl-12 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6272B6]"
-  />
+<input
+  type="text"
+  placeholder="Tìm kiếm thú cưng..."
+  value={searchTerm}
+  onChange={(e) => {
+    setSearchTerm(e.target.value)
+    setShowDropdown(true)
+  }}
+  onBlur={() => {
+    setTimeout(() => setShowDropdown(false), 200)
+  }}
+  onFocus={() => setShowDropdown(true)}
+  className="w-full border rounded-full pl-12 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6272B6]"
+/>
+
+{showDropdown && searchTerm && (
+            <div className="absolute top-full left-0 w-full bg-white shadow-xl rounded-xl mt-2 max-h-[300px] overflow-y-auto z-50">
+
+              {filteredPets.length > 0 ? (
+                filteredPets.slice(0, 5).map((pet) => (
+                  <div
+                    key={pet.id}
+                    onClick={() => navigate(`/pet/${pet.id}`)}
+                    className="p-3 hover:bg-[#f1f5ff] cursor-pointer border-b"
+                  >
+                    <p className="font-semibold text-[#6272B6]">
+                      {pet.name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Tuổi: {pet.age} | Giới tính: {pet.gender}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-gray-500">
+                  Không tìm thấy thú cưng
+                </div>
+              )}
+
+            </div>
+          )}
 </div>
 
         {/* Icons */}
         <div className="flex items-center gap-6">
           
           {/* Cart */}
-        <Link to="/cart" aria-label="Giỏ hàng" className="relative">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <Link to="/cart">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
             <path d="M36.3699 12.385C36.2166 12.1635 36.0119 11.9824 35.7733 11.8573C35.5347 11.7322 35.2693 11.6668 34.9999 11.6667H12.2216L10.2983 7.05002C10.0468 6.44153 9.61995 5.92165 9.07205 5.55657C8.52414 5.1915 7.87997 4.99776 7.22159 5.00002H3.33325V8.33335H7.22159L15.1283 27.3084C15.2549 27.6119 15.4685 27.8713 15.7423 28.0537C16.016 28.2361 16.3376 28.3334 16.6666 28.3334H29.9999C30.6949 28.3334 31.3166 27.9017 31.5616 27.2534L36.5616 13.92C36.6561 13.6677 36.688 13.3963 36.6546 13.1289C36.6212 12.8616 36.5236 12.6063 36.3699 12.385ZM28.8449 25H17.7783L13.6116 15H32.5949L28.8449 25Z" fill="#666666"/>
             <path d="M17.5 35C18.8807 35 20 33.8807 20 32.5C20 31.1193 18.8807 30 17.5 30C16.1193 30 15 31.1193 15 32.5C15 33.8807 16.1193 35 17.5 35Z" fill="#666666"/>
             <path d="M29.1667 35C30.5475 35 31.6667 33.8807 31.6667 32.5C31.6667 31.1193 30.5475 30 29.1667 30C27.786 30 26.6667 31.1193 26.6667 32.5C26.6667 33.8807 27.786 35 29.1667 35Z" fill="#666666"/>
-          </svg>
-
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-2 min-w-5 h-5 px-1 rounded-full bg-[#6272B6] text-white text-[11px] flex items-center justify-center">
-              {cartCount}
-            </span>
-          )}
+        </svg>
         </Link>
 
           {/* Heart */}
+        <Link to="/favorites">
         <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
         <path d="M20 13.3334C20 13.3334 20 13.3334 21.2667 11.6667C22.7333 9.73337 24.9 8.33337 27.5 8.33337C31.65 8.33337 35 11.6834 35 15.8334C35 17.3834 34.5333 18.8167 33.7333 20C32.3833 22.0167 20 35 20 35C20 35 7.61667 22.0167 6.26667 20C5.46667 18.8167 5 17.3834 5 15.8334C5 11.6834 8.35 8.33337 12.5 8.33337C15.1 8.33337 17.2833 9.73337 18.7333 11.6667C20 13.3334 20 13.3334 20 13.3334Z" fill="#666666"/>
         <path d="M20 13.3334C20 13.3334 20 13.3334 18.7333 11.6667C17.2667 9.73337 15.1 8.33337 12.5 8.33337C8.35 8.33337 5 11.6834 5 15.8334C5 17.3834 5.46667 18.8167 6.26667 20C7.61667 22.0167 20 35 20 35M20 13.3334C20 13.3334 20 13.3334 21.2667 11.6667C22.7333 9.73337 24.9 8.33337 27.5 8.33337C31.65 8.33337 35 11.6834 35 15.8334C35 17.3834 34.5333 18.8167 33.7333 20C32.3833 22.0167 20 35 20 35" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
+        </Link>
 
           {/* User */}
         {/* <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
