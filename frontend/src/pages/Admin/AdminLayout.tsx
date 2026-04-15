@@ -17,6 +17,7 @@ export default function AdminLayout() {
           <Link to="/admin/category">Danh mục</Link>
           <Link to="/admin/product">Sản phẩm</Link>
           <Link to="/admin/order">Đơn hàng</Link>
+          <Link to="/admin/vaccination-care">Lịch tiêm phòng</Link>
         </nav>
       </div>
 

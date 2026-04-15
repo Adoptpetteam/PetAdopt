@@ -39,14 +39,18 @@ import ListCategory from "../pages/admin/Category/ListCategory";
 
 import ProductPage from "../pages/admin/Product";
 import OrderPage from "../pages/admin/order";
+import VaccinationCare from "../pages/admin/VaccinationCare";
+import VaccinationSchedule from "../pages/VaccinationSchedule";
 
 import AdminRoute from "./AdminRoute";
+import ProtectedRoute from "./ProtectedRoute";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 
 export default function AppRoutes() {
   return (
     <Routes>
 
-      {/* USER */}
+      {/* USER — xem site không cần đăng nhập; chỉ một số trang bắt buộc JWT */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/adopt" element={<Adopt />} />
@@ -67,11 +71,15 @@ export default function AppRoutes() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/success" element={<OrderSuccess />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/vaccination-schedule" element={<VaccinationSchedule />} />
+        </Route>
       </Route>
 
-      {/* AUTH */}
+      {/* AUTH — không cần đăng nhập */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
       {/* ADMIN (đã fix trắng) */}
       <Route element={<AdminRoute />}>
@@ -85,6 +93,7 @@ export default function AppRoutes() {
           <Route path="category" element={<ListCategory />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
+          <Route path="vaccination-care" element={<VaccinationCare />} />
         </Route>
       </Route>
 

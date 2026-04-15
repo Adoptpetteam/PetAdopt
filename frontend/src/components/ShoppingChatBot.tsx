@@ -129,9 +129,9 @@ export default function ShoppingChatBot({
       id: genId(),
       role: "bot",
       text:
-        "Chào bạn! Mình là trợ lý mua hàng (demo). Bạn muốn làm gì?\n\n" +
+        "Chào bạn! Mình là trợ lý mua hàng (bản demo). Bạn muốn làm gì?\n\n" +
         "1) Xem danh sách sản phẩm\n" +
-        "2) Xem chi tiết sản phẩm (nhập productId)\n" +
+        "2) Xem chi tiết sản phẩm (nhập mã ID sản phẩm)\n" +
         "3) Cách mua hàng (thêm vào giỏ + thanh toán)\n" +
         "4) Phương thức thanh toán\n" +
         "5) Xem đơn đã thanh toán\n" +
@@ -230,7 +230,7 @@ export default function ShoppingChatBot({
       return
     }
 
-    append("bot", "Chọn phương thức thanh toán:\n1) momo\n2) zalopay\n\nTrả lời: `1` hoặc `2`.")
+    append("bot", "Chọn phương thức thanh toán:\n1) MoMo\n2) ZaloPay\n\nTrả lời: `1` hoặc `2`.")
     setFlow({ type: "checkout_payment_method" })
   }
 
@@ -246,7 +246,7 @@ export default function ShoppingChatBot({
       "Danh sách sản phẩm hiện có:\n" +
         items
           .slice(0, 30)
-          .map((p) => `- ID ${p.id}: ${p.name} | ${formatVND(p.price)} | quantity: ${p.quantity}`)
+          .map((p) => `- Mã ${p.id}: ${p.name} | ${formatVND(p.price)} | Tồn kho: ${p.quantity}`)
           .join("\n") +
         (items.length > 30 ? `\n... và ${items.length - 30} sản phẩm khác.` : "") +
         "\n\nBạn muốn làm gì tiếp? (gõ `menu` hoặc chọn 2/3/4/5)"
@@ -266,7 +266,7 @@ export default function ShoppingChatBot({
     append(
       "bot",
       "Giỏ hàng của bạn:\n" +
-        items.map((i) => `- ${i.name} (ID ${i.productId}) | ${formatVND(i.price)} x ${i.quantity} = ${formatVND(i.price * i.quantity)}`).join("\n") +
+        items.map((i) => `- ${i.name} (mã ${i.productId}) | ${formatVND(i.price)} × ${i.quantity} = ${formatVND(i.price * i.quantity)}`).join("\n") +
         `\n\nTổng tạm tính: ${formatVND(subtotal)}\n\nBạn muốn:\n1) Thanh toán\n2) Tiếp tục xem sản phẩm\n3) Quay lại menu`
     )
     setFlow({ type: "cart_after_view_menu" })
@@ -276,12 +276,12 @@ export default function ShoppingChatBot({
     append(
       "bot",
       "Chi tiết sản phẩm:\n" +
-        `- productId: ${product.id}\n` +
-        `- name: ${product.name}\n` +
-        `- image: ${product.image}\n` +
-        `- price: ${formatVND(product.price)}\n` +
-        `- quantity: ${product.quantity}\n` +
-        `- description: ${product.description}\n\n` +
+        `- Mã sản phẩm: ${product.id}\n` +
+        `- Tên: ${product.name}\n` +
+        `- Ảnh: ${product.image}\n` +
+        `- Giá: ${formatVND(product.price)}\n` +
+        `- Tồn kho: ${product.quantity}\n` +
+        `- Mô tả: ${product.description}\n\n` +
         `Bạn có thể thêm vào giỏ tại trang: /products/${product.id}\nGõ \`menu\` để xem tiếp.`
     )
   }
@@ -291,7 +291,7 @@ export default function ShoppingChatBot({
     if (t === "0" || t.includes("trợ giúp") || t.includes("help")) {
       append(
         "bot",
-        "Trợ giúp nhanh:\n- Gõ `1..9` để chọn chức năng.\n- Trong các form, bạn cần nhập đủ fields theo câu hỏi.\n- Soạn xong, thường bot sẽ hỏi `xác nhận`/`hủy`.\n- Gõ `menu` để quay lại bất cứ lúc nào."
+        "Trợ giúp nhanh:\n- Gõ `1`…`9` để chọn chức năng.\n- Trong các bước nhập liệu, hãy trả lời đủ theo từng câu hỏi.\n- Khi xong, bot thường hỏi `xác nhận` hoặc `hủy`.\n- Gõ `menu` để quay lại bất cứ lúc nào."
       )
       showMenu()
       return
@@ -303,7 +303,7 @@ export default function ShoppingChatBot({
     }
 
     if (t === "2" || t.includes("chi tiết")) {
-      append("bot", "Nhập `productId` để xem chi tiết (ví dụ: 1).")
+      append("bot", "Nhập mã ID sản phẩm để xem chi tiết (ví dụ: 1).")
       setFlow({ type: "product_detail_id" })
       return
     }
@@ -315,8 +315,8 @@ export default function ShoppingChatBot({
           "1) Vào `Sản phẩm` và mở chi tiết sản phẩm.\n" +
           "2) Bấm `Thêm vào giỏ hàng`.\n" +
           "3) Vào `Giỏ hàng` (/cart) rồi bấm `Thanh toán`.\n" +
-          "4) Điền `customer.name/phone/address/reason` trên `/checkout` và bấm `Xác nhận thanh toán`.\n\n" +
-          "Chatbot chỉ trả lời thắc mắc; thao tác giỏ/thanh toán làm trên giao diện."
+          "4) Điền họ tên, số điện thoại, địa chỉ và ghi chú trên trang Thanh toán (`/checkout`) rồi bấm Xác nhận thanh toán.\n\n" +
+          "Chatbot chỉ hướng dẫn; thao tác giỏ hàng và thanh toán thực hiện trên giao diện web."
       )
       showMenu()
       return
@@ -325,8 +325,8 @@ export default function ShoppingChatBot({
     if (t === "4" || t.includes("phương thức") || t.includes("momo") || t.includes("zalopay") || t.includes("xem giỏ") || t.includes("cart")) {
       append(
         "bot",
-        "Phương thức thanh toán (demo):\n- `momo`\n- `zalopay`\n\n" +
-          "Nếu bạn muốn xem giỏ hàng, vào `/cart`."
+        "Phương thức thanh toán (bản demo):\n- MoMo\n- ZaloPay\n\n" +
+          "Xem giỏ hàng tại trang Giỏ hàng (`/cart`)."
       )
       showMenu()
       return
@@ -335,10 +335,10 @@ export default function ShoppingChatBot({
     if (t === "5" || t.includes("thanh toán") || t.includes("checkout")) {
       append(
         "bot",
-        "Bạn thanh toán tại trang `/checkout`.\n" +
-          "Bạn sẽ chọn `momo` hoặc `zalopay`, sau đó điền:\n" +
-          "- customer.name\n- customer.phone\n- customer.address\n- customer.reason\n" +
-          "Rồi bấm `Xác nhận thanh toán`."
+        "Bạn thanh toán tại trang Thanh toán (`/checkout`).\n" +
+          "Chọn MoMo hoặc ZaloPay, sau đó điền:\n" +
+          "- Họ và tên\n- Số điện thoại\n- Địa chỉ\n- Ghi chú / lý do\n" +
+          "Rồi bấm Xác nhận thanh toán."
       )
       showMenu()
       return
@@ -360,7 +360,7 @@ export default function ShoppingChatBot({
     }
 
     if (t === "8" || t.includes("thanh toán") || t.includes("checkout")) {
-      append("bot", "Thanh toán tại: `/checkout`. Điền đủ `customer.name/phone/address/reason` rồi bấm `Xác nhận thanh toán`.")
+      append("bot", "Thanh toán tại `/checkout`. Điền đủ họ tên, số điện thoại, địa chỉ và ghi chú rồi bấm Xác nhận thanh toán.")
       showMenu()
       return
     }
@@ -382,7 +382,7 @@ export default function ShoppingChatBot({
     ) {
       append(
         "bot",
-        "Chức năng thêm/sửa/xóa sản phẩm thuộc ADMIN. Bạn hãy vào `admin/product` để thao tác."
+        "Chức năng thêm/sửa/xóa sản phẩm dành cho quản trị viên. Bạn hãy vào trang quản trị sản phẩm (`/admin/product`) để thao tác."
       )
       showMenu()
       return
@@ -400,7 +400,7 @@ export default function ShoppingChatBot({
       return
     }
     if (isBackToMenu(text)) {
-      append("bot", "Ok, quay lại menu.")
+      append("bot", "Được, quay lại menu.")
       showMenu()
       return
     }
@@ -421,12 +421,12 @@ export default function ShoppingChatBot({
     if (flow.type === "product_detail_id") {
       const id = parseIntLoose(text)
       if (!id) {
-        append("bot", "productId chưa hợp lệ. Nhập lại (ví dụ: 1).")
+        append("bot", "Mã sản phẩm (ID) chưa hợp lệ. Nhập lại (ví dụ: 1).")
         return
       }
       const product = getProductById(id)
       if (!product) {
-        append("bot", `Không tìm thấy sản phẩm với productId = ${id}. Nhập lại.`)
+        append("bot", `Không tìm thấy sản phẩm có mã ID = ${id}. Nhập lại.`)
         return
       }
       showProductDetail(product)
@@ -445,7 +445,7 @@ export default function ShoppingChatBot({
         }
         append(
           "bot",
-          `Bạn chọn: ${product.name} (productId: ${product.id}).\nNhập số lượng cần thêm vào giỏ (quantity, ví dụ: 1).`
+          `Bạn chọn: ${product.name} (mã ${product.id}).\nNhập số lượng cần thêm vào giỏ (ví dụ: 1).`
         )
         setFlow({ type: "cart_add_qty", productId: flow.productId })
         return
@@ -463,17 +463,17 @@ export default function ShoppingChatBot({
     if (flow.type === "cart_add_id") {
       const id = parseIntLoose(text)
       if (!id) {
-        append("bot", "productId chưa hợp lệ. Nhập lại (ví dụ: 1).")
+        append("bot", "Mã sản phẩm (ID) chưa hợp lệ. Nhập lại (ví dụ: 1).")
         return
       }
       const product = getProductById(id)
       if (!product) {
-        append("bot", `Không tìm thấy sản phẩm với productId = ${id}. Nhập lại.`)
+        append("bot", `Không tìm thấy sản phẩm có mã ID = ${id}. Nhập lại.`)
         return
       }
       append(
         "bot",
-        `Sản phẩm bạn chọn: ${product.name}.\nBước 2/3: Nhập số lượng thêm vào giỏ (quantity, ví dụ: 1).`
+        `Sản phẩm bạn chọn: ${product.name}.\nBước 2/3: Nhập số lượng thêm vào giỏ (ví dụ: 1).`
       )
       setFlow({ type: "cart_add_qty", productId: id })
       return
@@ -482,7 +482,7 @@ export default function ShoppingChatBot({
     if (flow.type === "cart_add_qty") {
       const qty = parseIntLoose(text)
       if (!qty || qty <= 0) {
-        append("bot", "quantity chưa hợp lệ. Nhập lại (ví dụ: 1).")
+        append("bot", "Số lượng chưa hợp lệ. Nhập lại (ví dụ: 1).")
         return
       }
       const product = getProductById(flow.productId)
@@ -493,7 +493,7 @@ export default function ShoppingChatBot({
       }
       append(
         "bot",
-        `Bước 3/3: Xác nhận thêm vào giỏ?\n- ${product.name}\n- productId: ${product.id}\n- quantity: ${qty}\n\nTrả lời: \`xác nhận\` hoặc \`hủy\` (hoặc menu).`
+        `Bước 3/3: Xác nhận thêm vào giỏ?\n- ${product.name}\n- Mã sản phẩm: ${product.id}\n- Số lượng: ${qty}\n\nTrả lời: \`xác nhận\` hoặc \`hủy\` (hoặc menu).`
       )
       setFlow({ type: "cart_add_confirm", productId: flow.productId, quantity: qty })
       return
@@ -549,7 +549,7 @@ export default function ShoppingChatBot({
         return
       }
       if (t === "2" || t.includes("tiếp tục")) {
-        append("bot", "Ok. Bạn có muốn:\n1) Xem danh sách sản phẩm\n2) Tìm theo productId (xem chi tiết)\n3) Quay lại menu")
+        append("bot", "Được. Bạn muốn:\n1) Xem danh sách sản phẩm\n2) Nhập mã ID để xem chi tiết\n3) Quay lại menu")
         setFlow({ type: "menu" })
         return
       }
@@ -590,14 +590,14 @@ export default function ShoppingChatBot({
 
       if (step === 0) {
         draft.name = text
-        append("bot", "Bước 2/5: Nhập `image` (link ảnh hoặc đường dẫn, ví dụ: /images/Jack.png).")
+        append("bot", "Bước 2/5: Nhập đường dẫn ảnh (link hoặc đường dẫn, ví dụ: /images/Jack.png).")
         setFlow({ type: "product_add", step: 1, draft })
         return
       }
 
       if (step === 1) {
         draft.image = text
-        append("bot", "Bước 3/5: Nhập `price` (VND, ví dụ: 120000).")
+        append("bot", "Bước 3/5: Nhập giá (VNĐ, ví dụ: 120000).")
         setFlow({ type: "product_add", step: 2, draft })
         return
       }
@@ -605,11 +605,11 @@ export default function ShoppingChatBot({
       if (step === 2) {
         const price = parseIntLoose(text)
         if (price == null || price < 0) {
-          append("bot", "price chưa hợp lệ. Nhập lại (ví dụ: 120000).")
+          append("bot", "Giá chưa hợp lệ. Nhập lại (ví dụ: 120000).")
           return
         }
         draft.price = price
-        append("bot", "Bước 4/5: Nhập `quantity` tồn kho (ví dụ: 10).")
+        append("bot", "Bước 4/5: Nhập số lượng tồn kho (ví dụ: 10).")
         setFlow({ type: "product_add", step: 3, draft })
         return
       }
@@ -617,11 +617,11 @@ export default function ShoppingChatBot({
       if (step === 3) {
         const quantity = parseIntLoose(text)
         if (quantity == null || quantity < 0) {
-          append("bot", "quantity chưa hợp lệ. Nhập lại (ví dụ: 10).")
+          append("bot", "Số lượng chưa hợp lệ. Nhập lại (ví dụ: 10).")
           return
         }
         draft.quantity = quantity
-        append("bot", "Bước 5/5: Nhập `description` (mô tả sản phẩm).")
+        append("bot", "Bước 5/5: Nhập mô tả sản phẩm.")
         setFlow({ type: "product_add", step: 4, draft })
         return
       }
@@ -640,7 +640,7 @@ export default function ShoppingChatBot({
           typeof draft.description === "string"
 
         if (!requiredOk) {
-          append("bot", "Thiếu field bắt buộc. Vui lòng bắt đầu lại bằng menu.")
+          append("bot", "Thiếu thông tin bắt buộc. Vui lòng bắt đầu lại bằng menu.")
           showMenu()
           return
         }
@@ -649,11 +649,11 @@ export default function ShoppingChatBot({
         append(
           "bot",
           "Tóm tắt sản phẩm sắp thêm:\n" +
-            `- name: ${preview.name}\n` +
-            `- image: ${preview.image}\n` +
-            `- price: ${formatVND(preview.price)}\n` +
-            `- quantity: ${preview.quantity}\n` +
-            `- description: ${preview.description}\n\n` +
+            `- Tên: ${preview.name}\n` +
+            `- Ảnh: ${preview.image}\n` +
+            `- Giá: ${formatVND(preview.price)}\n` +
+            `- Tồn kho: ${preview.quantity}\n` +
+            `- Mô tả: ${preview.description}\n\n` +
             "Trả lời: `xác nhận` để lưu, hoặc `hủy` để bỏ."
         )
         // Reuse step=5 as confirm, without changing draft structure.
@@ -675,7 +675,7 @@ export default function ShoppingChatBot({
 
           append(
             "bot",
-            `Đã thêm thành công! productId mới = ${created.id}.\nBạn muốn:\n1) Xem danh sách sản phẩm\n2) Xem chi tiết sản phẩm (ID vừa tạo)\n3) Quay lại menu`
+            `Đã thêm thành công! Mã sản phẩm mới: ${created.id}.\nBạn muốn:\n1) Xem danh sách sản phẩm\n2) Xem chi tiết sản phẩm (mã vừa tạo)\n3) Quay lại menu`
           )
           setFlow({ type: "menu" })
           return
@@ -696,19 +696,19 @@ export default function ShoppingChatBot({
     if (flow.type === "product_delete_id") {
       const id = parseIntLoose(text)
       if (!id) {
-        append("bot", "productId chưa hợp lệ. Nhập lại.")
+        append("bot", "Mã sản phẩm (ID) chưa hợp lệ. Nhập lại.")
         return
       }
       const product = getProductById(id)
       if (!product) {
-        append("bot", `Không tìm thấy sản phẩm với productId = ${id}. Nhập lại.`)
+        append("bot", `Không tìm thấy sản phẩm có mã ID = ${id}. Nhập lại.`)
         return
       }
       append(
         "bot",
         "Xác nhận xóa?\n" +
-          `- productId: ${product.id}\n` +
-          `- name: ${product.name}\n\n` +
+          `- Mã sản phẩm: ${product.id}\n` +
+          `- Tên: ${product.name}\n\n` +
           "Trả lời: `xóa` để xóa, hoặc `hủy` để bỏ."
       )
       setFlow({ type: "product_delete_confirm", productId: id })
@@ -725,7 +725,7 @@ export default function ShoppingChatBot({
           return
         }
 
-        append("bot", `Đã xóa thành công productId = ${flow.productId}.\nBạn muốn tiếp tục?\n1) Xem danh sách sản phẩm\n2) Quay lại menu`)
+        append("bot", `Đã xóa thành công sản phẩm mã ${flow.productId}.\nBạn muốn tiếp tục?\n1) Xem danh sách sản phẩm\n2) Quay lại menu`)
         setFlow({ type: "menu" })
         return
       }
@@ -743,18 +743,18 @@ export default function ShoppingChatBot({
       if (flow.productId === -1) {
         const id = parseIntLoose(text)
         if (!id) {
-          append("bot", "productId chưa hợp lệ. Nhập lại (ví dụ: 1).")
+          append("bot", "Mã sản phẩm (ID) chưa hợp lệ. Nhập lại (ví dụ: 1).")
           return
         }
         const original = getProductById(id)
         if (!original) {
-          append("bot", `Không tìm thấy sản phẩm productId = ${id}. Nhập lại.`)
+          append("bot", `Không tìm thấy sản phẩm có mã ID = ${id}. Nhập lại.`)
           return
         }
         append(
           "bot",
           `Bạn đang sửa sản phẩm:\n- ID ${original.id}: ${original.name}\n\n` +
-            "Bước 1/5: Nhập `name` mới (hoặc gõ `giữ nguyên`)."
+            "Bước 1/5: Nhập tên mới (hoặc gõ `giữ nguyên`)."
         )
         setFlow({ type: "product_edit", productId: id, step: 0, original, draft: {} })
         return
@@ -770,14 +770,14 @@ export default function ShoppingChatBot({
         if (!keep) draft.name = text
         append(
           "bot",
-          `Bước 2/5: Nhập \`image\` mới (hiện tại: ${original.image}). Gõ \`giữ nguyên\` để không đổi.`
+          `Bước 2/5: Nhập đường dẫn ảnh mới (hiện tại: ${original.image}). Gõ \`giữ nguyên\` để không đổi.`
         )
         setFlow({ ...flow, step: 1, draft })
         return
       }
       if (flow.step === 1) {
         if (!keep) draft.image = text
-        append("bot", `Bước 3/5: Nhập \`price\` mới (hiện tại: ${formatVND(original.price)}). Hoặc gõ 'giữ nguyên'.`)
+        append("bot", `Bước 3/5: Nhập giá mới (hiện tại: ${formatVND(original.price)}). Hoặc gõ 'giữ nguyên'.`)
         setFlow({ ...flow, step: 2, draft })
         return
       }
@@ -785,12 +785,12 @@ export default function ShoppingChatBot({
         if (!keep) {
           const price = parseIntLoose(text)
           if (price == null || price < 0) {
-            append("bot", "price chưa hợp lệ. Nhập lại hoặc gõ 'giữ nguyên'.")
+            append("bot", "Giá chưa hợp lệ. Nhập lại hoặc gõ 'giữ nguyên'.")
             return
           }
           draft.price = price
         }
-        append(`bot`, `Bước 4/5: Nhập \`quantity\` mới (hiện tại: ${original.quantity}). Hoặc gõ 'giữ nguyên'.`)
+        append(`bot`, `Bước 4/5: Nhập số lượng tồn kho mới (hiện tại: ${original.quantity}). Hoặc gõ 'giữ nguyên'.`)
         setFlow({ ...flow, step: 3, draft })
         return
       }
@@ -798,12 +798,12 @@ export default function ShoppingChatBot({
         if (!keep) {
           const quantity = parseIntLoose(text)
           if (quantity == null || quantity < 0) {
-            append("bot", "quantity chưa hợp lệ. Nhập lại hoặc gõ 'giữ nguyên'.")
+            append("bot", "Số lượng chưa hợp lệ. Nhập lại hoặc gõ 'giữ nguyên'.")
             return
           }
           draft.quantity = quantity
         }
-        append("bot", `Bước 5/5: Nhập \`description\` mới (hiện tại: ${original.description}). Gõ 'giữ nguyên' nếu không đổi.`)
+        append("bot", `Bước 5/5: Nhập mô tả mới (hiện tại: ${original.description}). Gõ 'giữ nguyên' nếu không đổi.`)
         setFlow({ ...flow, step: 4, draft })
         return
       }
@@ -819,12 +819,12 @@ export default function ShoppingChatBot({
         append(
           "bot",
           "Tóm tắt cập nhật:\n" +
-            `- productId: ${merged.id}\n` +
-            `- name: ${merged.name}\n` +
-            `- image: ${merged.image}\n` +
-            `- price: ${formatVND(merged.price)}\n` +
-            `- quantity: ${merged.quantity}\n` +
-            `- description: ${merged.description}\n\n` +
+            `- Mã sản phẩm: ${merged.id}\n` +
+            `- Tên: ${merged.name}\n` +
+            `- Ảnh: ${merged.image}\n` +
+            `- Giá: ${formatVND(merged.price)}\n` +
+            `- Tồn kho: ${merged.quantity}\n` +
+            `- Mô tả: ${merged.description}\n\n` +
             "Trả lời: `xác nhận` để lưu, hoặc `hủy` để bỏ."
         )
         setFlow({ ...flow, step: 5, draft })
@@ -865,15 +865,15 @@ export default function ShoppingChatBot({
         append(
           "bot",
           "Danh sách đơn đã thanh toán:\n" +
-            orders.map((o) => `- orderId: ${o.id} | ${o.customer.name} | method: ${o.paymentMethod} | total: ${formatVND(o.totals.total)} | ${new Date(o.createdAt).toLocaleString("vi-VN")}`).join("\n") +
-            "\n\nBạn muốn xem chi tiết? Gõ `2` và nhập orderId, hoặc gõ `menu`."
+            orders.map((o) => `- Mã đơn: ${o.id} | ${o.customer.name} | Thanh toán: ${o.paymentMethod} | Tổng: ${formatVND(o.totals.total)} | ${new Date(o.createdAt).toLocaleString("vi-VN")}`).join("\n") +
+            "\n\nBạn muốn xem chi tiết? Gõ `2` và nhập mã đơn, hoặc gõ `menu`."
         )
         setFlow({ type: "orders_detail_id" })
         return
       }
 
       if (t === "2" || t.includes("nhập") || t.includes("chi tiết")) {
-        append("bot", "Nhập `orderId` để xem chi tiết đơn hàng.")
+        append("bot", "Nhập mã đơn hàng để xem chi tiết.")
         setFlow({ type: "orders_detail_id" })
         return
       }
@@ -893,26 +893,26 @@ export default function ShoppingChatBot({
       const id = text.trim()
       const order = orders.find((o) => o.id === id)
       if (!order) {
-        append("bot", "Không tìm thấy orderId. Nhập lại hoặc gõ `menu`.")
+        append("bot", "Không tìm thấy mã đơn hàng. Nhập lại hoặc gõ `menu`.")
         return
       }
 
       append(
         "bot",
         "Chi tiết đơn hàng:\n" +
-          `- orderId: ${order.id}\n` +
-          `- createdAt: ${new Date(order.createdAt).toLocaleString("vi-VN")}\n` +
-          `- status: ${order.status}\n` +
-          `- paymentMethod: ${order.paymentMethod}\n` +
-          `- customer.name: ${order.customer.name}\n` +
-          `- customer.phone: ${order.customer.phone}\n` +
-          `- customer.address: ${order.customer.address}\n` +
-          `- customer.reason: ${order.customer.reason}\n\n` +
-          "Items:\n" +
+          `- Mã đơn: ${order.id}\n` +
+          `- Thời gian: ${new Date(order.createdAt).toLocaleString("vi-VN")}\n` +
+          `- Trạng thái: ${order.status === "paid" ? "Đã thanh toán" : order.status}\n` +
+          `- Phương thức: ${order.paymentMethod}\n` +
+          `- Họ tên: ${order.customer.name}\n` +
+          `- Số điện thoại: ${order.customer.phone}\n` +
+          `- Địa chỉ: ${order.customer.address}\n` +
+          `- Ghi chú: ${order.customer.reason}\n\n` +
+          "Sản phẩm:\n" +
           order.items
-            .map((i) => `- ${i.name} (ID ${i.productId}) | ${formatVND(i.price)} x ${i.quantity} = ${formatVND(i.price * i.quantity)}`)
+            .map((i) => `- ${i.name} (mã ${i.productId}) | ${formatVND(i.price)} × ${i.quantity} = ${formatVND(i.price * i.quantity)}`)
             .join("\n") +
-          `\n\nSubtotal: ${formatVND(order.totals.subtotal)}\nTotal: ${formatVND(order.totals.total)}\n\nBạn muốn:\n1) Thanh toán đơn mới\n2) Quay lại menu`
+          `\n\nTạm tính: ${formatVND(order.totals.subtotal)}\nTổng cộng: ${formatVND(order.totals.total)}\n\nBạn muốn:\n1) Thanh toán đơn mới\n2) Quay lại menu`
       )
       setFlow({ type: "menu" })
       return
@@ -923,10 +923,10 @@ export default function ShoppingChatBot({
       const t = normalizeText(text)
       const method: "momo" | "zalopay" | null = t === "1" || t === "momo" ? "momo" : t === "2" || t === "zalopay" ? "zalopay" : null
       if (!method) {
-        append("bot", "Chưa đúng. Trả lời `1` (momo) hoặc `2` (zalopay).")
+        append("bot", "Chưa đúng. Trả lời `1` (MoMo) hoặc `2` (ZaloPay).")
         return
       }
-      append("bot", "Bước 2/6: Nhập `customer.name` (họ và tên).")
+      append("bot", "Bước 2/6: Nhập họ và tên.")
       setFlow({
         type: "checkout_customer_name",
         paymentMethod: method,
@@ -936,7 +936,7 @@ export default function ShoppingChatBot({
 
     if (flow.type === "checkout_customer_name") {
       const name = text
-      append("bot", "Bước 3/6: Nhập `customer.phone` (số điện thoại).")
+      append("bot", "Bước 3/6: Nhập số điện thoại.")
       setFlow({
         type: "checkout_customer_phone",
         paymentMethod: flow.paymentMethod,
@@ -956,7 +956,7 @@ export default function ShoppingChatBot({
         append("bot", "Số điện thoại chưa hợp lệ. Nhập lại (ví dụ: 0866192325).")
         return
       }
-      append("bot", "Bước 4/6: Nhập `customer.address` (địa chỉ).")
+      append("bot", "Bước 4/6: Nhập địa chỉ giao hàng.")
       setFlow({
         type: "checkout_customer_address",
         paymentMethod: flow.paymentMethod,
@@ -969,7 +969,7 @@ export default function ShoppingChatBot({
     }
 
     if (flow.type === "checkout_customer_address") {
-      append("bot", "Bước 5/6: Nhập `customer.reason` (ghi chú/lý do cho đơn hàng).")
+      append("bot", "Bước 5/6: Nhập ghi chú hoặc lý do đặt hàng.")
       setFlow({
         type: "checkout_customer_reason",
         paymentMethod: flow.paymentMethod,
@@ -990,16 +990,16 @@ export default function ShoppingChatBot({
       append(
         "bot",
         "Bước 6/6: Xác nhận đơn thanh toán:\n" +
-          `- paymentMethod: ${flow.paymentMethod}\n` +
-          `- customer.name: ${orderPreview.name}\n` +
-          `- customer.phone: ${orderPreview.phone}\n` +
-          `- customer.address: ${orderPreview.address}\n` +
-          `- customer.reason: ${orderPreview.reason}\n\n` +
-          "Items:\n" +
+          `- Phương thức: ${flow.paymentMethod}\n` +
+          `- Họ tên: ${orderPreview.name}\n` +
+          `- Số điện thoại: ${orderPreview.phone}\n` +
+          `- Địa chỉ: ${orderPreview.address}\n` +
+          `- Ghi chú: ${orderPreview.reason}\n\n` +
+          "Sản phẩm:\n" +
           items
-            .map((i) => `- ${i.name} | ${formatVND(i.price)} x ${i.quantity} = ${formatVND(i.price * i.quantity)}`)
+            .map((i) => `- ${i.name} | ${formatVND(i.price)} × ${i.quantity} = ${formatVND(i.price * i.quantity)}`)
             .join("\n") +
-          `\n\nTotal: ${formatVND(subtotal)}\n\nTrả lời: \`thanh toán\` để xác nhận hoặc \`hủy\` để bỏ.`
+          `\n\nTổng thanh toán: ${formatVND(subtotal)}\n\nTrả lời: \`thanh toán\` để xác nhận hoặc \`hủy\` để bỏ.`
       )
       setFlow({
         type: "checkout_confirm",
@@ -1034,7 +1034,7 @@ export default function ShoppingChatBot({
         clearCart()
         append(
           "bot",
-          `Thanh toán thành công!\norderId: ${order.id}\n\nBạn muốn:\n1) Xem chi tiết đơn vừa tạo\n2) Thanh toán đơn mới\n3) Quay lại menu`
+          `Thanh toán thành công!\nMã đơn: ${order.id}\n\nBạn muốn:\n1) Xem chi tiết đơn vừa tạo\n2) Thanh toán đơn mới\n3) Quay lại menu`
         )
         setFlow({ type: "menu" })
         return
@@ -1091,7 +1091,7 @@ export default function ShoppingChatBot({
     >
       {!isWidget && (
         <h1 className="text-3xl font-bold text-[#6272B6] mb-6 text-center">
-          Chatbot mua hàng (demo)
+          Trợ lý mua hàng (bản demo)
         </h1>
       )}
 
@@ -1193,7 +1193,7 @@ export default function ShoppingChatBot({
         </div>
 
         <div className={`text-xs text-gray-500 ${isWidget ? "px-4 pb-3 pt-0 bg-[#FAFBFF]" : "mt-3"}`}>
-          Gợi ý: nhập `menu` để quay lại, `hủy` để thoát form. Các fields sẽ được hỏi đầy đủ theo đúng yêu cầu. Sản phẩm/tồn kho trong chat sẽ tự cập nhật định kỳ.
+          Gợi ý: gõ `menu` để quay lại, `hủy` để thoát bước nhập. Bot sẽ hỏi đủ từng mục theo thứ tự. Dữ liệu sản phẩm được đồng bộ định kỳ.
         </div>
       </div>
     </div>
