@@ -1,7 +1,7 @@
 import { apiClient } from "./http";
 
 export type PetEntity = {
-  _id: string;
+  id: string;
   name: string;
   species: string;
   age?: number;
@@ -10,9 +10,13 @@ export type PetEntity = {
   status?: string;
 };
 
-export type PetsListResponse = {
+export type ApiResponse<T> = {
   success: boolean;
-  data: PetEntity[];
+  message?: string;
+  data: T;
+};
+
+export type PetsListResponse = ApiResponse<PetEntity[]> & {
   pagination?: {
     page: number;
     limit: number;
@@ -21,10 +25,7 @@ export type PetsListResponse = {
   };
 };
 
-export type PetDetailResponse = {
-  success: boolean;
-  data: PetEntity;
-};
+export type PetDetailResponse = ApiResponse<PetEntity>;
 
 export type ListPetsParams = {
   page?: number;
@@ -34,7 +35,7 @@ export type ListPetsParams = {
   search?: string;
 };
 
-/** Lấy danh sách thú cưng với filter cơ bản. */
+/** GET LIST */
 export async function listPets(
   params?: ListPetsParams
 ): Promise<PetsListResponse> {
@@ -42,8 +43,36 @@ export async function listPets(
   return data;
 }
 
-/** Lấy thông tin chi tiết một thú cưng theo id. */
+/** GET DETAIL */
 export async function getPetById(id: string): Promise<PetDetailResponse> {
   const { data } = await apiClient.get<PetDetailResponse>(`/pets/${id}`);
+  return data;
+}
+
+/** CREATE */
+export async function createPet(
+  payload: Partial<PetEntity>
+): Promise<ApiResponse<PetEntity>> {
+  const { data } = await apiClient.post<ApiResponse<PetEntity>>("/pets", payload);
+  return data;
+}
+
+/** UPDATE */
+export async function updatePet(
+  id: string,
+  payload: Partial<PetEntity>
+): Promise<ApiResponse<PetEntity>> {
+  const { data } = await apiClient.put<ApiResponse<PetEntity>>(
+    `/pets/${id}`,
+    payload
+  );
+  return data;
+}
+
+/** DELETE */
+export async function deletePet(
+  id: string
+): Promise<ApiResponse<null>> {
+  const { data } = await apiClient.delete<ApiResponse<null>>(`/pets/${id}`);
   return data;
 }
