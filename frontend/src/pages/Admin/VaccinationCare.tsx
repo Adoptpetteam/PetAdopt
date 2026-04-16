@@ -89,8 +89,8 @@ export default function VaccinationCare() {
   const openEdit = (row: VaccinationSchedule) => {
     setEditing(row);
     const petId =
-      typeof row.pet === "object" && row.pet && "_id" in row.pet
-        ? (row.pet as { _id: string })._id
+      typeof row.pet === "object" && row.pet
+        ? String((row.pet as { _id?: string; id?: string })._id ?? (row.pet as { _id?: string; id?: string }).id)
         : String(row.pet);
     form.setFieldsValue({
       petId,
@@ -358,7 +358,7 @@ export default function VaccinationCare() {
                 optionFilterProp="label"
                 placeholder="Chọn thú cưng"
                 options={pets.map((p) => ({
-                  value: p._id,
+                  value: p.id,
                   label: `${p.name} (${p.species})`,
                 }))}
               />
