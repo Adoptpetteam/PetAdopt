@@ -1,12 +1,9 @@
 const Pet = require('../models/Pet');
 
+// CREATE
 exports.createPet = async (req, res, next) => {
   try {
-    const {
-      name, species, breed, age, gender, size, color,
-      description, healthStatus, vaccinated, neutered,
-      adoptionFee, location
-    } = req.body;
+    const { name, species, ...rest } = req.body;
 
     if (!name || !species) {
       return res.status(400).json({
@@ -18,18 +15,8 @@ exports.createPet = async (req, res, next) => {
     const pet = new Pet({
       name,
       species,
-      breed,
-      age,
-      gender,
-      size,
-      color,
-      description,
-      healthStatus,
-      vaccinated,
-      neutered,
-      adoptionFee,
-      location,
-      createdBy: req.user.userId  
+      ...rest,
+      createdBy: req.user?.userId || req.user?.id
     });
 
     await pet.save();
@@ -40,68 +27,62 @@ exports.createPet = async (req, res, next) => {
       data: pet
     });
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
+// GET ALL
 exports.getAllPets = async (req, res, next) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      species,
-      status,
-      gender,
-      size,
-      minAge,
-      maxAge,
-      search
-    } = req.query;
+    const { page = 1, limit = 10, ...filters } = req.query;
 
     const filter = {};
 
-    if (species) filter.species = species;
-    if (status) filter.status = status;
-    if (gender) filter.gender = gender;
-    if (size) filter.size = size;
-    
-    if (minAge || maxAge) {
+    if (filters.species) filter.species = filters.species;
+    if (filters.status) filter.status = filters.status;
+    if (filters.gender) filter.gender = filters.gender;
+    if (filters.size) filter.size = filters.size;
+
+    if (filters.minAge || filters.maxAge) {
       filter.age = {};
-      if (minAge) filter.age.$gte = parseInt(minAge);
-      if (maxAge) filter.age.$lte = parseInt(maxAge);
+      if (filters.minAge) filter.age.$gte = +filters.minAge;
+      if (filters.maxAge) filter.age.$lte = +filters.maxAge;
     }
 
-    if (search) {
+    if (filters.search) {
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { breed: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { name: { $regex: filters.search, $options: 'i' } },
+        { breed: { $regex: filters.search, $options: 'i' } },
+        { description: { $regex: filters.search, $options: 'i' } }
       ];
     }
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Pet.countDocuments(filter);
+
+    const skip = (page - 1) * limit;
 
     const pets = await Pet.find(filter)
       .populate('createdBy', 'name email')
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(+limit)
       .sort({ createdAt: -1 });
+
+    const total = await Pet.countDocuments(filter);
 
     res.json({
       success: true,
       data: pets,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: +page,
+        limit: +limit,
         total,
-        pages: Math.ceil(total / parseInt(limit))
+        pages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
+// GET BY ID
 exports.getPetById = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id)
@@ -119,53 +100,53 @@ exports.getPetById = async (req, res, next) => {
       data: pet
     });
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
+// UPDATE
 exports.updatePet = async (req, res, next) => {
   try {
-    const pet = await Pet.findById(req.params.id);
+    const pet = await Pet.findOne({
+      _id: req.params.id,
+      createdBy: req.user?.userId || req.user?.id
+    });
 
     if (!pet) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy thú cưng'
+        message: 'Không tìm thấy hoặc không có quyền'
       });
     }
 
-    const allowedFields = [
-      'name', 'species', 'breed', 'age', 'gender', 'size', 'color',
-      'description', 'healthStatus', 'vaccinated', 'neutered',
-      'status', 'adoptionFee', 'location'
-    ];
-
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        pet[field] = req.body[field];
-      }
+    Object.keys(req.body).forEach(key => {
+      pet[key] = req.body[key];
     });
 
     await pet.save();
 
     res.json({
       success: true,
-      message: 'Cập nhật thú cưng thành công!',
+      message: 'Cập nhật thành công!',
       data: pet
     });
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
 
+// DELETE
 exports.deletePet = async (req, res, next) => {
   try {
-    const pet = await Pet.findById(req.params.id);
+    const pet = await Pet.findOne({
+      _id: req.params.id,
+      createdBy: req.user?.userId || req.user?.id
+    });
 
     if (!pet) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy thú cưng'
+        message: 'Không tìm thấy hoặc không có quyền'
       });
     }
 
@@ -173,9 +154,9 @@ exports.deletePet = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Xóa thú cưng thành công!'
+      message: 'Xóa thành công!'
     });
   } catch (error) {
-    next(error);  
+    next(error);
   }
 };
