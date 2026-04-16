@@ -1,56 +1,91 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-
-interface Volunteer {
-  id: number
-  name: string
-  email: string
-  phone: string
-  age: number
-  experience: string
-  availability: string
-  reason: string
-  status: "pending_review" | "approved" | "rejected"
-  createdAt: string
-}
+import { message } from "antd"
+import {
+  listVolunteersAdmin,
+  approveVolunteer,
+  rejectVolunteer,
+  type Volunteer,
+  type VolunteerStatus,
+} from "../../api/volunteerApi"
 
 export default function VolunteerList() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([])
-  const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending")
+  const [tab, setTab] = useState<VolunteerStatus>("pending")
+  const [loading, setLoading] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
+  const [approvedCount, setApprovedCount] = useState(0)
+  const [rejectedCount, setRejectedCount] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("volunteers") || "[]")
-    setVolunteers(data)
+    const loadCounts = async () => {
+      try {
+        const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+          listVolunteersAdmin({ status: "pending", page: 1, limit: 1000 }),
+          listVolunteersAdmin({ status: "approved", page: 1, limit: 1000 }),
+          listVolunteersAdmin({ status: "rejected", page: 1, limit: 1000 }),
+        ])
+        setPendingCount(pendingRes.data.length)
+        setApprovedCount(approvedRes.data.length)
+        setRejectedCount(rejectedRes.data.length)
+      } catch (e: any) {
+        message.error(
+          e?.response?.data?.message || "Không tải được số lượng."
+        )
+      }
+    }
+
+    void loadCounts()
   }, [])
 
-  const updateStatus = (id: number, status: Volunteer["status"]) => {
-    const updated = volunteers.map((v) =>
-      v.id === id ? { ...v, status } : v
-    )
+  useEffect(() => {
+    const loadTab = async () => {
+      setLoading(true)
+      try {
+        const res = await listVolunteersAdmin({ status: tab, page: 1, limit: 1000 })
+        setVolunteers(res.data)
+      } catch (e: any) {
+        message.error(e?.response?.data?.message || "Không tải được danh sách.")
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    setVolunteers(updated)
-    localStorage.setItem("volunteers", JSON.stringify(updated))
+    void loadTab()
+  }, [tab])
+
+  const refreshAfterMutation = async () => {
+    const res = await listVolunteersAdmin({ status: tab, page: 1, limit: 1000 })
+    setVolunteers(res.data)
+    try {
+      const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+        listVolunteersAdmin({ status: "pending", page: 1, limit: 1000 }),
+        listVolunteersAdmin({ status: "approved", page: 1, limit: 1000 }),
+        listVolunteersAdmin({ status: "rejected", page: 1, limit: 1000 }),
+      ])
+      setPendingCount(pendingRes.data.length)
+      setApprovedCount(approvedRes.data.length)
+      setRejectedCount(rejectedRes.data.length)
+    } catch {
+      // non-blocking
+    }
   }
 
-  // 🔥 FILTER
-  const filteredList = volunteers.filter((v) => {
-    if (tab === "pending") return v.status === "pending_review"
-    if (tab === "approved") return v.status === "approved"
-    if (tab === "rejected") return v.status === "rejected"
-    return false
-  })
+  const updateStatus = async (id: string, status: "approved" | "rejected") => {
+    try {
+      if (status === "approved") {
+        await approveVolunteer(id)
+      } else {
+        await rejectVolunteer(id)
+      }
+      await refreshAfterMutation()
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Cập nhật thất bại.")
+    }
+  }
 
-  // 🔥 COUNT
-  const pendingCount = volunteers.filter(
-    (v) => v.status === "pending_review"
-  ).length
-  const approvedCount = volunteers.filter(
-    (v) => v.status === "approved"
-  ).length
-  const rejectedCount = volunteers.filter(
-    (v) => v.status === "rejected"
-  ).length
+  const filteredList = volunteers
 
   return (
     <div className="max-w-[1000px] mx-auto py-10 px-6">
@@ -125,11 +160,12 @@ export default function VolunteerList() {
               </button>
 
               {/* 🔒 CHỈ pending mới có */}
-              {v.status === "pending_review" && (
+              {v.status === "pending" && (
                 <>
                   <button
                     onClick={() => updateStatus(v.id, "approved")}
                     className="px-4 py-2 bg-green-500 text-white rounded"
+                    disabled={loading}
                   >
                     Duyệt
                   </button>
@@ -137,6 +173,7 @@ export default function VolunteerList() {
                   <button
                     onClick={() => updateStatus(v.id, "rejected")}
                     className="px-4 py-2 bg-red-500 text-white rounded"
+                    disabled={loading}
                   >
                     Từ chối
                   </button>
