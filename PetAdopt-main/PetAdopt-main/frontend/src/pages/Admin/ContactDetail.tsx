@@ -11,21 +11,18 @@ export default function ContactDetail() {
       .then(res => res.json())
       .then(data => setContact(data))
   }, [id])
-
   if (!contact) {
     return <div className="text-center py-20">Không tìm thấy dữ liệu</div>
   }
-
   return (
     <div className="max-w-[800px] mx-auto py-10 px-6">
       <h1 className="text-2xl font-bold text-[#6272B6] mb-6">
-        Chi tiết liên hệ
+       Chi Tiết Liên Hệ
       </h1>
-
       <div className="bg-white shadow rounded-xl p-6 space-y-4">
         <p><b>Họ tên:</b> {contact.name}</p>
         <p><b>Email:</b> {contact.email}</p>
-        <p><b>Nội dung:</b> {contact.message}</p>
+        <p><b>Số điện thoại:</b> {contact.phone}</p>
         <p><b>Ngày gửi:</b> {new Date(contact.createdAt).toLocaleString()}</p>
 
         <button
