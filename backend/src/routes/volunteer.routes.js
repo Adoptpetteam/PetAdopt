@@ -16,6 +16,15 @@ const volunteerSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
+volunteerSchema.set('toJSON', {
+  transform: (_doc, ret) => {
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  }
+});
+
 const Volunteer = mongoose.models.Volunteer || mongoose.model('Volunteer', volunteerSchema);
 
 // GET /api/volunteer - Lấy danh sách (admin)
