@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
+import { createVolunteer } from "../api/volunteerApi"
 
 interface VolunteerFormData {
   name: string
   email: string
   phone: string
-  age: string
+  age: number
   experience: string
   availability: string
   reason: string
@@ -18,7 +19,7 @@ export default function VolunteerForm() {
     name: "",
     email: "",
     phone: "",
-    age: "",
+    age: 0,
     experience: "",
     availability: "",
     reason: "",
@@ -35,25 +36,24 @@ export default function VolunteerForm() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    const volunteers = JSON.parse(localStorage.getItem("volunteers") || "[]")
-
-    const newVolunteer = {
-      ...form,
-      id: Date.now(),
-      status: "pending_review",
-      createdAt: new Date().toISOString(),
+    try {
+      await createVolunteer({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        age: form.age || undefined,
+        experience: form.experience,
+        availability: form.availability,
+        reason: form.reason,
+      })
+      alert("Đăng ký thành công!")
+      navigate("/")
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Gửi đăng ký thất bại.")
     }
-
-    localStorage.setItem(
-      "volunteers",
-      JSON.stringify([...volunteers, newVolunteer])
-    )
-
-    alert("Đăng ký thành công!")
-    navigate("/")
   }
 
   return (
