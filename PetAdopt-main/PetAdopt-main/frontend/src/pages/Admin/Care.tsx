@@ -43,10 +43,8 @@ const CarePage = () => {
   };
 
   useEffect(() => {
-    fetchData();
+  fetchData();
   }, []);
-
-  // 🔥 AUTO GỬI MAIL KHI ĐẾN NGÀY (KHÔNG SPAM)
   useEffect(() => {
     const today = dayjs().format("YYYY-MM-DD");
 
@@ -54,15 +52,12 @@ const CarePage = () => {
       if (item.vaccineDate === today && !item.mailSent) {
         sendMail(item);
 
-        // update lại DB để không gửi lại
         axios.patch(`http://localhost:3000/care/${item.id}`, {
           mailSent: true,
         });
       }
     });
   }, [data]);
-
-  // 👉 gửi mail
   const sendMail = (item: Care) => {
     emailjs
       .send(
@@ -83,14 +78,11 @@ const CarePage = () => {
         message.error("Lỗi gửi mail");
       });
   };
-
-  // 👉 filter
   const handleFilter = (date: any) => {
     if (!date) {
       setFilteredData(data);
       return;
     }
-
     const filtered = data.filter(
       (item) =>
         dayjs(item.vaccineDate).format("YYYY-MM-DD") ===
@@ -99,15 +91,12 @@ const CarePage = () => {
 
     setFilteredData(filtered);
   };
-
-  // 👉 thêm
   const handleAdd = () => {
     setEditing(null);
     form.resetFields();
     setIsModalOpen(true);
   };
 
-  // 👉 sửa
   const handleEdit = (record: Care) => {
     setEditing(record);
     form.setFieldsValue({
