@@ -1,52 +1,35 @@
 import { message } from "antd";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../api/http"; // ⚠️ đảm bảo path đúng
 
-import {
-  getCreateCategory,
-  getDeleteCategory,
-  getListCategory,
-  getUpdateCategory,
-  type Props,
-} from "../provider/huyProvider";
-
-// lấy danh sách
-export const useListCategory = ({ resource = "category" }: Props) => {
+// =======================
+// GET LIST
+// =======================
+export const useListCategory = () => {
   return useQuery({
-    queryKey: [resource],
-    queryFn: () => getListCategory({ resource }),
-  });
-};
-
-// xóa
-export const useDeleteCategory = ({ resource = "category" }: Props) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id?: string | number) =>
-      getDeleteCategory({ resource, id }),
-
-    onSuccess: () => {
-      message.success("Xóa thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
-    },
-
-    onError: () => {
-      message.error("Xóa thất bại");
+    queryKey: ["category"],
+    queryFn: async () => {
+      const res = await apiClient.get("/category");
+      return res.data.data; // ✅ đúng format backend
     },
   });
 };
 
-// thêm
-export const useCreateCategory = ({ resource = "category" }: Props) => {
+// =======================
+// CREATE
+// =======================
+export const useCreateCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (values: any) =>
-      getCreateCategory({ resource, values }),
+    mutationFn: async (values: any) => {
+      const res = await apiClient.post("/category", values);
+      return res.data;
+    },
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      message.success("Thêm thành công");
+      queryClient.invalidateQueries({ queryKey: ["category"] });
     },
 
     onError: (error: any) => {
@@ -61,27 +44,30 @@ export const useCreateCategory = ({ resource = "category" }: Props) => {
   });
 };
 
-// cập nhật
-export const useUpdateCategory = ({ resource = "category" }: Props) => {
+// =======================
+// UPDATE
+// =======================
+export const useUpdateCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       values,
     }: {
-      id: number | string;
+      id: string | number;
       values: any;
-    }) => getUpdateCategory({ resource, id, values }),
+    }) => {
+      const res = await apiClient.put(`/category/${id}`, values);
+      return res.data;
+    },
 
     onSuccess: () => {
       message.success("Cập nhật thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      queryClient.invalidateQueries({ queryKey: ["category"] });
     },
 
     onError: (error: any) => {
-      console.error("Update error:", error.response?.data || error);
-
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors;
         const messages = Object.values(errors).flat().join("\n");
@@ -89,6 +75,29 @@ export const useUpdateCategory = ({ resource = "category" }: Props) => {
       } else {
         message.error("Cập nhật thất bại");
       }
+    },
+  });
+};
+
+// =======================
+// DELETE
+// =======================
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string | number) => {
+      const res = await apiClient.delete(`/category/${id}`);
+      return res.data;
+    },
+
+    onSuccess: () => {
+      message.success("Xóa thành công");
+      queryClient.invalidateQueries({ queryKey: ["category"] });
+    },
+
+    onError: () => {
+      message.error("Xóa thất bại");
     },
   });
 };
