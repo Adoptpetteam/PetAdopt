@@ -4,7 +4,7 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen">
 
-      {/* SIDEBAR */}
+  
       <div className="w-64 bg-[#6272B6] text-white p-6 space-y-4">
         <h2 className="text-2xl font-bold mb-6">Admin</h2>
 
@@ -19,13 +19,11 @@ export default function AdminLayout() {
           <Link to="/admin/product">Sản phẩm</Link>
           <Link to="/admin/order">Đơn hàng</Link>
           <Link to="/admin/contacts">Liên hệ</Link>
-
-          {/* ✅ thêm dòng này */}
-          <Link to="/admin/care">Chăm sóc KH</Link>
+          <Link to="/admin/care">Chăm sóc Khách hàng</Link>
         </nav>
       </div>
 
-      {/* CONTENT */}
+  
       <div className="flex-1 bg-gray-100 p-8">
         <Outlet />
       </div>
