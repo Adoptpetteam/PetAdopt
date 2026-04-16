@@ -1,18 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
-
-interface Volunteer {
-  id: number
-  name: string
-  email: string
-  phone: string
-  age: number
-  experience: string
-  availability: string
-  reason: string
-  status: "pending_review" | "approved" | "rejected"
-  createdAt: string
-}
+import { message } from "antd"
+import { getVolunteerById, type Volunteer } from "../../api/volunteerApi"
 
 export default function VolunteerDetail() {
   const { id } = useParams()
@@ -20,9 +9,16 @@ export default function VolunteerDetail() {
   const [volunteer, setVolunteer] = useState<Volunteer | null>(null)
 
   useEffect(() => {
-    const data: Volunteer[] = JSON.parse(localStorage.getItem("volunteers") || "[]")
-    const found = data.find(v => v.id === Number(id))
-    if (found) setVolunteer(found)
+    const load = async () => {
+      if (!id) return
+      try {
+        const res = await getVolunteerById(id)
+        setVolunteer(res.data)
+      } catch (e: any) {
+        message.error(e?.response?.data?.message || "Không tải được chi tiết.")
+      }
+    }
+    void load()
   }, [id])
 
   if (!volunteer) {
@@ -44,7 +40,7 @@ export default function VolunteerDetail() {
         <p><b>Thời gian:</b> {volunteer.availability}</p>
         <p><b>Lý do:</b> {volunteer.reason}</p>
         <p><b>Trạng thái:</b> {volunteer.status}</p>
-        <p><b>Ngày đăng ký:</b> {new Date(volunteer.createdAt).toLocaleString()}</p>
+        <p><b>Ngày đăng ký:</b> {volunteer.createdAt ? new Date(volunteer.createdAt).toLocaleString() : "—"}</p>
 
         <button
           onClick={() => navigate(-1)}
