@@ -48,23 +48,6 @@ export default function Dashboard() {
             Xem chi tiết
           </button>
         </div>
-
-        {/* ⏳ Pending */}
-        {/* <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-gray-500">Đơn pending</h2>
-          <p className="text-3xl font-bold">
-            {orders.filter(o => o?.status === "pending").length}
-          </p>
-
-          <button
-            onClick={() => navigate("/admin/adoptions")}
-            className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded"
-          >
-            Xem chi tiết
-          </button>
-        </div> */}
-
-        {/* 🙋 TNV */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h2 className="text-gray-500">Tổng TNV</h2>
           <p className="text-3xl font-bold">{volunteers.length}</p>
