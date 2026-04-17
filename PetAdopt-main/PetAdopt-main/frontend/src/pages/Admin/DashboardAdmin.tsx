@@ -72,18 +72,15 @@ const DashboardAdmin = () => {
           color: #4a5568;
           margin-top: 10px;
         }
-
         .badge-light-primary { background: #0da487; color: #fff; }
         .badge-light-danger { background: #ff808b; color: #fff; }
         .badge-light-secondary { background: #ffba00; color: #fff; }
         .badge-light-success { background: #4caf50; color: #fff; }
-
         .static-top-widget {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-
         .category-slider-mockup::-webkit-scrollbar {
           height: 6px;
         }
@@ -95,9 +92,7 @@ const DashboardAdmin = () => {
       `}</style>
 
       <div className="row">
-
-
-        {/* 2. CATEGORY */}
+    
         <div className="col-12 mt-2">
 
           <div className="card-hover card">
