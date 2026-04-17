@@ -86,22 +86,20 @@ export default function EditPet() {
 
         <input name="color" value={form.color || ""} onChange={handleChange} className="input" />
         <input name="image" value={form.image || ""} onChange={handleChange} className="input" />
-
         <textarea
           name="description"
           value={form.description || ""}
           onChange={handleChange}
           className="w-full h-24 bg-[#DDEDFF] rounded-2xl px-4 py-2 outline-none"
         />
-
+ <label className="flex items-center gap-2">
+          <input type="checkbox" name="vaccinated" checked={!!form.vaccinated} onChange={handleChange} />
+          Đã tiêm phòng
+        </label>
+        
         <label className="flex items-center gap-2">
           <input type="checkbox" name="sterilized" checked={!!form.sterilized} onChange={handleChange} />
           Đã triệt sản
-        </label>
-
-          <label className="flex items-center gap-2">
-          <input type="checkbox" name="vaccinated" checked={!!form.vaccinated} onChange={handleChange} />
-          Đã tiêm phòng
         </label>
 
         <button disabled={isPending} className="w-full bg-[#6272B6] text-white py-3 rounded-full disabled:opacity-60">
