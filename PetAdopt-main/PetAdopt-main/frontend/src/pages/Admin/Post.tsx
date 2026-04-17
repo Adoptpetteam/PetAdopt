@@ -17,7 +17,6 @@ const Post = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form] = Form.useForm();
-
   const fetchData = async () => {
     const res = await axios.get("http://localhost:5000/api/news");
     setData(res.data);
@@ -26,8 +25,6 @@ const Post = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  // 🔥 FIX UPLOAD → BASE64
   const handleUpload = (info: any) => {
     const file = info.fileList[0];
 
@@ -85,7 +82,7 @@ const Post = () => {
           setOpen(true);
         }}
       >
-        Thêm bài viết
+        Thêm bài viết Mới
       </Button>
 
       <Table
