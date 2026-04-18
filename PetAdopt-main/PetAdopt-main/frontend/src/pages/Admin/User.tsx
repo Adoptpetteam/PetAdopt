@@ -25,16 +25,12 @@ interface UserType {
   status: boolean;
   online: boolean;
 }
-
 const API = "http://localhost:5000/api/users";
-
 const User = () => {
   const [data, setData] = useState<UserType[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [form] = Form.useForm();
-
-  // 👉 Load data
   const fetchUsers = async () => {
     const res = await axios.get(API);
     setData(res.data);
@@ -43,15 +39,11 @@ const User = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
-
-  // 👉 Add
   const handleAdd = () => {
     setEditingUser(null);
     form.resetFields();
     setIsModalOpen(true);
   };
-
-  // 👉 Edit (fill full data)
   const handleEdit = (record: UserType) => {
     setEditingUser(record);
 
@@ -66,24 +58,19 @@ const User = () => {
 
     setIsModalOpen(true);
   };
-
-  // 👉 Delete (chỉ xóa khi status = false)
   const handleDelete = async (user: UserType) => {
     if (user.status) {
       alert("Chỉ được xóa user đang bị khóa!");
       return;
     }
-
     await axios.delete(`${API}/${user.id}`);
     fetchUsers();
   };
 
-  // 👉 Submit
   const handleSubmit = async () => {
     const values = await form.validateFields();
 
     if (editingUser) {
-      // 👉 giữ nguyên data cũ + update role, status
       await axios.put(`${API}/${editingUser.id}`, {
         ...editingUser,
         name: values.name,
@@ -94,12 +81,9 @@ const User = () => {
     } else {
       await axios.post(API, values);
     }
-
     setIsModalOpen(false);
     fetchUsers();
   };
-
-  // 👉 Columns
   const columns: ColumnsType<UserType> = [
     {
       title: "Tên",
@@ -150,7 +134,6 @@ const User = () => {
           <Button type="primary" onClick={() => handleEdit(record)}>
             Sửa
           </Button>
-
           <Popconfirm
             title="Bạn có chắc muốn xóa?"
             onConfirm={() => handleDelete(record)}
@@ -163,17 +146,13 @@ const User = () => {
       ),
     },
   ];
-
   return (
     <div style={{ padding: 20 }}>
       <h2>Quản lý người dùng</h2>
-
       <Button type="primary" onClick={handleAdd} style={{ marginBottom: 10 }}>
         Thêm người dùng
       </Button>
-
       <Table rowKey="id" columns={columns} dataSource={data} />
-
       <Modal
         title={editingUser ? "Sửa người dùng" : "Thêm người dùng"}
         open={isModalOpen}
@@ -184,7 +163,6 @@ const User = () => {
           <Form.Item name="name" label="Tên" rules={[{ required: true }]}>
             <Input disabled={!!editingUser} />
           </Form.Item>
-
           <Form.Item
             name="email"
             label="Email"
@@ -192,7 +170,6 @@ const User = () => {
           >
             <Input disabled={!!editingUser} />
           </Form.Item>
-
           <Form.Item
             name="password"
             label="Mật khẩu"
@@ -215,7 +192,6 @@ const User = () => {
           >
             <Switch checkedChildren="Active" unCheckedChildren="Block" />
           </Form.Item>
-
           <Form.Item
             name="online"
             label="Hoạt động"
