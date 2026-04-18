@@ -11,14 +11,12 @@ export default function About() {
           Nơi kết nối những trái tim yêu thương với những người bạn bốn chân đang cần một mái ấm
         </p>
       </div>
-
       {/* SECTION 1 */}
       <div className="grid grid-cols-2 gap-16 items-center mb-20">
         <img
           src="/images/tải xuống.jpg"
           className="w-full h-[400px] object-cover rounded-2xl"
         />
-
         <div>
           <h2 className="text-2xl font-bold text-[#6272B6] mb-4">
             Sứ mệnh của chúng tôi
@@ -29,7 +27,6 @@ export default function About() {
           </p>
         </div>
       </div>
-
       {/* SECTION 2 */}
       <div className="grid grid-cols-2 gap-16 items-center mb-20">
         <div>
@@ -73,7 +70,6 @@ export default function About() {
         <h2 className="text-2xl font-bold text-[#6272B6] mb-4">
           Hãy cùng chúng tôi tạo nên sự khác biệt
         </h2>
-
         {/* <button className="bg-[#6272B6] text-white px-8 py-3 rounded-full hover:bg-[#4f5fa3] transition">
           Tham gia ngay
         </button> */}
