@@ -14,12 +14,10 @@ interface Volunteer {
   status: "pending_review" | "approved" | "rejected";
   createdAt: string;
 }
-
 export default function VolunteerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [volunteer, setVolunteer] = useState<Volunteer | null>(null);
-
   useEffect(() => {
     if (!id) return;
     apiClient.get(`/volunteers/${id}`).then((res) => setVolunteer(res.data?.data ?? res.data));
@@ -43,7 +41,7 @@ export default function VolunteerDetail() {
         <p><b>Lý do:</b> {volunteer.reason}</p>
         <p><b>Trạng thái:</b> {volunteer.status}</p>
         <p><b>Ngày đăng ký:</b> {new Date(volunteer.createdAt).toLocaleString()}</p>
-
+        
         <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-gray-500 text-white rounded">
           Quay lại
         </button>
