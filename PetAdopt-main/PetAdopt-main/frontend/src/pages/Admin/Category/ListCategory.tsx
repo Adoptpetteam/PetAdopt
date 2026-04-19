@@ -1,14 +1,33 @@
 import React, { useState } from "react";
-import { Table, Button, Space, Popconfirm, Typography, Tag, Tooltip, Modal, Form, Input, message, Select, Card } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  Popconfirm,
+  Typography,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  message,
+  Select,
+  Card,
+} from "antd";
 import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListCategory, useDeleteCategory, useUpdateCategory, useCreateCategory } from "../../../hook/huyHook";
+import {
+  useListCategory,
+  useDeleteCategory,
+  useUpdateCategory,
+  useCreateCategory,
+} from "../../../hook/huyHook";
 import type { ICategory } from "../../../data/huy";
 
 const ListCategory: React.FC = () => {
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
+
   const { data, isLoading } = useListCategory({ resource: "category" });
   const { mutate: deleteCategory } = useDeleteCategory({ resource: "category" });
   const { mutate: updateCategory } = useUpdateCategory({ resource: "category" });
@@ -27,54 +46,93 @@ const ListCategory: React.FC = () => {
   const handleOpenEditModal = (record: ICategory) => {
     setEditingCategory(record);
     setIsModalOpen(true);
-    form.setFieldsValue({ name: record.name, status: record.status });
+    form.setFieldsValue({
+      name: record.name,
+      status: record.status,
+    });
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null);
+    form.resetFields();
   };
 
   const onFinish = (values: any) => {
     if (editingCategory) {
-      updateCategory({ id: editingCategory.id, values }, {
-        onSuccess: () => {
-          message.success("Cập nhật thành công!");
-          setIsModalOpen(false);
-          queryClient.invalidateQueries({ queryKey: ["category"] });
+      updateCategory(
+        { id: editingCategory.id, values },
+        {
+          onSuccess: () => {
+            message.success("Cập nhật thành công!");
+            handleCloseModal();
+            queryClient.invalidateQueries({ queryKey: ["category"] });
+          },
         }
-      });
+      );
     } else {
-      addCategory(values, {
+      const newData = {
+        ...values,
+        id: Date.now().toString(),
+      };
+
+      addCategory(newData, {
         onSuccess: () => {
           message.success("Thêm mới thành công!");
-          setIsModalOpen(false);
+          handleCloseModal();
           queryClient.invalidateQueries({ queryKey: ["category"] });
-        }
+        },
       });
     }
   };
 
   const columns: ColumnsType<ICategory> = [
-    { title: "ID", dataIndex: "id", width: 80, align: "center", render: (id) => <Tag color="blue">#{id}</Tag> },
-    { title: "Tên danh mục", dataIndex: "name", render: (text) => <b style={{ color: "#1890ff" }}>{text}</b> },
-    { 
-      title: "Trạng thái", 
-      dataIndex: "status", 
+    {
+      title: "ID",
+      dataIndex: "id",
+      width: 80,
+      align: "center",
+      render: (id) => <Tag color="blue">#{id}</Tag>,
+    },
+    {
+      title: "Tên danh mục",
+      dataIndex: "name",
+      render: (text) => <b style={{ color: "#1890ff" }}>{text}</b>,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
       render: (status) => (
-        <Tag color={status === "on" ? "green" : "volcano"}>{status === "on" ? "Hoạt động" : "Tạm dừng"}</Tag>
-      ) 
+        <Tag color={status === "on" ? "green" : "volcano"}>
+          {status === "on" ? "Hoạt động" : "Tạm dừng"}
+        </Tag>
+      ),
     },
     {
       title: "Hành động",
-      width: 150,
-      align: "center",
       render: (_, record) => (
-        <Space size="middle">
-          <Button type="primary" ghost size="small" icon={<EditOutlined />} onClick={() => handleOpenEditModal(record)} />
+        <Space>
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleOpenEditModal(record)}
+          />
           <Popconfirm
-            title="Xóa danh mục?"
+            title="Xóa?"
             onConfirm={() => {
-              if (record.status !== "off") return message.error("Chỉ được xóa khi trạng thái là 'off'!");
-              deleteCategory(record.id, { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["category"] }) });
+              if (record.status !== "off") {
+                return message.error("Phải OFF mới xóa!");
+              }
+              deleteCategory(record.id, {
+                onSuccess: () =>
+                  queryClient.invalidateQueries({ queryKey: ["category"] }),
+              });
             }}
           >
-            <Button danger icon={<DeleteOutlined />} size="small" disabled={record.status !== "off"} />
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              disabled={record.status !== "off"}
+            />
           </Popconfirm>
         </Space>
       ),
@@ -82,26 +140,43 @@ const ListCategory: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
-      <Card style={{ borderRadius: "12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <Typography.Title level={3}>📦 Quản lý Danh mục</Typography.Title>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddModal}>Thêm mới</Button>
+    <div style={{ padding: 24 }}>
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Typography.Title level={3}>Quản lý danh mục</Typography.Title>
+          <Button icon={<PlusOutlined />} onClick={handleOpenAddModal}>
+            Thêm
+          </Button>
         </div>
-        <Table rowKey="id" loading={isLoading} columns={columns} dataSource={data || []} pagination={{ pageSize: 6 }} />
+
+        <Table rowKey="id" columns={columns} dataSource={data || []} />
       </Card>
-      <Modal 
-        title={editingCategory ? `Chỉnh sửa: ${editingCategory.name}` : "Thêm danh mục mới"} 
-        open={isModalOpen} 
-        onCancel={() => setIsModalOpen(false)} 
+
+      <Modal
+        open={isModalOpen}
+        onCancel={handleCloseModal}
         onOk={() => form.submit()}
+        title={editingCategory ? "Sửa" : "Thêm"}
       >
-        <Form form={form} layout="vertical" onFinish={onFinish}>
-          <Form.Item name="name" label="Tên danh mục" rules={[{ required: true }]}>
-            <Input />
+        <Form form={form} onFinish={onFinish} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Tên"
+            rules={[
+              { required: true, message: "Nhập tên!" },
+              { min: 2, message: "Ít nhất 2 ký tự" },
+            ]}
+          >
+            <Input disabled={!!editingCategory} />
           </Form.Item>
+
           <Form.Item name="status" label="Trạng thái">
-            <Select options={[{ value: "on", label: "Hoạt động" }, { value: "off", label: "Tạm dừng" }]} />
+            <Select
+              options={[
+                { value: "on", label: "Hoạt động" },
+                { value: "off", label: "Tạm dừng" },
+              ]}
+            />
           </Form.Item>
         </Form>
       </Modal>
