@@ -35,7 +35,7 @@ const CarePage = () => {
   const [editing, setEditing] = useState<Care | null>(null);
   const [form] = Form.useForm();
 
-  // 👉 load data
+
   const fetchData = async () => {
     const res = await axios.get("http://localhost:3000/care");
     setData(res.data);
@@ -216,17 +216,20 @@ const values = await form.validateFields();
             <Input disabled={!!editing} />
           </Form.Item>
 
+           <Form.Item name="address" label="Địa chỉ">
+            <Input disabled={!!editing} />
+          </Form.Item>
+
           <Form.Item name="phone" label="SĐT" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
 
+         
+          
           <Form.Item name="email" label="Email">
             <Input disabled={!!editing} />
           </Form.Item>
 
-          <Form.Item name="address" label="Địa chỉ">
-            <Input disabled={!!editing} />
-          </Form.Item>
 
           <Form.Item name="vaccineDate" label="Ngày tiêm">
             <DatePicker style={{ width: "100%" }} disabled={!!editing} />
