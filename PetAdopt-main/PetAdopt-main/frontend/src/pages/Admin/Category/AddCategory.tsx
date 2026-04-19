@@ -9,10 +9,16 @@ const AddCategory = () => {
   const { mutate: addCategory, isPending } = useCreateCategory({ resource: "category" });
 
   const onFinish = (values: any) => {
-    addCategory(values, {
+    const newData = {
+      ...values,
+      id: Date.now().toString()
+    };
+
+    addCategory(newData, {
       onSuccess: () => {
         message.success("Thêm danh mục mới thành công!");
-        navigate("/admin/category"); // Quay lại danh sách
+        form.resetFields();
+        navigate("/admin/category");
       },
       onError: () => {
         message.error("Có lỗi xảy ra khi thêm danh mục.");
@@ -23,13 +29,21 @@ const AddCategory = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Card title="Thêm danh mục mới" style={{ maxWidth: 600, margin: '0 auto' }}>
-        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ status: 'on' }}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          initialValues={{ status: 'on' }}
+        >
           <Form.Item
             name="name"
-            label="Tên danh mục (Ví dụ: Chó, Mèo, Bò...)"
-            rules={[{ required: true, message: 'Vui lòng nhập tên danh mục!' }]}
+            label="Tên danh mục"
+            rules={[
+              { required: true, message: 'Vui lòng nhập tên danh mục!' },
+              { min: 2, message: 'Tên quá ngắn!' }
+            ]}
           >
-            <Input placeholder="Nhập tên con vật..." />
+            <Input placeholder="Ví dụ: Chó, Mèo..." />
           </Form.Item>
 
           <Form.Item name="status" label="Trạng thái">
