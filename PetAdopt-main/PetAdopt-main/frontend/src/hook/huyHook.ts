@@ -17,6 +17,7 @@ import {
 } from "../provider/huyProvider";
 import type { Pet } from "../data/pet";
 
+// ================= CATEGORY =================
 export const useListCategory = ({ resource = "category" }: Props) => {
   return useQuery({
     queryKey: [resource],
@@ -33,9 +34,7 @@ export const useDeleteCategory = ({ resource = "category" }: Props) => {
       message.success("Xóa thành công");
       queryClient.invalidateQueries({ queryKey: [resource] });
     },
-    onError: () => {
-      message.error("Xóa thất bại");
-    },
+    onError: () => message.error("Xóa thất bại"),
   });
 };
 
@@ -44,18 +43,15 @@ export const useCreateCategory = ({ resource = "category" }: Props) => {
 
   return useMutation({
     mutationFn: (values: any) => getCreateCategory({ resource, values }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+    onSuccess: (newCategory) => {
+      // 🔥 update realtime
+      queryClient.setQueryData([resource], (old: any) => [
+        ...(old || []),
+        newCategory,
+      ]);
+      message.success("Thêm danh mục thành công");
     },
-    onError: (error: any) => {
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const messages = Object.values(errors).flat().join("\n");
-        message.error(messages);
-      } else {
-        message.error("Thêm thất bại");
-      }
-    },
+    onError: () => message.error("Thêm thất bại"),
   });
 };
 
@@ -65,22 +61,19 @@ export const useUpdateCategory = ({ resource = "category" }: Props) => {
   return useMutation({
     mutationFn: ({ id, values }: { id: number | string; values: any }) =>
       getUpdateCategory({ resource, id, values }),
-    onSuccess: () => {
+    onSuccess: (updated) => {
+      queryClient.setQueryData([resource], (old: any) =>
+        old.map((item: any) =>
+          item.id === updated.id ? updated : item
+        )
+      );
       message.success("Cập nhật thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
     },
-    onError: (error: any) => {
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const messages = Object.values(errors).flat().join("\n");
-        message.error(messages);
-      } else {
-        message.error("Cập nhật thất bại");
-      }
-    },
+    onError: () => message.error("Cập nhật thất bại"),
   });
 };
 
+// ================= PET =================
 export const useListPet = ({ resource = "pets" }: Props) => {
   return useQuery<Pet[]>({
     queryKey: [resource],
@@ -101,10 +94,17 @@ export const useCreatePet = ({ resource = "pets" }: Props) => {
 
   return useMutation({
     mutationFn: (values: any) => createPet({ resource, values }),
-    onSuccess: () => {
+
+    onSuccess: (newPet) => {
+      // 🔥 thêm ngay vào list (KHÔNG reload)
+      queryClient.setQueryData([resource], (old: any) => [
+        ...(old || []),
+        newPet,
+      ]);
+
       message.success("Thêm thú cưng thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
     },
+
     onError: () => message.error("Thêm thú cưng thất bại"),
   });
 };
@@ -115,11 +115,18 @@ export const useUpdatePet = ({ resource = "pets" }: Props) => {
   return useMutation({
     mutationFn: ({ id, values }: { id: string | number; values: any }) =>
       updatePet({ resource, id, values }),
-    onSuccess: () => {
+
+    onSuccess: (updatedPet) => {
+      queryClient.setQueryData([resource], (old: any) =>
+        old.map((item: any) =>
+          item.id === updatedPet.id ? updatedPet : item
+        )
+      );
+
       message.success("Cập nhật thú cưng thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
     },
-    onError: () => message.error("Cập nhật thú cưng thất bại"),
+
+    onError: () => message.error("Cập nhật thất bại"),
   });
 };
 
@@ -128,26 +135,36 @@ export const useDeletePet = ({ resource = "pets" }: Props) => {
 
   return useMutation({
     mutationFn: (id: string | number) => deletePet({ resource, id }),
-    onSuccess: () => {
+
+    onSuccess: (_, id) => {
+      queryClient.setQueryData([resource], (old: any) =>
+        old.filter((item: any) => item.id !== id)
+      );
+
       message.success("Xóa thú cưng thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
     },
-    onError: () => message.error("Xóa thú cưng thất bại"),
+
+    onError: () => message.error("Xóa thất bại"),
   });
 };
 
+// ================= ADOPTION =================
 export const useCreateAdoption = ({ resource = "adoptions" }: any) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (values: any) => createAdoption({ resource, values }),
-    onSuccess: () => {
+
+    onSuccess: (newData) => {
+      queryClient.setQueryData([resource], (old: any) => [
+        ...(old || []),
+        newData,
+      ]);
+
       message.success("Gửi form thành công!");
-      queryClient.invalidateQueries({ queryKey: [resource] });
     },
-    onError: () => {
-      message.error("Gửi form thất bại");
-    },
+
+    onError: () => message.error("Gửi form thất bại"),
   });
 };
 
@@ -163,12 +180,15 @@ export const useDeleteAdoption = ({ resource = "adoptions" }: any) => {
 
   return useMutation({
     mutationFn: (id: string | number) => deleteAdoption({ resource, id }),
-    onSuccess: () => {
+
+    onSuccess: (_, id) => {
+      queryClient.setQueryData([resource], (old: any) =>
+        old.filter((item: any) => item.id !== id)
+      );
+
       message.success("Xóa thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
     },
-    onError: () => {
-      message.error("Xóa thất bại");
-    },
+
+    onError: () => message.error("Xóa thất bại"),
   });
 };
