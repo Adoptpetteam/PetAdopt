@@ -28,13 +28,6 @@ const createAdoptionRequest = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!pet || !user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Thiếu thông tin bắt buộc: pet, user'
-      });
-    }
-
     if (!fullName || !phone || !address || !reason || !housingType || !familyMembers || !monthlyIncome) {
       return res.status(400).json({
         success: false,
@@ -49,20 +42,23 @@ const createAdoptionRequest = async (req, res) => {
       });
     }
 
-    // Kiểm tra pet có tồn tại không + pet có sẵn sàng nhận nuôi
-    const petExists = await Pet.findById(pet);
-    if (!petExists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy thú cưng'
-      });
-    }
+    // Kiểm tra pet có tồn tại không
+    if (pet) {
+      const petExists = await Pet.findById(pet);
+      if (!petExists) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy thú cưng'
+        });
+      }
 
-    if (petExists.status !== 'available') {
-      return res.status(400).json({
-        success: false,
-        message: 'Thú cưng này hiện không có sẵn để nhận nuôi'
-      });
+      // Kiểm tra pet có sẵn sàng nhận nuôi không
+      if (petExists.status !== 'available') {
+        return res.status(400).json({
+          success: false,
+          message: 'Thú cưng này hiện không có sẵn để nhận nuôi'
+        });
+      }
     }
 
     // Kiểm tra user đã gửi đơn pending cho pet này chưa
@@ -84,7 +80,7 @@ const createAdoptionRequest = async (req, res) => {
     // Tạo đơn
     const adoptionRequest = new AdoptionRequest({
       pet,
-      user,
+      user: user || null,
       fullName,
       phone,
       address,
@@ -99,7 +95,7 @@ const createAdoptionRequest = async (req, res) => {
       hasOtherPets: hasOtherPets || false,
       otherPetsDetails,
       monthlyIncome,
-      commitment
+      commitment: true
     });
 
     await adoptionRequest.save();
@@ -224,17 +220,14 @@ const approveAdoptionRequest = async (req, res) => {
     request.status = 'approved';
     request.adminNote = adminNote || '';
     request.processedAt = new Date();
-    request.processedBy = req.user?.userId || null;
+    request.processedBy = req.user?.id || null;
     await request.save();
 
     // Cập nhật trạng thái pet thành adopted
     if (request.pet) {
-      const petId = request.pet._id || request.pet.id;
-      if (petId) {
-        await Pet.findByIdAndUpdate(petId, {
+      await Pet.findByIdAndUpdate(request.pet._id, {
         status: 'adopted'
-        });
-      }
+      });
     }
 
     res.json({
@@ -279,7 +272,7 @@ const rejectAdoptionRequest = async (req, res) => {
     request.status = 'rejected';
     request.adminNote = adminNote || '';
     request.processedAt = new Date();
-    request.processedBy = req.user?.userId || null;
+    request.processedBy = req.user?.id || null;
     await request.save();
 
     res.json({
@@ -303,7 +296,6 @@ const rejectAdoptionRequest = async (req, res) => {
 const cancelAdoptionRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.userId;
 
     const request = await AdoptionRequest.findById(id);
 
@@ -311,13 +303,6 @@ const cancelAdoptionRequest = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy đơn nhận nuôi'
-      });
-    }
-
-    if (userId && String(request.user) !== String(userId)) {
-      return res.status(403).json({
-        success: false,
-        message: "Bạn không có quyền hủy đơn này"
       });
     }
 
@@ -351,7 +336,7 @@ const cancelAdoptionRequest = async (req, res) => {
 // @access  Private
 const getMyAdoptionRequests = async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   HomeOutlined,
@@ -18,7 +18,7 @@ const SideBarAdmin = () => {
 
   const menuItems = [
     { name: "Dashboard", icon: <HomeOutlined />, path: "/admin" },
-    { name: "Product", icon: <ShoppingOutlined />, path: "/admin/products" },
+    { name: "Product", icon: <ShoppingOutlined />, path: "/admin/product" },
 
     {
       name: "Category",

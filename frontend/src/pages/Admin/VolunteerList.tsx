@@ -19,30 +19,19 @@ export default function VolunteerList() {
   const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending")
   const navigate = useNavigate()
 
-useEffect(() => {
-  fetch("http://localhost:3000/volunteers")
-    .then(res => res.json())
-    .then(data => setVolunteers(data))
-}, [])
-
-const updateStatus = async (id: number, status: Volunteer["status"]) => {
-  try {
-    await fetch(`http://localhost:3000/volunteers/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    })
-
-    // reload lại data
-    const res = await fetch("http://localhost:3000/volunteers")
-    const data = await res.json()
+  useEffect(() => {
+    const data = JSON.parse(localStorage.getItem("volunteers") || "[]")
     setVolunteers(data)
-  } catch (error) {
-    console.error(error)
+  }, [])
+
+  const updateStatus = (id: number, status: Volunteer["status"]) => {
+    const updated = volunteers.map((v) =>
+      v.id === id ? { ...v, status } : v
+    )
+
+    setVolunteers(updated)
+    localStorage.setItem("volunteers", JSON.stringify(updated))
   }
-}
 
   // 🔥 FILTER
   const filteredList = volunteers.filter((v) => {

@@ -1,9 +1,25 @@
 import axios from "axios";
 
 /** Base URL API backend, ví dụ: http://localhost:5000/api */
-const baseURL =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
+function resolveApiBaseUrl(): string {
+  const fallback = "http://localhost:5000/api";
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw) return fallback;
+
+  const cleaned = String(raw).trim();
+  if (!cleaned) return fallback;
+
+  try {
+    const normalized = cleaned.replace(/\/+$/, "");
+    const url = new URL(normalized);
+    if (!url.protocol || !url.host) return fallback;
+    return normalized;
+  } catch {
+    return fallback;
+  }
+}
+
+const baseURL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL,

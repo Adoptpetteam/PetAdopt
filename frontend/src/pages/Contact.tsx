@@ -22,23 +22,25 @@ export default function Contact() {
     })
   }
 
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault()
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
 
-  await fetch("http://localhost:3000/contacts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+    const contacts = JSON.parse(localStorage.getItem("contacts") || "[]")
+
+    const newContact = {
       ...form,
+      id: Date.now(),
       createdAt: new Date().toISOString(),
-    }),
-  })
+    }
 
-  alert("Gửi liên hệ thành công!")
-  setForm({ name: "", email: "", message: "" })
-}
+    localStorage.setItem(
+      "contacts",
+      JSON.stringify([...contacts, newContact])
+    )
+
+    alert("Gửi liên hệ thành công!")
+    setForm({ name: "", email: "", message: "" })
+  }
 
   return (
     <div className="max-w-[600px] mx-auto py-20 px-6">
