@@ -1,16 +1,18 @@
+import { useState } from "react"
 import Banner from "../assets/images/Banner.png"
 import pic1 from "../assets/images/pic1.png"
 import pic2 from "../assets/images/pic2.png"
 import pic3 from "../assets/images/pic3.png"
 import PetCard from "../components/PetCard"
-import { useListPet } from "../hook/huyHook"
-import { Link } from "react-router-dom"
+import ShoppingChatBot from "../components/ShoppingChatBot"
+import { pets } from "../data/pet"
 
 
 export default function Home() {
-  const { data: pets = [], isLoading } = useListPet({ resource: "pets" })
+  const [chatOpen, setChatOpen] = useState(false)
+
   return (
-<div className="w-full px-[130px]">
+<div className="w-full px-[130px] relative">
 {/* Section 1 - Banner */}
   <section>
     <div>
@@ -37,11 +39,9 @@ export default function Home() {
         nâng cao nhận thức cộng đồng về bảo vệ động vật và hạn chế tình trạng bỏ rơi thú cưng.
       </p>
 
-      <Link to="/about">
-  <button className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition">
-    Xem thêm về chúng tôi
-  </button>
-</Link>
+      <button className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition">
+        Về chúng tôi
+      </button>
     </div>
 
     {/* RIGHT - 40% */}
@@ -95,7 +95,7 @@ export default function Home() {
 
       {/* Link */}
       <a 
-        href="/donate" 
+        href="#" 
         className="text-[#6272B6] font-medium hover:underline hover:text-[#4e5fa8] transition"
       >
         Tìm hiểu thêm
@@ -120,7 +120,7 @@ export default function Home() {
       </p>
 
       <a 
-        href="/volunteer" 
+        href="#" 
         className="text-[#6272B6] font-medium hover:underline hover:text-[#4e5fa8] transition"
       >
         Tìm hiểu thêm
@@ -145,7 +145,7 @@ export default function Home() {
       </p>
 
       <a 
-        href="/adopt" 
+        href="#" 
         className="text-[#6272B6] font-medium hover:underline hover:text-[#4e5fa8] transition"
       >
         Tìm hiểu thêm
@@ -171,18 +171,16 @@ export default function Home() {
 
  <div className="container mx-auto py-10">
 
-      {/* <h1 className="text-3xl font-bold mb-8">
+      <h1 className="text-3xl font-bold mb-8">
         Pet Adoption
-      </h1> */}
+      </h1>
 
       <div className="grid grid-cols-4 gap-6">
-        {isLoading ? (
-          <p>Đang tải...</p>
-        ) : (
-          pets.map((pet) => (
-            <PetCard key={pet.id} pet={pet} />
-          ))
-        )}
+
+        {pets.map((pet) => (
+          <PetCard key={pet.id} pet={pet} />
+        ))}
+
       </div>
 
     </div>
@@ -192,13 +190,46 @@ export default function Home() {
   </div>
 
   {/* ===== BOTTOM ===== */}
-  {/* <div className="text-center">
+  <div className="text-center">
     <button className="bg-[#6272B6] text-white px-10 py-3 rounded-full font-medium transition duration-300 hover:bg-[#4e5fa8]">
       Nhận nuôi
     </button>
-  </div> */}
+  </div>
 
 </section>
+
+  {/* Trợ lý mua hàng — nút nổi + khung chat đầy đủ */}
+  {chatOpen && (
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-end sm:items-end sm:justify-end p-4 sm:p-6 bg-black/25 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Trợ lý mua hàng"
+      onClick={() => setChatOpen(false)}
+    >
+      <div
+        className="w-full max-w-[400px] h-[min(580px,calc(100vh-7rem))] flex flex-col rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ShoppingChatBot variant="widget" onClose={() => setChatOpen(false)} />
+      </div>
+    </div>
+  )}
+
+  <button
+    type="button"
+    onClick={() => setChatOpen(true)}
+    className="fixed bottom-6 right-6 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#6272B6] to-[#4f5fa3] text-white shadow-lg shadow-[#6272B6]/40 ring-2 ring-white hover:scale-105 hover:shadow-xl hover:shadow-[#6272B6]/50 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6272B6]/35"
+    aria-label="Mở trợ lý mua hàng"
+    aria-expanded={chatOpen}
+  >
+    <span className="relative flex h-9 w-9 items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#4f5fa3]" />
+    </span>
+  </button>
 
 </div>
   )

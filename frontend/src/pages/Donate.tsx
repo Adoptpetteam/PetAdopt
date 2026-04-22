@@ -33,7 +33,7 @@ export default function Donate() {
       </p>
 
       {/* INPUT */}
-      {/* <div className="space-y-4 mb-8">
+      <div className="space-y-4 mb-8">
         <input
           placeholder="Tên của bạn"
           value={name}
@@ -48,7 +48,7 @@ export default function Donate() {
           onChange={(e) => setMessage(e.target.value)}
           className="w-full h-28 bg-[#DDEDFF] rounded-2xl px-6 py-3 outline-none"
         />
-      </div> */}
+      </div>
 
       {/* QR */}
       <div className="bg-white p-6 rounded-2xl shadow mb-6">
@@ -66,12 +66,12 @@ export default function Donate() {
       </div>
 
       {/* BUTTON */}
-      {/* <button
+      <button
         onClick={handleConfirm}
         className="w-full bg-[#6272B6] text-white py-3 rounded-full hover:bg-[#4e5fa8]"
       >
         Tôi đã thanh toán
-      </button> */}
+      </button>
     </div>
   )
 }

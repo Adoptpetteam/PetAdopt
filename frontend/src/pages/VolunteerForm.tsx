@@ -35,31 +35,26 @@ export default function VolunteerForm() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault()
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
 
-  const newVolunteer = {
-    ...form,
-    status: "pending_review",
-    createdAt: new Date().toISOString(),
-  }
+    const volunteers = JSON.parse(localStorage.getItem("volunteers") || "[]")
 
-  try {
-    await fetch("http://localhost:3000/volunteers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newVolunteer),
-    })
+    const newVolunteer = {
+      ...form,
+      id: Date.now(),
+      status: "pending_review",
+      createdAt: new Date().toISOString(),
+    }
+
+    localStorage.setItem(
+      "volunteers",
+      JSON.stringify([...volunteers, newVolunteer])
+    )
 
     alert("Đăng ký thành công!")
     navigate("/")
-  } catch (error) {
-    console.error(error)
-    alert("Có lỗi xảy ra!")
   }
-}
 
   return (
     <div className="max-w-[600px] mx-auto py-20 px-6">

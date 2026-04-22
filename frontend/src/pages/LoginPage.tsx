@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login } from "../utils/auth";
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import { isAuthenticated } from "../utils/auth";
+import { login as loginApi } from "../api/authApi";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from =
+    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || "/";
 
   const [form, setForm] = useState({
     email: "",
@@ -11,6 +16,24 @@ export default function LoginPage() {
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const normalizeRole = (role?: string) => String(role || "").toLowerCase();
+
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      try {
+        const user = JSON.parse(raw) as { role?: string };
+        navigate(normalizeRole(user.role) === "admin" ? "/admin" : from, { replace: true });
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    navigate(from, { replace: true });
+  }, [navigate, from]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
@@ -19,7 +42,7 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -28,23 +51,48 @@ export default function LoginPage() {
       return;
     }
 
-    // fake API delay
-    setTimeout(() => {
-      const user = login(form.email, form.password);
-
-      if (!user) {
-        setError("Sai email hoặc mật khẩu");
+    setLoading(true);
+    try {
+      const res = await loginApi({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      if (res.success && res.token) {
+        localStorage.setItem("token", res.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: res.user.id,
+            email: res.user.email,
+            name: res.user.name,
+            role: res.user.role,
+          })
+        );
+        window.dispatchEvent(new Event("auth-change"));
+        if (normalizeRole(res.user.role) === "admin") {
+          navigate("/admin", { replace: true });
+        } else {
+          navigate(from !== "/login" ? from : "/", { replace: true });
+        }
         return;
       }
-
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (user.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/adopt");
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const msg = (err.response?.data as { message?: string })?.message;
+        if (status === 403 && msg) {
+          setError(msg);
+          setLoading(false);
+          return;
+        }
       }
-    }, 500);
+    } finally {
+      setLoading(false);
+    }
+
+    setError(
+      "Sai email hoặc mật khẩu (hoặc backend chưa sẵn sàng). Demo: admindemo@demo.com / Admin123! hoặc petdemo@demo.com / Demo123!."
+    );
   };
 
   return (
@@ -76,8 +124,12 @@ export default function LoginPage() {
           className="p-4 border rounded"
         />
 
-        <button className="bg-blue-500 text-white p-3 rounded">
-          Đăng nhập
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-500 text-white p-3 rounded disabled:opacity-60"
+        >
+          {loading ? "Đang đăng nhập…" : "Đăng nhập"}
         </button>
       </form>
     </div>

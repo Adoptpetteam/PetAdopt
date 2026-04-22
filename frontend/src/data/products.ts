@@ -4,6 +4,7 @@ export interface Product {
   price: number
   image: string
   description: string
+  quantity: number
 }
 
 export const products: Product[] = [
@@ -13,6 +14,7 @@ export const products: Product[] = [
     price: 120000,
     image: "/images/Jack.png",
     description: "Thức ăn dinh dưỡng cho chó",
+    quantity: 10,
   },
   {
     id: 2,
@@ -20,6 +22,6 @@ export const products: Product[] = [
     price: 80000,
     image: "/images/Jack.png",
     description: "Cát sạch, khử mùi tốt",
+    quantity: 20,
   },
-  
 ]

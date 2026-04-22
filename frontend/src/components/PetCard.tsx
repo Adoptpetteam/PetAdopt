@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom"
 import type { Pet } from "../data/pet"
-import { addToFavorites } from "../utils/favorite"
 
 type Props = {
   pet: Pet
@@ -26,18 +25,6 @@ export default function PetCard({ pet }: Props) {
             Tuổi: {pet.age} <br />
             Giới tính: {pet.gender}
           </p>
-
-          {/* ❤️ BUTTON */}
-          <button
-            onClick={(e) => {
-              e.preventDefault() // 🔥 tránh click vào Link
-              addToFavorites(pet)
-              alert("Đã thêm vào yêu thích ❤️")
-            }}
-            className="mt-4 bg-pink-500 text-white px-4 py-2 rounded-full hover:bg-pink-600"
-          >
-            Yêu thích
-          </button>
         </div>
 
       </div>

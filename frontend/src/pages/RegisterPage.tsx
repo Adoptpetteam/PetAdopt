@@ -1,8 +1,15 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { isAuthenticated } from "../utils/auth"
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate("/", { replace: true })
+    }
+  }, [navigate])
 
   const [form, setForm] = useState({
     fullName: "",

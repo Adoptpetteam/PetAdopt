@@ -19,11 +19,11 @@ export default function VolunteerDetail() {
   const navigate = useNavigate()
   const [volunteer, setVolunteer] = useState<Volunteer | null>(null)
 
-useEffect(() => {
-  fetch(`http://localhost:3000/volunteers/${id}`)
-    .then(res => res.json())
-    .then(data => setVolunteer(data))
-}, [id])
+  useEffect(() => {
+    const data: Volunteer[] = JSON.parse(localStorage.getItem("volunteers") || "[]")
+    const found = data.find(v => v.id === Number(id))
+    if (found) setVolunteer(found)
+  }, [id])
 
   if (!volunteer) {
     return <div className="text-center py-20">Không tìm thấy dữ liệu</div>
