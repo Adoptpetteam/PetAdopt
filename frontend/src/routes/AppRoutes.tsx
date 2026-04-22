@@ -23,6 +23,8 @@ import ProductDetail from "../pages/ProductDetail";
 
 
 
+import CustomerCare from "../pages/admin/CustomerCare"; // ✅ THÊM
+
 import AdminRoute from "./AdminRoute";
 import VolunteerForm from "../pages/VolunteerForm";
 import AdminLayout from "../pages/Admin/AdminLayout";
@@ -69,14 +71,23 @@ export default function AppRoutes() {
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
+<<<<<<< Updated upstream
         <Route path="/about" element={<About />} />
+=======
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/orders/success" element={<OrderSuccess />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route path="/vaccination-schedule" element={<VaccinationSchedule />} />
+        </Route>
+>>>>>>> Stashed changes
       </Route>
 
       {/* AUTH */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* ADMIN (đã fix trắng) */}
+      {/* ADMIN */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
@@ -89,11 +100,18 @@ export default function AppRoutes() {
           <Route path="category" element={<ListCategory />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
+<<<<<<< Updated upstream
           <Route path="/admin/contacts" element={<AdminContacts />} />
           <Route path="/admin/contacts/:id" element={<ContactDetail />} />
           <Route path="/admin/pets" element={<AdminPets />} />
           <Route path="/admin/pets/add" element={<AddPet />} />
           <Route path="/admin/pets/edit/:id" element={<EditPet />} />
+=======
+          <Route path="vaccination-care" element={<VaccinationCare />} />
+
+        
+          <Route path="customer-care" element={<CustomerCare />} />
+>>>>>>> Stashed changes
         </Route>
       </Route>
 
