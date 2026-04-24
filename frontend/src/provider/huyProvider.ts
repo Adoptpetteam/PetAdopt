@@ -33,7 +33,7 @@ axiosClient.interceptors.request.use((config) => {
 
 
 export type Props = {
-  resource: string;
+  resource?: string;
   id?: number | string;
   values?: any;
 };
