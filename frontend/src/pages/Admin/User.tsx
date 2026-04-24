@@ -13,9 +13,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
-
 const { Option } = Select;
-
 interface UserType {
   id: string;
   name: string;
@@ -27,14 +25,13 @@ interface UserType {
 }
 
 const API = "http://localhost:3000/users";
-
 const User = () => {
   const [data, setData] = useState<UserType[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [form] = Form.useForm();
 
-  // 👉 Load data
+
   const fetchUsers = async () => {
     const res = await axios.get(API);
     setData(res.data);
@@ -44,14 +41,12 @@ const User = () => {
     fetchUsers();
   }, []);
 
-  // 👉 Add
+
   const handleAdd = () => {
     setEditingUser(null);
     form.resetFields();
     setIsModalOpen(true);
   };
-
-  // 👉 Edit (fill full data)
   const handleEdit = (record: UserType) => {
     setEditingUser(record);
 
@@ -66,8 +61,6 @@ const User = () => {
 
     setIsModalOpen(true);
   };
-
-  // 👉 Delete (chỉ xóa khi status = false)
   const handleDelete = async (user: UserType) => {
     if (user.status) {
       alert("Chỉ được xóa user đang bị khóa!");
@@ -78,12 +71,10 @@ const User = () => {
     fetchUsers();
   };
 
-  // 👉 Submit
   const handleSubmit = async () => {
     const values = await form.validateFields();
 
     if (editingUser) {
-      // 👉 giữ nguyên data cũ + update role, status
       await axios.put(`${API}/${editingUser.id}`, {
         ...editingUser,
         name: values.name,
@@ -99,7 +90,6 @@ const User = () => {
     fetchUsers();
   };
 
-  // 👉 Columns
   const columns: ColumnsType<UserType> = [
     {
       title: "Tên",
