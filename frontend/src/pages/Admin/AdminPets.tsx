@@ -20,9 +20,13 @@ interface Pet {
 
 export default function AdminPets() {
 const navigate = useNavigate();
+
+  // ✅ React Query
   const { data: pets, isLoading } = useListPet({ resource: "pets" });
   const { data: categories } = useListCategory({ resource: "category" });
   const { mutate: deletePet } = useDeletePet({ resource: "pets" });
+
+  // ✅ lấy tên category từ id
   const getCategoryName = (id: string) => {
     return categories?.find((c: any) => c.id === id)?.name || "Không rõ";
   };
@@ -41,7 +45,7 @@ const navigate = useNavigate();
         onClick={() => navigate("/admin/pets/add")}
         className="mb-6 px-6 py-3 bg-[#6272B6] text-white rounded-full"
       >
-        + Thêm thú cưng mới
+        + Thêm thú cưng
       </button>
 
       <div className="space-y-4">
@@ -55,6 +59,7 @@ const navigate = useNavigate();
 
               <div>
                 <p className="font-semibold">{p.name}</p>
+                 {/* ✅ FIX CATEGORY */}
                 <p className="text-sm text-gray-500">
                   {getCategoryName(p.categoryId)} | {p.age} tuổi | {p.gender}
                 </p>
