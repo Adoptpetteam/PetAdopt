@@ -11,8 +11,6 @@ import LoginPage from "../pages/LoginPage";
 import AdoptForm from "../pages/AdoptForm";
 import SuccessPage from "../pages/SuccessPage";
 
-
-
 import Contact from "../pages/Contact";
 import Donate from "../pages/Donate";
 import News from "../pages/News";
@@ -20,10 +18,6 @@ import NewsDetail from "../pages/NewsDetail";
 
 import Products from "../pages/Products";
 import ProductDetail from "../pages/ProductDetail";
-
-
-
-import CustomerCare from "../pages/admin/CustomerCare"; // ✅ THÊM
 
 import AdminRoute from "./AdminRoute";
 import VolunteerForm from "../pages/VolunteerForm";
@@ -49,6 +43,9 @@ import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
 import About from "../pages/About";
 
+// 🔥 thêm
+import CustomerCare from "../pages/Admin/CustomerCare";
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -71,16 +68,7 @@ export default function AppRoutes() {
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-<<<<<<< Updated upstream
         <Route path="/about" element={<About />} />
-=======
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/success" element={<OrderSuccess />} />
-
-        <Route element={<ProtectedRoute />}>
-          <Route path="/vaccination-schedule" element={<VaccinationSchedule />} />
-        </Route>
->>>>>>> Stashed changes
       </Route>
 
       {/* AUTH */}
@@ -100,18 +88,12 @@ export default function AppRoutes() {
           <Route path="category" element={<ListCategory />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
-<<<<<<< Updated upstream
           <Route path="/admin/contacts" element={<AdminContacts />} />
           <Route path="/admin/contacts/:id" element={<ContactDetail />} />
           <Route path="/admin/pets" element={<AdminPets />} />
           <Route path="/admin/pets/add" element={<AddPet />} />
           <Route path="/admin/pets/edit/:id" element={<EditPet />} />
-=======
-          <Route path="vaccination-care" element={<VaccinationCare />} />
-
-        
           <Route path="customer-care" element={<CustomerCare />} />
->>>>>>> Stashed changes
         </Route>
       </Route>
 

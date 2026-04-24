@@ -18,19 +18,10 @@ export default function AdminLayout() {
           <Link to="/admin/category">Danh mục</Link>
           <Link to="/admin/product">Sản phẩm</Link>
           <Link to="/admin/order">Đơn hàng</Link>
-<<<<<<< Updated upstream
           <Link to="/admin/contacts">Liên hệ</Link>
-=======
-          <Link to="/admin/vaccination-care">Lịch tiêm phòng</Link>
-          <Link to="/admin/contacts">Liên hệ</Link>
-
-          {/* ✅ MỚI */}
           <Link to="/admin/customer-care">Chăm sóc khách hàng</Link>
->>>>>>> Stashed changes
         </nav>
       </div>
-
-      {/* CONTENT */}
       <div className="flex-1 bg-gray-100 p-8">
         <Outlet />
       </div>
