@@ -45,7 +45,7 @@ const navigate = useNavigate();
       </button>
 
       <div className="space-y-4">
-        {pets?.map((p) => (
+        {pets?.map((p: Pet) => (
           <div
             key={p.id}
             className="bg-white shadow rounded-xl p-4 flex justify-between items-center"

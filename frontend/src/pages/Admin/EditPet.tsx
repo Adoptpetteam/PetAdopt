@@ -12,6 +12,10 @@ export default function EditPet() {
 
   const [form, setForm] = useState<any>(null);
 
+  if (!id) {
+    return <p className="text-center mt-10">ID thú cưng không hợp lệ.</p>;
+  }
+
   // ✅ React Query
   const { data: pet, isLoading } = usePetDetail({ id });
   const { data: categories } = useListCategory({ resource: "category" });
