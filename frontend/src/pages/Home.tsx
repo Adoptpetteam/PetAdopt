@@ -1,4 +1,13 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Swiper, SwiperSlide } from "swiper/react"
+import { Autoplay, Pagination, EffectFade, Navigation, Parallax } from "swiper/modules"
+
+// Import Swiper styles
+import "swiper/css"
+import "swiper/css/pagination"
+import "swiper/css/navigation"
+import "swiper/css/effect-fade"
+
 import Banner from "../assets/images/Banner.png"
 import pic1 from "../assets/images/pic1.png"
 import pic2 from "../assets/images/pic2.png"
@@ -7,230 +16,179 @@ import PetCard from "../components/PetCard"
 import ShoppingChatBot from "../components/ShoppingChatBot"
 import { pets } from "../data/pet"
 
-
 export default function Home() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  // Hiệu ứng đổi màu nhẹ khi cuộn trang
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   return (
-<div className="w-full px-[130px] relative">
-{/* Section 1 - Banner */}
-  <section>
-    <div>
-      {/* Banner content */}
-      <img src={Banner} className="w-full"/>
-    </div>
-  </section>
+    <div className={`w-full relative transition-colors duration-500 ${scrolled ? 'bg-[#f8f9ff]' : 'bg-white'} overflow-x-hidden`}>
+      <style>{`
+        .hero-swiper .swiper-pagination-bullet { width: 10px; height: 10px; background: #fff; opacity: 0.4; transition: 0.3s; }
+        .hero-swiper .swiper-pagination-bullet-active { width: 40px; border-radius: 5px; background: #fff !important; opacity: 1; }
+        .hero-swiper .swiper-button-next, .hero-swiper .swiper-button-prev { 
+            color: white !important; 
+            background: rgba(255,255,255,0.1); 
+            width: 50px; height: 50px; border-radius: 50%; 
+            backdrop-filter: blur(5px);
+        }
+        .hero-swiper .swiper-button-next:after, .hero-swiper .swiper-button-prev:after { font-size: 18px; font-weight: bold; }
+        
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+          100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); }
+      `}</style>
 
-{/* Section 2*/} 
-<section className="w-full bg-white py-20">
-  <div className="flex justify-between items-center">
+      {/* --- SECTION 1: HERO BANNER CAO CẤP --- */}
+      <section className="w-full h-[600px] lg:h-[750px] relative">
+        <Swiper
+          modules={[Autoplay, Pagination, EffectFade, Navigation, Parallax]}
+          effect="fade"
+          parallax={true}
+          loop={true}
+          speed={1200}
+          autoplay={{ delay: 5000, disableOnInteraction: false }}
+          pagination={{ clickable: true }}
+          navigation={true}
+          className="hero-swiper w-full h-full"
+        >
+          {/* Slide 1: Theo mẫu của bạn */}
+          <SwiperSlide>
+            <div className="relative w-full h-full overflow-hidden">
+              <div
+className="absolute inset-0 scale-110" 
+                data-swiper-parallax="20%"
+                style={{ backgroundImage: `url(${Banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent flex items-center px-[130px]">
+                <div className="max-w-[800px] text-white" data-swiper-parallax="-300">
+                  <h1 className="text-[72px] font-bold leading-[1.1] mb-6 drop-shadow-2xl">
+                    Tìm Người Bạn <br /> <span className="text-[#A5B4FC]">Đồng Hành</span> Mới
+                  </h1>
+                  <p className="text-2xl mb-12 opacity-90 max-w-[500px] leading-relaxed">
+                    Mỗi bé thú cưng là một câu chuyện tình yêu đang chờ bạn viết tiếp.
+                  </p>
+                  <div className="flex gap-4">
+                    <button className="bg-[#6272B6] hover:bg-[#4e5fa8] text-white px-10 py-5 rounded-full font-bold text-xl transition-all shadow-[0_10px_20px_rgba(98,114,182,0.4)] hover:-translate-y-1">
+                      Khám phá ngay
+                    </button>
+                    <button className="bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 text-white px-10 py-5 rounded-full font-bold text-xl transition-all">
+                      Tìm hiểu thêm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SwiperSlide>
 
-    {/* LEFT - 60% */}
-    <div className="w-[60%] text-left">
-      <h2 className="text-[32px] font-bold text-[#6272B6] mb-6">
-        Nhận nuôi thú cưng - T1 Pet Adopt
-      </h2>
+          {/* Slide 2: Minimalist & xịn xò */}
+          <SwiperSlide>
+            <div className="relative w-full h-full bg-[#1e1e2e] flex items-center justify-center overflow-hidden">
+                <div className="absolute top-20 left-20 w-64 h-64 bg-[#6272B6]/20 rounded-full blur-[100px]" />
+                <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px]" />
+                <div className="text-center z-10" data-swiper-parallax="-500">
+                   <h2 className="text-[80px] font-black text-white mb-4 tracking-tighter">LOVE & CARE</h2>
+                   <div className="h-1.5 w-32 bg-[#6272B6] mx-auto mb-8 rounded-full" />
+                   <p className="text-white/70 text-2xl font-light tracking-[0.2em] uppercase">Mái ấm tình thương cho thú cưng</p>
+                </div>
+            </div>
+          </SwiperSlide>
+        </Swiper>
+      </section>
 
-      <p className="text-gray-700 leading-7 mb-8">
-        T1 Pet Adopt là một dự án/đơn vị hoạt động trong lĩnh vực hỗ trợ nhận nuôi thú cưng, 
-        hướng đến việc kết nối những thú cưng bị bỏ rơi hoặc cần tìm mái ấm mới với những người yêu động vật.
-        T1 Pet Adopt thường chia sẻ thông tin về thú cưng cần nhận nuôi, hỗ trợ tư vấn chăm sóc, 
-        cũng như lan tỏa thông điệp nuôi thú cưng có trách nhiệm. Bên cạnh đó, đơn vị còn góp phần 
-        nâng cao nhận thức cộng đồng về bảo vệ động vật và hạn chế tình trạng bỏ rơi thú cưng.
-      </p>
+      {/* --- SECTION 2: STATS/FEATURES TRÀN VIỀN NHẸ --- */}
+      <div className="px-[130px] -mt-16 relative z-20">
+        <div className="grid grid-cols-3 gap-8">
+            {[
+                { title: "2000+", sub: "Bé đã có chủ", icon: "🐾" },
+                { title: "150+", sub: "Trạm cứu trợ", icon: "🏠" },
+                { title: "24/7", sub: "Hỗ trợ y tế", icon: "🩺" }
+            ].map((stat, i) => (
+<div key={i} className="glass-card p-8 rounded-[30px] flex items-center gap-6 shadow-xl hover:shadow-[#6272B6]/10 transition-all group cursor-default">
+                    <div className="text-5xl group-hover:scale-125 transition-transform">{stat.icon}</div>
+                    <div>
+                        <h4 className="text-3xl font-black text-[#6272B6]">{stat.title}</h4>
+                        <p className="text-gray-500 font-medium uppercase tracking-wider text-sm">{stat.sub}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+      </div>
 
-      <button className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition">
-        Về chúng tôi
+      {/* --- SECTION 3: DANH SÁCH BÉ NGOAN (LUNG LINH HƠN) --- */}
+      <div className="px-[130px] py-32">
+        <div className="flex justify-between items-end mb-16">
+          <div className="relative">
+            <span className="text-[#6272B6] font-bold tracking-[0.3em] uppercase text-sm mb-2 block">Weekly Favorites</span>
+            <h2 className="text-5xl font-black italic uppercase text-gray-900 leading-none">Bé Ngoan Trong Tuần</h2>
+            <div className="absolute -left-4 top-0 w-1 h-full bg-[#6272B6] rounded-full opacity-50" />
+          </div>
+          <button className="text-[#6272B6] font-bold border-b-2 border-[#6272B6] pb-1 hover:text-black hover:border-black transition-all">
+            Xem tất cả các bé →
+          </button>
+        </div>
+
+        {/* Lưới PetCard với hiệu ứng hover nâng cao */}
+        <div className="grid grid-cols-4 gap-10">
+          {pets.map((pet, idx) => (
+            <div key={pet.id} className="transition-all duration-500" style={{ transitionDelay: `${idx * 100}ms` }}>
+              <div className="relative group overflow-hidden rounded-[40px] bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-4">
+                <PetCard pet={pet} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* --- SECTION 4: CALL TO ACTION (CTA) --- */}
+      <div className="px-[130px] pb-32">
+        <div className="w-full h-[400px] rounded-[50px] bg-[#6272B6] relative overflow-hidden flex items-center p-20 shadow-2xl">
+            <div className="absolute right-0 top-0 w-1/2 h-full opacity-20 pointer-events-none">
+                {/* Một hình ảnh chó/mèo mờ mờ ở góc */}
+                <img src={pic1} alt="" className="w-full h-full object-contain scale-150 animate-float" />
+            </div>
+            <div className="relative z-10 max-w-[600px]">
+                <h2 className="text-white text-5xl font-black mb-6 leading-tight">Sẵn sàng để mở lòng đón một người bạn?</h2>
+                <p className="text-white/80 text-xl mb-10">Chúng tôi sẽ đồng hành cùng bạn trong hành trình tìm thấy thành viên mới cho gia đình.</p>
+                <div className="flex gap-4">
+<button className="bg-white text-[#6272B6] px-10 py-4 rounded-2xl font-black text-lg hover:bg-black hover:text-white transition-all">
+                        ĐĂNG KÝ NGAY
+                    </button>
+                    <button className="border-2 border-white/50 text-white px-10 py-4 rounded-2xl font-black text-lg hover:bg-white/10 transition-all">
+                        TƯ VẤN THÊM
+                    </button>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      {/* --- CHAT BOT & FLOAT BUTTON --- */}
+      <button
+        onClick={() => setChatOpen(true)}
+        className="fixed bottom-10 right-10 z-[100] w-20 h-20 bg-white text-[#6272B6] rounded-full shadow-[0_15px_40px_rgba(0,0,0,0.15)] flex items-center justify-center hover:scale-110 hover:bg-[#6272B6] hover:text-white transition-all duration-300 group"
+      >
+        <svg className="group-hover:rotate-12 transition-transform" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
       </button>
+
+      {chatOpen && (
+        <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-md flex justify-end items-end p-10 animate-in fade-in duration-300" onClick={() => setChatOpen(false)}>
+          <div className="w-[450px] h-[700px] bg-white rounded-[40px] overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <ShoppingChatBot variant="widget" onClose={() => setChatOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
-
-    {/* RIGHT - 40% */}
-    <div className="w-[40%] flex justify-end">
-      <svg xmlns="http://www.w3.org/2000/svg" width="379" height="371" viewBox="0 0 379 371" fill="none">
-<g clip-path="url(#clip0_33_111)">
-<path d="M321.812 284.032C317.141 272.704 308.952 264.611 300.543 258.45C292.134 252.288 282.931 247.814 274.857 240.838C244.271 214.424 235.895 165.516 189.496 165.516C143.098 165.516 134.688 214.416 104.135 240.838C96.0529 247.814 86.9564 252.297 78.4898 258.45C70.0232 264.603 61.8511 272.704 57.2211 284.032C51.8876 296.966 51.9367 312.818 55.945 325.801C59.6701 337.765 66.7689 348.411 76.3957 356.469C95.7011 372.769 121.322 375.564 143.662 363.869C158.975 355.857 173.585 341.261 189.553 341.758C205.513 341.261 220.131 355.857 235.445 363.869C257.785 375.564 283.397 372.744 302.711 356.469C312.341 348.413 319.44 337.767 323.162 325.801C327.096 312.818 327.137 296.966 321.812 284.032ZM197.423 263.658H180.784V307.251H165.438V263.641H148.783V251.156H197.423V263.658ZM230.201 307.251H214.986V264.399H214.642L202.298 272.549V259.583L215.141 251.156H230.168L230.201 307.251Z" fill="#6272B6"/>
-<path d="M134.525 141.857C159.646 139.526 175.892 115.778 175.426 88.6221C174.845 54.5392 159.515 0.431935 130.811 -9.68412e-06C105.567 -0.374905 80.0931 50.3664 83.2998 84.6205C86.3265 117.041 109.403 144.188 134.525 141.857Z" fill="#6272B6"/>
-<path d="M83.5534 158.923C77.8272 129.16 55.9859 84.1396 30.8152 88.1575C8.64671 91.6864 -5.81601 140.015 2.2661 169.518C9.92283 197.448 34.3573 217.676 55.9532 211.792C77.5491 205.907 88.1589 182.631 83.5534 158.923Z" fill="#6272B6"/>
-<path d="M244.475 141.857C269.589 144.188 292.665 117.041 295.7 84.6205C298.899 50.3664 273.434 -0.374905 248.181 -9.68412e-06C219.55 0.431935 204.155 54.5392 203.566 88.6221C203.1 115.794 219.354 139.526 244.475 141.857Z" fill="#6272B6"/>
-<path d="M348.185 88.1493C323.014 84.1314 301.214 129.152 295.439 158.915C290.841 182.631 301.402 205.899 323.039 211.792C344.676 217.684 369.069 197.448 376.726 169.518C384.816 140.015 370.345 91.6864 348.185 88.1493Z" fill="#6272B6"/>
-</g>
-<defs>
-<clipPath id="clip0_33_111">
-<rect width="379" height="371" fill="white"/>
-</clipPath>
-</defs>
-</svg>
-    </div>
-
-  </div>
-</section>
-
-{/* Section 3*/} 
-<section className="py-20 bg-white">
-  <div className="flex justify-between">
-
-    {/* CARD 1 */}
-    <div className="w-[380px] h-[440px] bg-[#F1F3FF] rounded-[20px] flex flex-col items-center justify-center text-center p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-      
-      {/* Image */}
-      <div className="w-[180px] h-[180px] rounded-full overflow-hidden mb-6">
-        {/* <img 
-          src="/images/pet1.png" 
-          alt="Pet" 
-          className="w-full h-full object-cover"
-        /> */}
-
-        <img src={pic1}/>
-      </div>
-
-      {/* Title */}
-      <h3 className="text-[#6272B6] text-xl font-semibold mb-4">
-        ỦNG HỘ
-      </h3>
-
-      {/* Text */}
-      <p className="text-gray-600 text-sm leading-relaxed mb-5">
-        Giúp duy trì hoạt động của TPA thông qua hình thức quyên góp tiền hoặc ủng hộ.
-      </p>
-
-      {/* Link */}
-      <a 
-        href="#" 
-        className="text-[#6272B6] font-medium hover:underline hover:text-[#4e5fa8] transition"
-      >
-        Tìm hiểu thêm
-      </a>
-
-    </div>
-
-
-    {/* CARD 2 */}
-    <div className="w-[380px] h-[440px] bg-[#F1F3FF] rounded-[20px] flex flex-col items-center justify-center text-center p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-      
-      <div className="w-[180px] h-[180px] rounded-full overflow-hidden mb-6">
-        <img src={pic2}/>
-      </div>
-
-      <h3 className="text-[#6272B6] text-xl font-semibold mb-4">
-        TÌNH NGUYỆN
-      </h3>
-
-      <p className="text-gray-600 text-sm leading-relaxed mb-5">
-        Tham gia cùng chúng tôi để chăm sóc và hỗ trợ thú cưng tìm mái ấm mới.
-      </p>
-
-      <a 
-        href="#" 
-        className="text-[#6272B6] font-medium hover:underline hover:text-[#4e5fa8] transition"
-      >
-        Tìm hiểu thêm
-      </a>
-
-    </div>
-
-
-    {/* CARD 3 */}
-    <div className="w-[380px] h-[440px] bg-[#F1F3FF] rounded-[20px] flex flex-col items-center justify-center text-center p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-      
-      <div className="w-[180px] h-[180px] rounded-full overflow-hidden mb-6">
-        <img src={pic3}/>
-      </div>
-
-      <h3 className="text-[#6272B6] text-xl font-semibold mb-4">
-        NHẬN NUÔI
-      </h3>
-
-      <p className="text-gray-600 text-sm leading-relaxed mb-5">
-        Kết nối những thú cưng cần mái ấm với những người yêu động vật.
-      </p>
-
-      <a 
-        href="#" 
-        className="text-[#6272B6] font-medium hover:underline hover:text-[#4e5fa8] transition"
-      >
-        Tìm hiểu thêm
-      </a>
-
-    </div>
-
-  </div>
-</section>
-
-
-<section className="py-24 bg-white">
-
-  {/* ===== TOP ===== */}
-  <div className="text-center mb-16">
-    <h2 className="text-[#6272B6] text-3xl font-bold">
-      BÉ NGOAN TRONG TUẦN
-    </h2>
-  </div>
-
-  {/* ===== MIDDLE ===== */}
-  <div className="flex justify-between mb-16">
-
- <div className="container mx-auto py-10">
-
-      <h1 className="text-3xl font-bold mb-8">
-        Pet Adoption
-      </h1>
-
-      <div className="grid grid-cols-4 gap-6">
-
-        {pets.map((pet) => (
-          <PetCard key={pet.id} pet={pet} />
-        ))}
-
-      </div>
-
-    </div>
-
-
-
-  </div>
-
-  {/* ===== BOTTOM ===== */}
-  <div className="text-center">
-    <button className="bg-[#6272B6] text-white px-10 py-3 rounded-full font-medium transition duration-300 hover:bg-[#4e5fa8]">
-      Nhận nuôi
-    </button>
-  </div>
-
-</section>
-
-  {/* Trợ lý mua hàng — nút nổi + khung chat đầy đủ */}
-  {chatOpen && (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-end sm:items-end sm:justify-end p-4 sm:p-6 bg-black/25 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Trợ lý mua hàng"
-      onClick={() => setChatOpen(false)}
-    >
-      <div
-        className="w-full max-w-[400px] h-[min(580px,calc(100vh-7rem))] flex flex-col rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <ShoppingChatBot variant="widget" onClose={() => setChatOpen(false)} />
-      </div>
-    </div>
-  )}
-
-  <button
-    type="button"
-    onClick={() => setChatOpen(true)}
-    className="fixed bottom-6 right-6 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#6272B6] to-[#4f5fa3] text-white shadow-lg shadow-[#6272B6]/40 ring-2 ring-white hover:scale-105 hover:shadow-xl hover:shadow-[#6272B6]/50 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6272B6]/35"
-    aria-label="Mở trợ lý mua hàng"
-    aria-expanded={chatOpen}
-  >
-    <span className="relative flex h-9 w-9 items-center justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-      <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#4f5fa3]" />
-    </span>
-  </button>
-
-</div>
   )
-}
+} 
