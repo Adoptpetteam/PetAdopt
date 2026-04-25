@@ -1,99 +1,29 @@
 import { message } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../api/http";
 
-import {
-  getCreateCategory,
-  getDeleteCategory,
-  getListCategory,
-  getUpdateCategory,
-  getCategoryDetail,
-  type Props,
-} from "../provider/huyProvider";
-
-// lấy danh sách
-export const useListCategory = ({ resource = "category" }: Props) => {
+export const useListCategory = () => {
   return useQuery({
-    queryKey: [resource],
-    queryFn: () => getListCategory({ resource }),
+    queryKey: ["category"],
+    queryFn: async () => {
+      const res = await apiClient.get("/category");
+      return res.data.data;
+    },
   });
 };
 
-export const useDeleteCategory = ({ resource = "category" }: Props) => {
+export const useCreateCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id?: string | number) =>
-      getDeleteCategory({ resource, id }),
+    mutationFn: async (values: any) => {
+      const res = await apiClient.post("/category", values);
+      return res.data;
+    },
 
     onSuccess: () => {
-      message.success("Xóa thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
-    },
-
-    onError: () => {
-      message.error("Xóa thất bại");
-    },
-  });
-};
-
-// thêm
-export const useCreateCategory = ({ resource = "category" }: Props) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (values: any) =>
-      getCreateCategory({ resource, values }),
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
-    },
-
-    onError: (error: any) => {
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const messages = Object.values(errors).flat().join("\n");
-        message.error(messages);
-      } else {
-        message.error("Thêm thất bại");
-      }
-    },
-  });
-};
-// Pet hooks
-export const useListPet = ({ resource = "pets" }: Props) => {
-  return useQuery({
-    queryKey: [resource],
-    queryFn: () => getListCategory({ resource }),
-  });
-};
-
-export const useDeletePet = ({ resource = "pets" }: Props) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id?: string | number) =>
-      getDeleteCategory({ resource, id }),
-
-    onSuccess: () => {
-      message.success("Xóa thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
-    },
-
-    onError: () => {
-      message.error("Xóa thất bại");
-    },
-  });
-};
-
-export const useCreatePet = ({ resource = "pets" }: Props) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (values: any) =>
-      getCreateCategory({ resource, values }),
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      message.success("Thêm thành công");
+      queryClient.invalidateQueries({ queryKey: ["category"] });
     },
 
     onError: (error: any) => {
@@ -108,34 +38,27 @@ export const useCreatePet = ({ resource = "pets" }: Props) => {
   });
 };
 
-export const usePetDetail = ({ resource = "pets", id }: Props) => {
-  return useQuery({
-    queryKey: [resource, id],
-    queryFn: () => getCategoryDetail({ resource, id }),
-    enabled: Boolean(id),
-  });
-};
-
-export const useUpdatePet = ({ resource = "pets" }: Props) => {
+export const useUpdateCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       values,
     }: {
-      id: number | string;
+      id: string | number;
       values: any;
-    }) => getUpdateCategory({ resource, id, values }),
+    }) => {
+      const res = await apiClient.put(`/category/${id}`, values);
+      return res.data;
+    },
 
     onSuccess: () => {
       message.success("Cập nhật thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      queryClient.invalidateQueries({ queryKey: ["category"] });
     },
 
     onError: (error: any) => {
-      console.error("Update error:", error.response?.data || error);
-
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors;
         const messages = Object.values(errors).flat().join("\n");
@@ -147,56 +70,22 @@ export const useUpdatePet = ({ resource = "pets" }: Props) => {
   });
 };
 
-export const useCreateAdoption = ({ resource = "adoptions" }: Props) => {
+export const useDeleteCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (values: any) =>
-      getCreateCategory({ resource, values }),
+    mutationFn: async (id: string | number) => {
+      const res = await apiClient.delete(`/category/${id}`);
+      return res.data;
+    },
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      message.success("Xóa thành công");
+      queryClient.invalidateQueries({ queryKey: ["category"] });
     },
 
-    onError: (error: any) => {
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const messages = Object.values(errors).flat().join("\n");
-        message.error(messages);
-      } else {
-        message.error("Tạo yêu cầu nhận nuôi thất bại");
-      }
-    },
-  });
-};
-// cập nhật
-export const useUpdateCategory = ({ resource = "category" }: Props) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      id,
-      values,
-    }: {
-      id: number | string;
-      values: any;
-    }) => getUpdateCategory({ resource, id, values }),
-
-    onSuccess: () => {
-      message.success("Cập nhật thành công");
-      queryClient.invalidateQueries({ queryKey: [resource] });
-    },
-
-    onError: (error: any) => {
-      console.error("Update error:", error.response?.data || error);
-
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const messages = Object.values(errors).flat().join("\n");
-        message.error(messages);
-      } else {
-        message.error("Cập nhật thất bại");
-      }
+    onError: () => {
+      message.error("Xóa thất bại");
     },
   });
 };

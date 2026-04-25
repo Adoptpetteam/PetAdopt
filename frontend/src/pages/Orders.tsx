@@ -1,19 +1,37 @@
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "antd"
 import { Link } from "react-router-dom"
-import { listMyOrders, type ProductOrderResponse } from "../api/orderApi"
+import axios from "axios"
 import { message } from "antd"
 import { useNavigate } from "react-router-dom"
 
+interface OrderItem {
+  productId: number
+  name: string
+  price: number
+  quantity: number
+}
+
+interface OrderData {
+  id: number
+  createdAt: string
+  paymentMethod: string
+  totals: { total: number }
+  items: OrderItem[]
+}
+
 export default function Orders() {
-  const [orders, setOrders] = useState<ProductOrderResponse[]>([])
+  const [orders, setOrders] = useState<OrderData[]>([])
   const navigate = useNavigate()
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await listMyOrders()
-        setOrders(res.data)
+        const token = localStorage.getItem("token")
+        const res = await axios.get("http://localhost:5000/api/orders", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        setOrders(res.data.data || [])
       } catch (e: any) {
         message.error(e?.response?.data?.message || "Không thể tải đơn hàng.")
         navigate("/login")
@@ -80,4 +98,3 @@ export default function Orders() {
     </div>
   )
 }
-

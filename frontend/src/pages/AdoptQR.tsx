@@ -12,7 +12,8 @@ export default function PaymentQR() {
   const pet = pets.find((p) => p.id === Number(id))
   if (!pet) return <div className="text-center py-20">Pet not found</div>
 
-  const formData = JSON.parse(localStorage.getItem("adoptForm") || "{}")
+  // formData không được sử dụng - có thể xóa sau khi backend sẵn sàng
+  // const formData = JSON.parse(localStorage.getItem("adoptForm") || "{}")
 
 const handleSuccess = () => {
   setLoading(true)

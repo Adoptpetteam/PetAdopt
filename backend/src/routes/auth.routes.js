@@ -18,12 +18,9 @@ router.post('/reset-password', authController.resetPassword);
 router.get('/profile', authenticate, authController.getProfile);
 router.put('/profile', authenticate, authController.updateProfile);
 router.put('/change-password', authenticate, authController.changePassword);
-
 router.get('/abc',(req,res)=>{
     res.send('abc')
 
 })
-
-
 
 module.exports = router;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   Space,
@@ -10,7 +10,12 @@ import {
   Upload,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import axios from "axios";
+import {
+  listNews,
+  createNews,
+  updateNews,
+  deleteNews,
+} from "../../api/newsApi";
 
 const Post = () => {
   const [data, setData] = useState<any[]>([]);
@@ -19,8 +24,12 @@ const Post = () => {
   const [form] = Form.useForm();
 
   const fetchData = async () => {
-    const res = await axios.get("http://localhost:3000/news");
-    setData(res.data);
+    try {
+      const res = await listNews({ limit: 100 });
+      setData(res.data || []);
+    } catch {
+      message.error("Không tải được danh sách tin tức");
+    }
   };
 
   useEffect(() => {
@@ -47,30 +56,29 @@ const Post = () => {
   const handleSubmit = async () => {
     const values = await form.validateFields();
 
-    const newData = {
-      ...values,
-      createdAt: new Date().toLocaleDateString(),
-    };
-
-    if (editing) {
-      await axios.put(
-        `http://localhost:3000/news/${editing.id}`,
-        newData
-      );
-      message.success("Sửa thành công");
-    } else {
-      await axios.post("http://localhost:3000/news", newData);
-      message.success("Thêm thành công");
+    try {
+      if (editing) {
+        await updateNews(editing._id, values);
+        message.success("Sửa thành công");
+      } else {
+        await createNews({ ...values, status: "published" });
+        message.success("Thêm thành công");
+      }
+      setOpen(false);
+      fetchData();
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Thao tác thất bại");
     }
-
-    setOpen(false);
-    fetchData();
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`http://localhost:3000/news/${id}`);
-    message.success("Xóa thành công");
-    fetchData();
+    try {
+      await deleteNews(id);
+      message.success("Xóa thành công");
+      fetchData();
+    } catch {
+      message.error("Xóa thất bại");
+    }
   };
 
   return (
@@ -90,16 +98,15 @@ const Post = () => {
 
       <Table
         dataSource={data}
-        rowKey="id"
+        rowKey="_id"
         columns={[
           { title: "Tiêu đề", dataIndex: "title" },
           { title: "Mô tả", dataIndex: "description" },
           {
             title: "Ảnh",
             dataIndex: "image",
-            render: (img) => (
-              <img src={img} width={80} style={{ borderRadius: 8 }} />
-            ),
+            render: (img) =>
+              img ? <img src={img} width={80} style={{ borderRadius: 8 }} /> : null,
           },
           {
             title: "Hành động",
@@ -114,7 +121,7 @@ const Post = () => {
                 >
                   Sửa
                 </Button>
-                <Button danger onClick={() => handleDelete(record.id)}>
+                <Button danger onClick={() => handleDelete(record._id)}>
                   Xóa
                 </Button>
               </Space>
@@ -140,6 +147,10 @@ const Post = () => {
 
           <Form.Item name="description" label="Mô tả">
             <Input.TextArea />
+          </Form.Item>
+
+          <Form.Item name="content" label="Nội dung">
+            <Input.TextArea rows={4} />
           </Form.Item>
 
           <Form.Item

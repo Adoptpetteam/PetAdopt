@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Table, Button, Space, Popconfirm, Typography, Tag, Tooltip, Modal, Form, Input, message, Select, Card } from "antd";
+import { useState } from "react";
+import { Table, Button, Space, Popconfirm, Typography, Tag, Modal, Form, Input, message, Select, Card } from "antd";
 import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,10 +9,10 @@ import type { ICategory } from "../../../data/huy";
 const ListCategory: React.FC = () => {
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
-  const { data, isLoading } = useListCategory({ resource: "category" });
-  const { mutate: deleteCategory } = useDeleteCategory({ resource: "category" });
-  const { mutate: updateCategory } = useUpdateCategory({ resource: "category" });
-  const { mutate: addCategory } = useCreateCategory({ resource: "category" });
+  const { data, isLoading } = useListCategory();
+  const { mutate: deleteCategory } = useDeleteCategory();
+  const { mutate: updateCategory } = useUpdateCategory();
+  const { mutate: addCategory } = useCreateCategory();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ICategory | null>(null);

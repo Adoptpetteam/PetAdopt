@@ -2,22 +2,12 @@ import axios from "axios";
 
 
 //dùng khi mà có đường dẫn api từ back-end
-// const axiosClient = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL,
-// });
-
-// axiosClient.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token");
-//   if (token) {
-//     config.headers = config.headers || {};
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
-
+const baseURL =
+  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
+  "http://localhost:5000/api";
 
 const axiosClient = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL,
 });
 
 axiosClient.interceptors.request.use((config) => {
@@ -31,9 +21,24 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 
 export type Props = {
-  resource?: string;
+  resource: string;
   id?: number | string;
   values?: any;
 };

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Form, Input, Button, Select, Card, message } from 'antd';
 import { useCreateCategory } from "../../../hook/huyHook";
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const AddCategory = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { mutate: addCategory, isPending } = useCreateCategory({ resource: "category" });
+  const { mutate: addCategory, isPending } = useCreateCategory();
 
   const onFinish = (values: any) => {
     addCategory(values, {

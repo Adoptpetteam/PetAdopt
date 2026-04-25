@@ -1,46 +1,52 @@
 import { apiClient } from "./http"
-import type { Product } from "../data/products"
 
-export type ProductsListResponse = {
+export type Product = {
+  id: string
+  name: string
+  price: number
+  image: string
+  images?: string[]
+  quantity?: number
+  description?: string
+  category?: string
+}
+
+export type ApiResponse<T> = {
   success: boolean
-  data: Product[]
+  message?: string
+  data: T
 }
 
-export type ProductDetailResponse = {
-  success: boolean
-  data: Product
-}
-
-export async function listProducts(): Promise<ProductsListResponse> {
-  const { data } = await apiClient.get<ProductsListResponse>("/products")
-  return data
-}
-
-/** Trả về thẳng sản phẩm (unwrap `data`) để tránh nhầm lẫn response → màn trắng / crash. */
-export async function getProductById(id: number): Promise<Product> {
-  const { data } = await apiClient.get<ProductDetailResponse>(`/products/${id}`)
-  if (data?.data == null) {
-    throw new Error("PRODUCT_NOT_FOUND")
+export type ProductsListResponse = ApiResponse<Product[]> & {
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    pages: number
   }
-  return data.data
 }
 
-// Admin CRUD (requires Bearer token)
-export async function createProduct(payload: Omit<Product, "id">): Promise<ProductDetailResponse> {
-  const { data } = await apiClient.post<ProductDetailResponse>("/products", payload)
+export async function listProducts(params?: { page?: number; limit?: number; search?: string; category?: string }): Promise<ProductsListResponse> {
+  const { data } = await apiClient.get<ProductsListResponse>("/products", { params })
   return data
 }
 
-export async function updateProduct(
-  id: number,
-  payload: Omit<Product, "id">
-): Promise<ProductDetailResponse> {
-  const { data } = await apiClient.put<ProductDetailResponse>(`/products/${id}`, payload)
+export async function getProductById(id: string): Promise<ApiResponse<Product>> {
+  const { data } = await apiClient.get<ApiResponse<Product>>(`/products/${id}`)
   return data
 }
 
-export async function deleteProduct(id: number): Promise<{ success: boolean; message: string }> {
-  const { data } = await apiClient.delete(`/products/${id}`)
+export async function createProduct(payload: Partial<Product>): Promise<ApiResponse<Product>> {
+  const { data } = await apiClient.post<ApiResponse<Product>>("/products", payload)
   return data
 }
 
+export async function updateProduct(id: string, payload: Partial<Product>): Promise<ApiResponse<Product>> {
+  const { data } = await apiClient.put<ApiResponse<Product>>(`/products/${id}`, payload)
+  return data
+}
+
+export async function deleteProduct(id: string): Promise<ApiResponse<null>> {
+  const { data } = await apiClient.delete<ApiResponse<null>>(`/products/${id}`)
+  return data
+}
