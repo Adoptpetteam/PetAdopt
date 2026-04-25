@@ -1,0 +1,123 @@
+{
+  "users": [
+    {
+      "id": "2687",
+      "name": "huy",
+      "email": "huyntph52547@gmail.com",
+      "password": "123456",
+      "role": "user",
+      "status": true,
+      "online": true
+    },
+    {
+      "id": "7366",
+      "name": "admin",
+      "email": "admin@gmail.com",
+      "password": "123456",
+      "role": "admin",
+      "status": true,
+      "online": true
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "name": "Nguyễn Văn A",
+      "phone": "0123456789",
+      "email": "a@gmail.com",
+      "address": "Hà Nội",
+      "note": "Khách thân thiết",
+      "createdAt": "20/04/2026"
+    }
+  ],
+  "category": [
+    {
+      "id": "2",
+      "name": "Mèo",
+      "status": "on"
+    },
+    {
+      "id": "3",
+      "name": "Lợn",
+      "status": "on"
+    },
+    {
+      "id": "dc22",
+      "name": "Bò",
+      "status": "on"
+    },
+    {
+      "id": "0a17",
+      "name": "Chó",
+      "status": "on"
+    },
+    {
+      "id": "6a86",
+      "name": "Thỏ",
+      "status": "on"
+    }
+  ],
+  "pets": [
+    {
+      "id": "1",
+      "name": "Mèo Anh lông ngắn",
+      "image": "/images/Jack.png",
+      "color": "Xám",
+      "gender": "Đực",
+      "age": "2",
+      "type": "Mèo",
+      "sterilized": true,
+      "status": "Còn"
+    },
+    {
+      "id": "3d49",
+      "name": "Mèo Ba Tư",
+      "image": "blob:http://localhost:5173/a5b76465-0a9b-4fcf-b31e-0720b5271082",
+      "color": "Đen",
+      "gender": "Đực",
+      "age": "1",
+      "type": "Mèo",
+      "sterilized": false,
+      "status": "Còn"
+    },
+    {
+      "id": "f5e8",
+      "name": "Mèo Anh lông dài",
+      "image": "/images/cat_longhair.png",
+      "color": "Trắng",
+      "gender": "Cái",
+      "age": "3",
+      "type": "Mèo",
+      "sterilized": true,
+      "status": "Hết"
+    }
+  ],
+  "news": [
+    {
+      "id": "b93a",
+      "title": "Cách chăm sóc chó Poodle",
+      "description": "Hướng dẫn chi tiết cách nuôi dưỡng và cắt tỉa lông cho chó Poodle tại nhà.",
+      "image": "blob:http://localhost:5173/0d5dbb43-9208-41b4-996e-e28a21961fe4",
+      "createdAt": "31/03/2026"
+    },
+    {
+      "id": "e9d6",
+      "title": "Dinh dưỡng cho mèo con",
+      "description": "Những lưu ý quan trọng khi lựa chọn thức ăn hạt và pate cho mèo dưới 6 tháng tuổi.",
+      "image": "data:image/webp;base64,...",
+      "createdAt": "31/03/2026"
+    }
+  ],
+  "care": [
+    {
+      "id": "1",
+      "name": "Huy",
+      "petName": "Mèo Mun",
+      "phone": "0987654323",
+      "email": "huy@gmail.com",
+      "address": "Hà Nội",
+      "vaccineCount": 2,
+      "createdAt": "22/04/2026"
+    }
+  ]
+}
