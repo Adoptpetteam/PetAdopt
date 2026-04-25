@@ -56,4 +56,3 @@ export async function listMyOrders(): Promise<OrdersListResponse> {
   const { data } = await apiClient.get<OrdersListResponse>("/orders/me")
   return data
 }
-

@@ -1,148 +1,76 @@
-import type { Product } from "../data/products"
-import { MSG_OUT_OF_STOCK, MSG_STOCK_INSUFFICIENT } from "../constants/productMessages"
-import { safeJsonParse } from "./storage"
-
 export type CartItem = {
   productId: number
   name: string
   price: number
-  image: string
   quantity: number
-  description?: string
+  image?: string
 }
 
-const CART_KEY = "cart"
+const CART_KEY = "pawpalace_cart"
 
-function normalizeCartItem(raw: any): CartItem {
-  // New format: { productId, quantity, ... }
-  if (raw && typeof raw.productId === "number") {
-    return {
-      productId: Number(raw.productId),
-      name: String(raw.name ?? ""),
-      price: Number(raw.price ?? 0),
-      image: String(raw.image ?? ""),
-      quantity: Math.max(1, Number(raw.quantity ?? 1)),
-      description: raw.description ? String(raw.description) : undefined,
-    }
-  }
-
-  // Legacy format (current app): push(product) where product has `id`.
-  return {
-    productId: Number(raw?.id),
-    name: String(raw?.name ?? ""),
-    price: Number(raw?.price ?? 0),
-    image: String(raw?.image ?? ""),
-    quantity: 1,
-    description: raw?.description ? String(raw.description) : undefined,
+function loadCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(CART_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
   }
 }
 
-export function loadCartItems(): CartItem[] {
-  const raw = localStorage.getItem(CART_KEY)
-  const parsed = safeJsonParse<any[]>(raw, [])
-  if (!Array.isArray(parsed) || parsed.length === 0) return []
-
-  const normalized = parsed.map(normalizeCartItem).filter((i) => i.productId > 0)
-
-  // Merge duplicates by productId.
-  const map = new Map<number, CartItem>()
-  for (const item of normalized) {
-    const existing = map.get(item.productId)
-    if (existing) {
-      existing.quantity = existing.quantity + item.quantity
-    } else {
-      map.set(item.productId, { ...item })
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => a.productId - b.productId)
-}
-
-export function saveCartItems(items: CartItem[]): void {
+function saveCart(items: CartItem[]) {
   localStorage.setItem(CART_KEY, JSON.stringify(items))
 }
 
-export type AddToCartResult =
-  | { ok: true; items: CartItem[] }
-  | { ok: false; error: string }
-
-export function getCartQuantityForProduct(productId: number): number {
-  return loadCartItems().find((i) => i.productId === productId)?.quantity ?? 0
+export function loadCartItems(): CartItem[] {
+  return loadCart()
 }
 
-export type AddToCartOptions = {
-  /** Đã trừ kho trên server trước đó — bỏ qua kiểm tra tồn trong giỏ. */
-  skipStockCheck?: boolean
-}
+export function addToCart(product: any, quantity: number): { ok: boolean; error?: string } {
+  const items = loadCart()
+  const existing = items.find(i => i.productId === product.id)
 
-export function addToCart(product: Product, quantity: number, options?: AddToCartOptions): AddToCartResult {
-  const items = loadCartItems()
-  const qty = Math.max(1, Math.floor(quantity || 1))
-  const stock = Math.max(0, product.quantity ?? 0)
-  const idx = items.findIndex((i) => i.productId === product.id)
-  const currentQty = idx === -1 ? 0 : items[idx].quantity
-  const newTotal = currentQty + qty
-
-  if (!options?.skipStockCheck) {
-    if (stock <= 0) {
-      return { ok: false, error: MSG_OUT_OF_STOCK }
-    }
-    if (newTotal > stock) {
-      return { ok: false, error: MSG_STOCK_INSUFFICIENT }
-    }
-  }
-
-  const next = items.slice()
-  if (idx === -1) {
-    next.push({
+  if (existing) {
+    existing.quantity += quantity
+  } else {
+    items.push({
       productId: product.id,
       name: product.name,
       price: product.price,
+      quantity,
       image: product.image,
-      quantity: qty,
-      description: product.description,
     })
-  } else {
-    next[idx] = { ...next[idx], quantity: newTotal }
   }
 
-  saveCartItems(next)
-  return { ok: true, items: next }
+  saveCart(items)
+  return { ok: true }
 }
 
-export function removeFromCart(productId: number): CartItem[] {
-  const items = loadCartItems()
-  const next = items.filter((i) => i.productId !== productId)
-  saveCartItems(next)
-  return next
+export function removeFromCart(productId: number) {
+  const items = loadCart().filter(i => i.productId !== productId)
+  saveCart(items)
 }
 
-/** Xóa nhiều dòng giỏ theo productId (sau khi thanh toán một phần). */
-export function removeCartItemsByProductIds(productIds: number[]): CartItem[] {
-  if (productIds.length === 0) return loadCartItems()
-  const drop = new Set(productIds)
-  const items = loadCartItems()
-  const next = items.filter((i) => !drop.has(i.productId))
-  saveCartItems(next)
-  return next
+export function updateCartQuantity(productId: number, quantity: number) {
+  const items = loadCart()
+  const item = items.find(i => i.productId === productId)
+  if (item) {
+    if (quantity <= 0) {
+      removeFromCart(productId)
+    } else {
+      item.quantity = quantity
+      saveCart(items)
+    }
+  }
 }
 
-export function setCartItemQuantity(productId: number, quantity: number): CartItem[] {
-  const items = loadCartItems()
-  const qty = Math.max(1, Math.floor(quantity || 1))
-
-  const idx = items.findIndex((i) => i.productId === productId)
-  if (idx === -1) return items
-
-  items[idx] = { ...items[idx], quantity: qty }
-  saveCartItems(items)
-  return items
-}
-
-export function clearCart(): void {
+export function clearCart() {
   localStorage.removeItem(CART_KEY)
 }
 
 export function calculateCartTotal(items: CartItem[]): number {
-  return items.reduce((sum, i) => sum + i.price * i.quantity, 0)
+  return items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 }
 
+export function getCartCount(): number {
+  return loadCart().reduce((sum, item) => sum + item.quantity, 0)
+}

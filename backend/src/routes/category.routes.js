@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-
 const mongoose = require('mongoose');
 const { authenticate } = require('../middleware/authMiddleware');
 const { isAdmin } = require('../middleware/adminMiddleware');
@@ -84,16 +83,5 @@ router.delete('/:id', authenticate, isAdmin, async (req, res, next) => {
     next(error);
   }
 });
-
-const categoryController = require('../controllers/categoryController');
-const { authenticate } = require('../middleware/authMiddleware');
-const { isAdmin } = require('../middleware/adminMiddleware');
-
-router.get('/', categoryController.getCategories);
-router.get('/:id', categoryController.getCategoryById);
-router.post('/', authenticate, isAdmin, categoryController.createCategory);
-router.put('/:id', authenticate, isAdmin, categoryController.updateCategory);
-router.delete('/:id', authenticate, isAdmin, categoryController.deleteCategory);
-
 
 module.exports = router;

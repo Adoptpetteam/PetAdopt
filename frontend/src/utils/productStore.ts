@@ -1,83 +1,71 @@
-import { products as seedProducts } from "../data/products"
-import type { Product } from "../data/products"
-import { safeJsonParse } from "./storage"
+export type Product = {
+  id: number
+  name: string
+  price: number
+  image: string
+  quantity: number
+  description?: string
+  category?: string
+}
 
-const BOT_PRODUCTS_KEY = "bot_products"
+const PRODUCTS_KEY = "pawpalace_products"
 
-function normalizeProduct(p: any): Product {
-  // Older data might not have quantity yet.
-  return {
-    id: Number(p?.id),
-    name: String(p?.name ?? ""),
-    price: Number(p?.price ?? 0),
-    image: String(p?.image ?? ""),
-    description: String(p?.description ?? ""),
-    quantity: Number(p?.quantity ?? 0),
+function loadProducts(): Product[] {
+  try {
+    const raw = localStorage.getItem(PRODUCTS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
   }
 }
 
-export function loadProducts(): Product[] {
-  const raw = localStorage.getItem(BOT_PRODUCTS_KEY)
-  if (!raw) {
-    // Seed initial catalog for chatbot-only CRUD.
-    const seeded = seedProducts.map(normalizeProduct)
-    localStorage.setItem(BOT_PRODUCTS_KEY, JSON.stringify(seeded))
-    return seeded
-  }
-
-  const parsed = safeJsonParse<any[]>(raw, [])
-  const normalized = parsed.map(normalizeProduct).filter((p) => !Number.isNaN(p.id) && p.id > 0)
-  if (normalized.length === 0) {
-    const seeded = seedProducts.map(normalizeProduct)
-    localStorage.setItem(BOT_PRODUCTS_KEY, JSON.stringify(seeded))
-    return seeded
-  }
-  return normalized
+function saveProductsLocal(items: Product[]) {
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(items))
 }
 
-export function saveProducts(items: Product[]): void {
-  localStorage.setItem(BOT_PRODUCTS_KEY, JSON.stringify(items))
-}
-
-export function getProductById(id: number): Product | undefined {
-  const items = loadProducts()
-  return items.find((p) => p.id === id)
+export function saveProducts(items: Product[]) {
+  saveProductsLocal(items)
 }
 
 export function listProducts(): Product[] {
-  return loadProducts().slice().sort((a, b) => a.id - b.id)
+  return loadProducts()
 }
 
-export function generateNextProductId(items: Product[]): number {
-  const maxId = items.reduce((m, p) => Math.max(m, p.id), 0)
-  return maxId + 1
+export function getProductById(id: number): Product | undefined {
+  return loadProducts().find(p => p.id === id)
 }
 
-export function addProduct(draft: Omit<Product, "id">): Product {
+export function addProduct(product: Omit<Product, "id">): Product {
   const items = loadProducts()
-  const nextId = generateNextProductId(items)
-  const next: Product = { id: nextId, ...draft }
-  const updated = [...items, next]
-  saveProducts(updated)
-  return next
+  const newId = items.length > 0 ? Math.max(...items.map(p => p.id)) + 1 : 1
+  const newProduct: Product = { ...product, id: newId }
+  items.push(newProduct)
+  saveProductsLocal(items)
+  return newProduct
 }
 
-export function updateProduct(id: number, patch: Partial<Omit<Product, "id">>): Product | null {
+export function updateProduct(id: number, updates: Partial<Product>): boolean {
   const items = loadProducts()
-  const idx = items.findIndex((p) => p.id === id)
-  if (idx === -1) return null
-  const updated: Product = { ...items[idx], ...patch, id }
-  const nextItems = items.slice()
-  nextItems[idx] = updated
-  saveProducts(nextItems)
-  return updated
+  const index = items.findIndex(p => p.id === id)
+  if (index === -1) return false
+  items[index] = { ...items[index], ...updates }
+  saveProductsLocal(items)
+  return true
 }
 
 export function deleteProduct(id: number): boolean {
   const items = loadProducts()
-  const nextItems = items.filter((p) => p.id !== id)
-  if (nextItems.length === items.length) return false
-  saveProducts(nextItems)
+  const filtered = items.filter(p => p.id !== id)
+  if (filtered.length === items.length) return false
+  saveProductsLocal(filtered)
   return true
 }
 
+export async function adjustProductStockDelta(id: number, delta: number): Promise<void> {
+  const items = loadProducts()
+  const item = items.find(p => p.id === id)
+  if (!item) throw new Error("Product not found")
+  if (item.quantity + delta < 0) throw new Error("Not enough stock")
+  item.quantity += delta
+  saveProductsLocal(items)
+}

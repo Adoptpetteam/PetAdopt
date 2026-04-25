@@ -1,45 +1,54 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import { message } from "antd";
 import axios from "axios";
-import { isAuthenticated } from "../utils/auth";
-import { login as loginApi } from "../api/authApi";
+import { login, loginWithGoogle, type LoginResponse } from "../api/authApi";
+
+const googleClientId =
+  (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? "";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const from =
-    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || "/";
+  const [searchParams] = useSearchParams();
 
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const normalizeRole = (role?: string) => String(role || "").toLowerCase();
-
+  // Tự điền email và password từ trang đăng ký (nếu có)
   useEffect(() => {
-    if (!isAuthenticated()) return;
-    const raw = localStorage.getItem("user");
-    if (raw) {
-      try {
-        const user = JSON.parse(raw) as { role?: string };
-        navigate(normalizeRole(user.role) === "admin" ? "/admin" : from, { replace: true });
-        return;
-      } catch {
-        /* fall through */
-      }
-    }
-    navigate(from, { replace: true });
-  }, [navigate, from]);
+    const email = searchParams.get("email");
+    const password = searchParams.get("password");
+    if (email) setForm((prev) => ({ ...prev, email }));
+    if (password) setForm((prev) => ({ ...prev, password }));
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleLoginSuccess = (res: LoginResponse) => {
+    localStorage.setItem("token", res.token);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: res.user.id,
+        name: res.user.name,
+        email: res.user.email,
+        role: res.user.role,
+      })
+    );
+    window.dispatchEvent(new Event("auth-change"));
+    message.success(res.message || "Đăng nhập thành công!");
+    navigate("/");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,46 +62,18 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await loginApi({
-        email: form.email.trim(),
-        password: form.password,
-      });
-      if (res.success && res.token) {
-        localStorage.setItem("token", res.token);
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            id: res.user.id,
-            email: res.user.email,
-            name: res.user.name,
-            role: res.user.role,
-          })
-        );
-        window.dispatchEvent(new Event("auth-change"));
-        if (normalizeRole(res.user.role) === "admin") {
-          navigate("/admin", { replace: true });
-        } else {
-          navigate(from !== "/login" ? from : "/", { replace: true });
-        }
-        return;
-      }
+      const res = await login(form);
+      handleLoginSuccess(res);
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const status = err.response?.status;
-        const msg = (err.response?.data as { message?: string })?.message;
-        if (status === 403 && msg) {
-          setError(msg);
-          setLoading(false);
-          return;
-        }
+        const data = err.response?.data as { message?: string } | undefined;
+        setError(data?.message || "Đăng nhập thất bại");
+      } else {
+        setError("Có lỗi xảy ra");
       }
     } finally {
       setLoading(false);
     }
-
-    setError(
-      "Sai email hoặc mật khẩu (hoặc backend chưa sẵn sàng). Demo: admindemo@demo.com / Admin123! hoặc petdemo@demo.com / Demo123!."
-    );
   };
 
   return (
@@ -124,14 +105,59 @@ export default function LoginPage() {
           className="p-4 border rounded"
         />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-500 text-white p-3 rounded disabled:opacity-60"
-        >
-          {loading ? "Đang đăng nhập…" : "Đăng nhập"}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[#6272B6]">
+          <Link to="/forgot-password" className="hover:underline font-medium">
+            Quên mật khẩu?
+          </Link>
+          <span className="text-gray-500">
+            Chưa có tài khoản?{" "}
+            <Link to="/register" className="font-medium text-[#6272B6] hover:underline">
+              Đăng ký
+            </Link>
+          </span>
+        </div>
+
+        <button disabled={loading} className="bg-blue-500 text-white p-3 rounded disabled:opacity-60">
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
       </form>
+
+      {/* Google Login */}
+      {googleClientId && (
+        <div className="w-[500px] mx-auto mt-8 flex flex-col items-center gap-4 border-t border-gray-200 pt-8">
+          <p className="text-sm text-gray-400">hoặc</p>
+          <GoogleLogin
+            text="continue_with"
+            shape="rectangular"
+            size="large"
+            width={320}
+            onSuccess={async (cred) => {
+              if (!cred.credential) return;
+              setLoading(true);
+              try {
+                const res = await loginWithGoogle({ credential: cred.credential });
+                handleLoginSuccess(res);
+              } catch (err) {
+                message.error("Đăng nhập Google thất bại.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onError={() => message.error("Đăng nhập Google thất bại.")}
+          />
+        </div>
+      )}
+
+      {!googleClientId && (
+        <div className="w-[500px] mx-auto mt-8 text-center">
+          <p className="text-xs text-gray-400">
+            Thêm{" "}
+            <code className="bg-gray-100 px-1 rounded">VITE_GOOGLE_CLIENT_ID</code>{" "}
+            vào file{" "}
+            <code className="bg-gray-100 px-1 rounded">.env</code> để bật đăng nhập Google.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

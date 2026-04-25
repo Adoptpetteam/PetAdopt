@@ -10,7 +10,6 @@ export default function AdminLayout() {
 
         <nav className="flex flex-col gap-3">
           <Link to="/admin">Quản lý</Link>
-          <Link to="/admin/pets">Danh sách thú cưng</Link>
           <Link to="/admin/adoptions">Nhận nuôi</Link>
           <Link to="/admin/volunteers">Tình nguyện</Link>
           <Link to="/admin/post">Bài viết</Link>
@@ -18,10 +17,11 @@ export default function AdminLayout() {
           <Link to="/admin/category">Danh mục</Link>
           <Link to="/admin/product">Sản phẩm</Link>
           <Link to="/admin/order">Đơn hàng</Link>
-          <Link to="/admin/contacts">Liên hệ</Link>
-          <Link to="/admin/customer-care">Chăm sóc khách hàng</Link>
+          <Link to="/admin/vaccination-care">Lịch tiêm phòng</Link>
         </nav>
       </div>
+
+      {/* CONTENT */}
       <div className="flex-1 bg-gray-100 p-8">
         <Outlet />
       </div>
