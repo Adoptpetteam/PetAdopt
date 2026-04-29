@@ -49,7 +49,7 @@ export async function getVolunteerById(
 export async function approveVolunteer(
   id: string
 ): Promise<VolunteerResponse> {
-  const { data } = await apiClient.put(`/volunteer/${id}/approve`);
+  const { data } = await apiClient.put(`/volunteer/${id}/approve`, {});
   return data;
 }
 
@@ -61,5 +61,11 @@ export async function rejectVolunteer(
   const { data } = await apiClient.put(`/volunteer/${id}/reject`, {
     adminNote,
   });
+  return data;
+}
+
+/** Xóa volunteer (admin) */
+export async function deleteVolunteer(id: string): Promise<VolunteerResponse> {
+  const { data } = await apiClient.post(`/volunteer/${id}/delete`);
   return data;
 }

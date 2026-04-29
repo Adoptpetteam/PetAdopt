@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const AddCategory = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { mutate: addCategory, isPending } = useCreateCategory();
+  const { mutate: addCategory, isPending } = useCreateCategory({ resource: "category" });
 
   const onFinish = (values: any) => {
     addCategory(values, {

@@ -1,29 +1,30 @@
 import { message } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "../api/http";
+import {
+  getListResource,
+  getResourceDetail,
+  createResource,
+  updateResource,
+  deleteResource,
+  type Props,
+} from "../provider/huyProvider";
 
-export const useListCategory = () => {
+export const useListCategory = ({ resource = "category" }: Props) => {
   return useQuery({
-    queryKey: ["category"],
-    queryFn: async () => {
-      const res = await apiClient.get("/category");
-      return res.data.data;
-    },
+    queryKey: [resource],
+    queryFn: () => getListResource({ resource }),
   });
 };
 
-export const useCreateCategory = () => {
+export const useCreateCategory = ({ resource = "category" }: Props) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (values: any) => {
-      const res = await apiClient.post("/category", values);
-      return res.data;
-    },
+    mutationFn: (values: any) => createResource({ resource, values }),
 
     onSuccess: () => {
       message.success("Thêm thành công");
-      queryClient.invalidateQueries({ queryKey: ["category"] });
+      queryClient.invalidateQueries({ queryKey: [resource] });
     },
 
     onError: (error: any) => {
@@ -38,24 +39,21 @@ export const useCreateCategory = () => {
   });
 };
 
-export const useUpdateCategory = () => {
+export const useUpdateCategory = ({ resource = "category" }: Props) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       id,
       values,
     }: {
-      id: string | number;
+      id: number | string;
       values: any;
-    }) => {
-      const res = await apiClient.put(`/category/${id}`, values);
-      return res.data;
-    },
+    }) => updateResource({ resource, id, values }),
 
     onSuccess: () => {
       message.success("Cập nhật thành công");
-      queryClient.invalidateQueries({ queryKey: ["category"] });
+      queryClient.invalidateQueries({ queryKey: [resource] });
     },
 
     onError: (error: any) => {
@@ -70,22 +68,103 @@ export const useUpdateCategory = () => {
   });
 };
 
-export const useDeleteCategory = () => {
+export const useDeleteCategory = ({ resource = "category" }: Props) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string | number) => {
-      const res = await apiClient.delete(`/category/${id}`);
-      return res.data;
-    },
+    mutationFn: (id?: string | number) => deleteResource({ resource, id }),
 
     onSuccess: () => {
       message.success("Xóa thành công");
-      queryClient.invalidateQueries({ queryKey: ["category"] });
+      queryClient.invalidateQueries({ queryKey: [resource] });
     },
 
     onError: () => {
       message.error("Xóa thất bại");
+    },
+  });
+};
+
+export const useListPet = ({ resource = "pets" }: Props) => {
+  return useQuery({
+    queryKey: [resource],
+    queryFn: () => getListResource({ resource }),
+  });
+};
+
+export const useCreatePet = ({ resource = "pets" }: Props) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (values: any) => createResource({ resource, values }),
+
+    onSuccess: () => {
+      message.success("Thêm thú cưng thành công");
+      queryClient.invalidateQueries({ queryKey: [resource] });
+    },
+
+    onError: (error: any) => {
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const messages = Object.values(errors).flat().join("\n");
+        message.error(messages);
+      } else {
+        message.error("Thêm thú cưng thất bại");
+      }
+    },
+  });
+};
+
+export const usePetDetail = ({ resource = "pets", id }: Props) => {
+  return useQuery({
+    queryKey: [resource, id],
+    queryFn: () => getResourceDetail({ resource, id }),
+    enabled: Boolean(id),
+  });
+};
+
+export const useUpdatePet = ({ resource = "pets" }: Props) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      values,
+    }: {
+      id: number | string;
+      values: any;
+    }) => updateResource({ resource, id, values }),
+
+    onSuccess: () => {
+      message.success("Cập nhật thú cưng thành công");
+      queryClient.invalidateQueries({ queryKey: [resource] });
+    },
+
+    onError: (error: any) => {
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const messages = Object.values(errors).flat().join("\n");
+        message.error(messages);
+      } else {
+        message.error("Cập nhật thú cưng thất bại");
+      }
+    },
+  });
+};
+
+export const useDeletePet = ({ resource = "pets" }: Props) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id?: string | number) => deleteResource({ resource, id }),
+
+    onSuccess: () => {
+      message.success("Xóa thú cưng thành công");
+      queryClient.invalidateQueries({ queryKey: [resource] });
+    },
+
+    onError: () => {
+      message.error("Xóa thú cưng thất bại");
     },
   });
 };

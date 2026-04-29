@@ -38,6 +38,9 @@ import Favorites from "../pages/Favorites";
 import Post from "../pages/Admin/Post";
 import User from "../pages/Admin/User";
 import ListCategory from "../pages/Admin/Category/ListCategory";
+import Pets from "../pages/Admin/Pets";
+import AddPet from "../pages/Admin/AddPet";
+import EditPet from "../pages/Admin/EditPet";
 
 import ProductPage from "../pages/Admin/product";
 import OrderPage from "../pages/Admin/order";
@@ -94,6 +97,9 @@ export default function AppRoutes() {
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
           <Route path="category" element={<ListCategory />} />
+          <Route path="pets" element={<Pets />} />
+          <Route path="pets/add" element={<AddPet />} />
+          <Route path="pets/edit/:id" element={<EditPet />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
         </Route>
