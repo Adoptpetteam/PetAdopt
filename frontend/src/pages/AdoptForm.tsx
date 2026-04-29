@@ -122,10 +122,10 @@ export default function AdoptForm() {
           <input name="familyMembers" placeholder="Số thành viên trong gia đình *" value={form.familyMembers} onChange={handleChange} className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none" required />
           <select name="monthlyIncome" value={form.monthlyIncome} onChange={handleChange} className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none">
             <option value="">Thu nhập hàng tháng *</option>
-            <option value="<5tr">Dưới 5 triệu</option>
-            <option value="5-10tr">5 - 10 triệu</option>
-            <option value="10-20tr">10 - 20 triệu</option>
-            <option value=">20tr">Trên 20 triệu</option>
+            <option value="under_5m">Dưới 5 triệu</option>
+            <option value="5m_10m">5 - 10 triệu</option>
+            <option value="10m_20m">10 - 20 triệu</option>
+            <option value="over_20m">Trên 20 triệu</option>
           </select>
           <textarea name="reason" placeholder="Lý do nhận nuôi *" value={form.reason} onChange={handleChange} className="w-full h-28 bg-[#DDEDFF] rounded-2xl px-6 py-3 outline-none" required />
           <div className="flex items-center gap-2">

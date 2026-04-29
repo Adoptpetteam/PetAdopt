@@ -5,6 +5,7 @@ import {
   getVolunteers,
   approveVolunteer,
   rejectVolunteer,
+  deleteVolunteer,
 } from "../../api/volunteerApi"
 
 export default function VolunteerList() {
@@ -42,6 +43,19 @@ export default function VolunteerList() {
       load()
     } catch {
       message.error("Từ chối thất bại")
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm('Bạn có chắc chắn muốn xóa đơn tình nguyện viên này?')
+    if (!confirmed) return
+
+    try {
+      await deleteVolunteer(id)
+      message.success("Đã xóa đơn tình nguyện viên")
+      load()
+    } catch {
+      message.error("Xóa thất bại")
     }
   }
 
@@ -145,6 +159,14 @@ export default function VolunteerList() {
                       Từ chối
                     </button>
                   </>
+                )}
+                {v.status === 'approved' && (
+                  <button
+                    onClick={() => handleDelete(v._id)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded"
+                  >
+                    Xóa
+                  </button>
                 )}
               </div>
             </div>

@@ -5,7 +5,7 @@ exports.createPet = async (req, res, next) => {
     const {
       name, species, breed, age, gender, size, color,
       description, healthStatus, vaccinated, neutered,
-      adoptionFee, location
+      adoptionFee, location, categoryId
     } = req.body;
 
     if (!name || !species) {
@@ -13,6 +13,12 @@ exports.createPet = async (req, res, next) => {
         success: false,
         message: 'Tên và loài thú cưng là bắt buộc'
       });
+    }
+
+    // Handle uploaded images
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file => `/uploads/${file.filename}`);
     }
 
     const pet = new Pet({
@@ -29,6 +35,8 @@ exports.createPet = async (req, res, next) => {
       neutered,
       adoptionFee,
       location,
+      categoryId,
+      images,
       createdBy: req.user.userId  
     });
 
@@ -122,7 +130,27 @@ exports.getPetById = async (req, res, next) => {
     next(error);  
   }
 };
+exports.getPetById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
+    const pet = await Pet.findById(id).populate('createdBy', 'name email');
+
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thú cưng'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: pet
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.updatePet = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id);
@@ -134,17 +162,35 @@ exports.updatePet = async (req, res, next) => {
       });
     }
 
+    const body = req.body || {};
+
     const allowedFields = [
       'name', 'species', 'breed', 'age', 'gender', 'size', 'color',
       'description', 'healthStatus', 'vaccinated', 'neutered',
-      'status', 'adoptionFee', 'location'
+      'status', 'adoptionFee', 'location', 'categoryId'
     ];
 
     allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        pet[field] = req.body[field];
+      if (body[field] !== undefined) {
+        pet[field] = body[field];
       }
     });
+
+    if (req.body.existingImages !== undefined) {
+      try {
+        const existingImages = JSON.parse(req.body.existingImages);
+        if (Array.isArray(existingImages)) {
+          pet.images = existingImages;
+        }
+      } catch (err) {
+        // if parse fails, ignore and keep old images
+      }
+    }
+
+    if (req.files && req.files.length > 0) {
+      const uploadedImages = req.files.map(file => `/uploads/${file.filename}`);
+      pet.images = pet.images ? [...(pet.images || []), ...uploadedImages] : uploadedImages;
+    }
 
     await pet.save();
 

@@ -11,16 +11,27 @@ export default function Pets() {
   const [category, setCategory] = useState("all");
 
   // 2. Lấy danh sách danh mục từ database
-  const { data: categoriesData } = useListCategory();
+  const { data: categoriesData } = useListCategory({ resource: "category" });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [gender, setGender] = useState("all");
   const [loading, setLoading] = useState(true);
   const [allPets, setAllPets] = useState<any[]>([]);
 
+  // Map category name to species
+  const getSpeciesFromCategory = (catName: string) => {
+    const mapping: { [key: string]: string } = {
+      "Chó": "dog",
+      "Mèo": "cat",
+      "Chim": "bird"
+    };
+    return mapping[catName] || catName;
+  };
+
   useEffect(() => {
     setLoading(true);
-    listPets({ limit: 100, species: category !== "all" ? category : undefined })
+    const species = category !== "all" ? getSpeciesFromCategory(category) : undefined;
+    listPets({ limit: 100, species })
       .then(res => setAllPets(res.data || []))
       .catch(() => setAllPets([]))
       .finally(() => setLoading(false));

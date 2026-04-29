@@ -9,7 +9,6 @@ const createAdoptionRequest = async (req, res) => {
   try {
     const {
       pet,
-      user,
       fullName,
       phone,
       address,
@@ -26,6 +25,24 @@ const createAdoptionRequest = async (req, res) => {
       monthlyIncome,
       commitment
     } = req.body;
+
+    // Lấy user từ authentication
+    const user = req.user?.userId;
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Người dùng chưa đăng nhập'
+      });
+    }
+
+    // Validate user ID
+    if (!mongoose.Types.ObjectId.isValid(user)) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID không hợp lệ'
+      });
+    }
 
     // Validate required fields
     if (!fullName || !phone || !address || !reason || !housingType || !familyMembers || !monthlyIncome) {

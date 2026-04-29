@@ -9,10 +9,12 @@ const {
   cancelAdoptionRequest,
   getMyAdoptionRequests
 } = require('../controllers/adoptionController');
+const { authenticate } = require('../middleware/authMiddleware');
+const { isAdmin } = require('../middleware/adminMiddleware');
 
 // Public routes
 // POST /api/adoption - Tạo đơn nhận nuôi mới
-router.post('/', createAdoptionRequest);
+router.post('/', authenticate, createAdoptionRequest);
 
 // Protected routes
 // GET /api/adoption/my-requests - Đơn của user hiện tại
