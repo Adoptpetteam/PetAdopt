@@ -13,21 +13,26 @@ export default function Adoptions() {
     resource: "adoptions"
   })
 
-  // ✅ Update status
-  const updateStatus = async (id: string, status: string) => {
-    try {
-      await axios.patch(`http://localhost:3000/adoptions/${id}`, {
-        status
-      })
-      refetch()
-    } catch (error) {
-      console.error(error)
-    }
-  }
+  // Sửa Update status
+const updateStatus = async (id: string, status: string, petId: string) => {
+  try {
+    // update adoption
+    await axios.patch(`http://localhost:3000/adoptions/${id}`, {
+      status
+    })
 
-  if (isLoading) {
-    return <div className="text-center py-20">Đang tải...</div>
+    // ✅ nếu duyệt → update pet
+    if (status === "approved") {
+      await axios.patch(`http://localhost:3000/pets/${petId}`, {
+        status: "Đã nhận"
+      })
+    }
+
+    refetch()
+  } catch (error) {
+    console.error(error)
   }
+}
 
   return (
     <div>
@@ -85,7 +90,7 @@ export default function Adoptions() {
 
                   {/* DUYỆT */}
                   <button
-                    onClick={() => updateStatus(o.id, "approved")}
+                    onClick={() => updateStatus(o.id, "approved", o.petId)}
                     disabled={o.status === "approved"}
                     className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 disabled:opacity-50"
                   >
@@ -94,7 +99,7 @@ export default function Adoptions() {
 
                   {/* TỪ CHỐI */}
                   <button
-                    onClick={() => updateStatus(o.id, "rejected")}
+                    onClick={() => updateStatus(o.id, "rejected", o.petId)}
                     disabled={o.status === "rejected"}
                     className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 disabled:opacity-50"
                   >
