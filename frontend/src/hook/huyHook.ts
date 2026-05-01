@@ -168,3 +168,10 @@ export const useDeletePet = ({ resource = "pets" }: Props) => {
     },
   });
 };
+
+export const useListAdoption = ({ resource = "adoptions" }: Props) => {
+  return useQuery({
+    queryKey: [resource],
+    queryFn: () => getListResource({ resource }),
+  });
+};

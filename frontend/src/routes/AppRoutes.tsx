@@ -41,8 +41,13 @@ import ListCategory from "../pages/Admin/Category/ListCategory";
 import Pets from "../pages/Admin/Pets";
 import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
-import About from "../pages/About";
+// import About from "../pages/About";
 import AdoptedPets from "../pages/Admin/AdoptedPets";
+import AdminRoute from "../routes/AdminRoute";
+import ChatBot from "../pages/ChatBot";
+import ProtectedRoute from "./ProtectedRoute";
+import ProductPage from "../pages/Admin/product";
+import OrderPage from "../pages/Admin/order";
 
 export default function AppRoutes() {
   return (
@@ -88,7 +93,7 @@ export default function AppRoutes() {
           <Route index element={<Dashboard />} />
 
           <Route path="adoptions" element={<Adoptions />} />
-          <Route path="pet/:id" element={<PetDetailAdmin />} />
+          {/* <Route path="pet/:id" element={<PetDetailAdmin />} /> */}
 
           <Route path="volunteers" element={<VolunteerList />} />
           <Route path="volunteers/:id" element={<VolunteerDetail />} />
@@ -102,10 +107,10 @@ export default function AppRoutes() {
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
 
-          <Route path="contacts" element={<AdminContacts />} />
-          <Route path="contacts/:id" element={<ContactDetail />} />
+          {/* <Route path="contacts" element={<AdminContacts />} /> */}
+          {/* <Route path="contacts/:id" element={<ContactDetail />} /> */}
 
-          <Route path="pets" element={<AdminPets />} />
+          {/* <Route path="pets" element={<AdminPets />} /> */}
           <Route path="pets/add" element={<AddPet />} />
           <Route path="pets/edit/:id" element={<EditPet />} />
           <Route path="adopted-pets" element={<AdoptedPets />} />
