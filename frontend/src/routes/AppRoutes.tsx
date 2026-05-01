@@ -76,24 +76,30 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* ADMIN (đã fix trắng) */}
+
+      {/* ADMIN */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
+
           <Route path="adoptions" element={<Adoptions />} />
-          <Route path="/admin/pet/:id" element={<PetDetailAdmin />} />
+          <Route path="pet/:id" element={<PetDetailAdmin />} />
+
           <Route path="volunteers" element={<VolunteerList />} />
           <Route path="volunteers/:id" element={<VolunteerDetail />} />
+
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
           <Route path="category" element={<ListCategory />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
-          <Route path="/admin/contacts" element={<AdminContacts />} />
-          <Route path="/admin/contacts/:id" element={<ContactDetail />} />
-          <Route path="/admin/pets" element={<AdminPets />} />
-          <Route path="/admin/pets/add" element={<AddPet />} />
-          <Route path="/admin/pets/edit/:id" element={<EditPet />} />
+
+          <Route path="contacts" element={<AdminContacts />} />
+          <Route path="contacts/:id" element={<ContactDetail />} />
+
+          <Route path="pets" element={<AdminPets />} />
+          <Route path="pets/add" element={<AddPet />} />
+          <Route path="pets/edit/:id" element={<EditPet />} />
         </Route>
       </Route>
 
