@@ -19,6 +19,7 @@ export default function AdminLayout() {
           <Link to="/admin/product">Sản phẩm</Link>
           <Link to="/admin/order">Đơn hàng</Link>
           <Link to="/admin/contacts">Liên hệ</Link>
+          <Link to="/admin/adopted-pets">Thú đã nhận nuôi</Link>
         </nav>
       </div>
 

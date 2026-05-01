@@ -46,6 +46,7 @@ import AdminPets from "../pages/Admin/AdminPets";
 import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
 import About from "../pages/About";
+import AdoptedPets from "../pages/Admin/AdoptedPets";
 
 export default function AppRoutes() {
   return (
@@ -100,6 +101,7 @@ export default function AppRoutes() {
           <Route path="pets" element={<AdminPets />} />
           <Route path="pets/add" element={<AddPet />} />
           <Route path="pets/edit/:id" element={<EditPet />} />
+          <Route path="adopted-pets" element={<AdoptedPets />} />
         </Route>
       </Route>
 
