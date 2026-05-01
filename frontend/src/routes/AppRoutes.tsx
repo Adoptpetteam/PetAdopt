@@ -8,10 +8,19 @@ import Details from "../pages/Details";
 
 import RegisterPage from "../pages/RegisterPage";
 import LoginPage from "../pages/LoginPage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import AccountPage from "../pages/AccountPage";
 import AdoptForm from "../pages/AdoptForm";
+import AdoptQR from "../pages/AdoptQR";
+import PaymentMethod from "../pages/PaymentMethod";
 import SuccessPage from "../pages/SuccessPage";
 
-
+import AdminLayout from "../pages/Admin/AdminLayout";
+import Dashboard from "../pages/Admin/Dashboard";
+import Adoptions from "../pages/Admin/Adoptions";
+import VolunteerForm from "../pages/VolunteerForm";
+import VolunteerList from "../pages/Admin/VolunteerList";
+import VolunteerDetail from "../pages/Admin/VolunteerDetail";
 
 import Contact from "../pages/Contact";
 import Donate from "../pages/Donate";
@@ -20,29 +29,16 @@ import NewsDetail from "../pages/NewsDetail";
 
 import Products from "../pages/Products";
 import ProductDetail from "../pages/ProductDetail";
+import Cart from "../pages/Cart";
+import Checkout from "../pages/Checkout";
+import Orders from "../pages/Orders";
+import OrderSuccess from "../pages/OrderSuccess";
+import Favorites from "../pages/Favorites";
 
-
-
-import AdminRoute from "./AdminRoute";
-import VolunteerForm from "../pages/VolunteerForm";
-import AdminLayout from "../pages/Admin/AdminLayout";
-import Dashboard from "../pages/Admin/Dashboard";
-import Adoptions from "../pages/Admin/Adoptions";
-import VolunteerList from "../pages/Admin/VolunteerList";
-import VolunteerDetail from "../pages/Admin/VolunteerDetail";
 import Post from "../pages/Admin/Post";
 import User from "../pages/Admin/User";
 import ListCategory from "../pages/Admin/Category/ListCategory";
-import ProductPage from "../pages/Admin/product";
-import OrderPage from "../pages/Admin/order";
-import AdoptStep2 from "../pages/AdoptStep2";
-import PetDetailAdmin from "../pages/Admin/PetDetailAdmin";
-import Favorites from "../pages/Favorites";
-import Cart from "../pages/Cart";
-import Checkout from "../pages/Checkout";
-import AdminContacts from "../pages/Admin/AdminContacts";
-import ContactDetail from "../pages/Admin/ContactDetail";
-import AdminPets from "../pages/Admin/AdminPets";
+import Pets from "../pages/Admin/Pets";
 import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
 import About from "../pages/About";
@@ -58,7 +54,8 @@ export default function AppRoutes() {
         <Route path="/adopt" element={<Adopt />} />
         <Route path="/pet/:id" element={<Details />} />
         <Route path="/adopt-form/:id" element={<AdoptForm />} />
-        <Route path="/adopt-form/:id/step-2" element={<AdoptStep2 />} />
+        <Route path="/payment/method/:id" element={<PaymentMethod />} />
+        <Route path="/payment/:method/:id" element={<AdoptQR />} />
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/volunteer" element={<VolunteerForm />} />
         <Route path="/contact" element={<Contact />} />
@@ -67,15 +64,22 @@ export default function AppRoutes() {
         <Route path="/news/:id" element={<NewsDetail />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:id" element={<ProductDetail />} />
-        <Route path="/favorites" element={<Favorites />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/about" element={<About />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/orders/success" element={<OrderSuccess />} />
+        <Route path="/favorites" element={<Favorites />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/chatbot" element={<ChatBot />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/vaccination-schedule" element={<div className="py-20 text-center">Tính năng đang phát triển</div>} />
+        </Route>
       </Route>
 
       {/* AUTH */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
 
       {/* ADMIN */}
@@ -92,6 +96,9 @@ export default function AppRoutes() {
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
           <Route path="category" element={<ListCategory />} />
+          <Route path="pets" element={<Pets />} />
+          <Route path="pets/add" element={<AddPet />} />
+          <Route path="pets/edit/:id" element={<EditPet />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
 

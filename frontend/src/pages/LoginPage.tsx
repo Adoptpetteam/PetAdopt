@@ -1,16 +1,32 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login } from "../utils/auth";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import { message } from "antd";
+import axios from "axios";
+import { login, loginWithGoogle, type LoginResponse } from "../api/authApi";
+
+const googleClientId =
+  (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? "";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Tự điền email và password từ trang đăng ký (nếu có)
+  useEffect(() => {
+    const email = searchParams.get("email");
+    const password = searchParams.get("password");
+    if (email) setForm((prev) => ({ ...prev, email }));
+    if (password) setForm((prev) => ({ ...prev, password }));
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
@@ -19,7 +35,23 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLoginSuccess = (res: LoginResponse) => {
+    localStorage.setItem("token", res.token);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: res.user.id,
+        name: res.user.name,
+        email: res.user.email,
+        role: res.user.role,
+      })
+    );
+    window.dispatchEvent(new Event("auth-change"));
+    message.success(res.message || "Đăng nhập thành công!");
+    navigate("/");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -28,23 +60,20 @@ export default function LoginPage() {
       return;
     }
 
-    // fake API delay
-    setTimeout(() => {
-      const user = login(form.email, form.password);
-
-      if (!user) {
-        setError("Sai email hoặc mật khẩu");
-        return;
-      }
-
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (user.role === "admin") {
-        navigate("/admin");
+    setLoading(true);
+    try {
+      const res = await login(form);
+      handleLoginSuccess(res);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data as { message?: string } | undefined;
+        setError(data?.message || "Đăng nhập thất bại");
       } else {
-        navigate("/adopt");
+        setError("Có lỗi xảy ra");
       }
-    }, 500);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,10 +105,59 @@ export default function LoginPage() {
           className="p-4 border rounded"
         />
 
-        <button className="bg-blue-500 text-white p-3 rounded">
-          Đăng nhập
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[#6272B6]">
+          <Link to="/forgot-password" className="hover:underline font-medium">
+            Quên mật khẩu?
+          </Link>
+          <span className="text-gray-500">
+            Chưa có tài khoản?{" "}
+            <Link to="/register" className="font-medium text-[#6272B6] hover:underline">
+              Đăng ký
+            </Link>
+          </span>
+        </div>
+
+        <button disabled={loading} className="bg-blue-500 text-white p-3 rounded disabled:opacity-60">
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
       </form>
+
+      {/* Google Login */}
+      {googleClientId && (
+        <div className="w-[500px] mx-auto mt-8 flex flex-col items-center gap-4 border-t border-gray-200 pt-8">
+          <p className="text-sm text-gray-400">hoặc</p>
+          <GoogleLogin
+            text="continue_with"
+            shape="rectangular"
+            size="large"
+            width={320}
+            onSuccess={async (cred) => {
+              if (!cred.credential) return;
+              setLoading(true);
+              try {
+                const res = await loginWithGoogle({ credential: cred.credential });
+                handleLoginSuccess(res);
+              } catch (err) {
+                message.error("Đăng nhập Google thất bại.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onError={() => message.error("Đăng nhập Google thất bại.")}
+          />
+        </div>
+      )}
+
+      {!googleClientId && (
+        <div className="w-[500px] mx-auto mt-8 text-center">
+          <p className="text-xs text-gray-400">
+            Thêm{" "}
+            <code className="bg-gray-100 px-1 rounded">VITE_GOOGLE_CLIENT_ID</code>{" "}
+            vào file{" "}
+            <code className="bg-gray-100 px-1 rounded">.env</code> để bật đăng nhập Google.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

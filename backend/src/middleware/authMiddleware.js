@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'petadopt_local_dev_secret';
 
 const authenticate = (req, res, next) => {
   try {
@@ -12,7 +11,7 @@ const authenticate = (req, res, next) => {
       });
     }
     const token = authHeader.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
 

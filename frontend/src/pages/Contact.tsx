@@ -1,17 +1,15 @@
 import { useState } from "react"
-
-interface ContactForm {
-  name: string
-  email: string
-  message: string
-}
+import { message } from "antd"
+import { submitContact } from "../api/contactApi"
 
 export default function Contact() {
-  const [form, setForm] = useState<ContactForm>({
+  const [form, setForm] = useState({
     name: "",
     email: "",
     message: "",
   })
+
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -22,23 +20,25 @@ export default function Contact() {
     })
   }
 
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
 
-  await fetch("http://localhost:3000/contacts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ...form,
-      createdAt: new Date().toISOString(),
-    }),
-  })
+    if (!form.name || !form.email || !form.message) {
+      message.warning("Vui lòng điền đầy đủ thông tin")
+      return
+    }
 
-  alert("Gửi liên hệ thành công!")
-  setForm({ name: "", email: "", message: "" })
-}
+    setLoading(true)
+    try {
+      await submitContact(form)
+      message.success("Gửi liên hệ thành công!")
+      setForm({ name: "", email: "", message: "" })
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Gửi liên hệ thất bại")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="max-w-[600px] mx-auto py-20 px-6">
@@ -65,6 +65,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
         <input
           name="email"
+          type="email"
           placeholder="Email"
           value={form.email}
           onChange={handleChange}
@@ -83,9 +84,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
         <button
           type="submit"
-          className="w-full bg-[#6272B6] text-white py-3 rounded-full hover:bg-[#4e5fa8] transition"
+          disabled={loading}
+          className="w-full bg-[#6272B6] text-white py-3 rounded-full hover:bg-[#4e5fa8] transition disabled:opacity-60"
         >
-          Gửi liên hệ
+          {loading ? "Đang gửi..." : "Gửi liên hệ"}
         </button>
       </form>
     </div>
