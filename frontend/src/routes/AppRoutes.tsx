@@ -41,14 +41,8 @@ import ListCategory from "../pages/Admin/Category/ListCategory";
 import Pets from "../pages/Admin/Pets";
 import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
-
-import ProductPage from "../pages/Admin/product";
-import OrderPage from "../pages/Admin/order";
-
-import ChatBot from "../pages/ChatBot";
-
-import AdminRoute from "./AdminRoute";
-import ProtectedRoute from "./ProtectedRoute";
+import About from "../pages/About";
+import AdoptedPets from "../pages/Admin/AdoptedPets";
 
 export default function AppRoutes() {
   return (
@@ -87,13 +81,18 @@ export default function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-      {/* ADMIN (đã fix trắng) */}
+
+      {/* ADMIN */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
+
           <Route path="adoptions" element={<Adoptions />} />
+          <Route path="pet/:id" element={<PetDetailAdmin />} />
+
           <Route path="volunteers" element={<VolunteerList />} />
           <Route path="volunteers/:id" element={<VolunteerDetail />} />
+
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
           <Route path="category" element={<ListCategory />} />
@@ -102,6 +101,14 @@ export default function AppRoutes() {
           <Route path="pets/edit/:id" element={<EditPet />} />
           <Route path="product" element={<ProductPage />} />
           <Route path="order" element={<OrderPage />} />
+
+          <Route path="contacts" element={<AdminContacts />} />
+          <Route path="contacts/:id" element={<ContactDetail />} />
+
+          <Route path="pets" element={<AdminPets />} />
+          <Route path="pets/add" element={<AddPet />} />
+          <Route path="pets/edit/:id" element={<EditPet />} />
+          <Route path="adopted-pets" element={<AdoptedPets />} />
         </Route>
       </Route>
 

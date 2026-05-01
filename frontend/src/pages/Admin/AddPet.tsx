@@ -7,31 +7,44 @@ import { useListCategory } from "../../hook/huyHook";
 export default function AddPet() {
   const navigate = useNavigate()
   const { data: categories } = useListCategory({ resource: "category" });
+  const { mutate: addPet } = useCreatePet({ resource: "pets" });
+  // state preview
+  const [preview, setPreview] = useState("")
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    }
-  }, [navigate]);
+const [form, setForm] = useState({
+  name: "",
+  age: 0,
+  gender: "",
+  image: "",
+  type: "",
+  sterilized: false,
+  color: "",
+  vaccinated: false,
+  description: "",
+  status: "Còn" // ✅ thêm dòng này
+})
 
-  const [form, setForm] = useState({
-    name: "",
-    species: "",
-    breed: "",
-    age: 0,
-    gender: "unknown",
-    size: "medium",
-    color: "",
-    description: "",
-    healthStatus: "good",
-    vaccinated: false,
-    neutered: false,
-    adoptionFee: 0,
-    location: "",
-    categoryId: "",
-    images: [] as File[],
-  })
+const handleImageChange = (e: any) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+
+  reader.onloadend = () => {
+    const base64String = reader.result as string
+
+    // lưu vào form
+    setForm({
+      ...form,
+      image: base64String
+    })
+
+    // hiển thị preview
+    setPreview(base64String)
+  }
+
+  reader.readAsDataURL(file)
+}
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target
@@ -185,18 +198,34 @@ const handleSubmit = (e: any) => {
         </div>
         
         <input name="color" placeholder="Màu sắc" onChange={handleChange} className="input" />
-        
-        <select name="healthStatus" onChange={handleChange} className="input">
-          <option value="excellent">Xuất sắc</option>
-          <option value="good">Tốt</option>
-          <option value="fair">Bình thường</option>
-          <option value="needs_care">Cần chăm sóc</option>
-        </select>
-        
-        <input name="adoptionFee" type="number" placeholder="Phí nhận nuôi" onChange={handleChange} className="input" />
-        
-        <input name="location" placeholder="Địa điểm" onChange={handleChange} className="input" />
-        
+<div>
+  <label className="block mb-2 font-medium">Ảnh thú cưng</label>
+
+  {/* Nút chọn ảnh */}
+  <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#6272B6] transition">
+    <span className="text-gray-500">
+      📷 Chọn ảnh từ máy
+    </span>
+
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleImageChange}
+      className="hidden"
+    />
+  </label>
+
+  {/* Preview */}
+  {preview && (
+    <div className="mt-4 flex justify-center">
+      <img
+        src={preview}
+        alt="preview"
+        className="w-40 h-40 object-cover rounded-xl shadow"
+      />
+    </div>
+  )}
+</div>
         <textarea
         name="description"
         placeholder="Mô tả thú cưng"
