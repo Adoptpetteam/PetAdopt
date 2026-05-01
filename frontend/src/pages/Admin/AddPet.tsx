@@ -8,6 +8,8 @@ export default function AddPet() {
   const navigate = useNavigate()
   const { data: categories } = useListCategory({ resource: "category" });
   const { mutate: addPet } = useCreatePet({ resource: "pets" });
+  // state preview
+  const [preview, setPreview] = useState("")
 
 const [form, setForm] = useState({
   name: "",
@@ -21,6 +23,28 @@ const [form, setForm] = useState({
   description: "",
   status: "Còn" // ✅ thêm dòng này
 })
+
+const handleImageChange = (e: any) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+
+  reader.onloadend = () => {
+    const base64String = reader.result as string
+
+    // lưu vào form
+    setForm({
+      ...form,
+      image: base64String
+    })
+
+    // hiển thị preview
+    setPreview(base64String)
+  }
+
+  reader.readAsDataURL(file)
+}
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target
@@ -63,7 +87,34 @@ const handleSubmit = (e: any) => {
           ))}
         </select>
         <input name="color" placeholder="Màu sắc" onChange={handleChange} className="input" />
-        <input name="image" placeholder="Link ảnh" onChange={handleChange} className="input" />
+<div>
+  <label className="block mb-2 font-medium">Ảnh thú cưng</label>
+
+  {/* Nút chọn ảnh */}
+  <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#6272B6] transition">
+    <span className="text-gray-500">
+      📷 Chọn ảnh từ máy
+    </span>
+
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleImageChange}
+      className="hidden"
+    />
+  </label>
+
+  {/* Preview */}
+  {preview && (
+    <div className="mt-4 flex justify-center">
+      <img
+        src={preview}
+        alt="preview"
+        className="w-40 h-40 object-cover rounded-xl shadow"
+      />
+    </div>
+  )}
+</div>
         <textarea
         name="description"
         placeholder="Mô tả thú cưng"
