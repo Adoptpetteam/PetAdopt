@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react"
-import { getAdoptionRequests } from "../../api/adoptionApi"
-import { message } from "antd"
-import { approveAdoptionRequest, rejectAdoptionRequest } from "../../api/adoptionApi"
+import { useListAdoption, useDeleteAdoption } from "../../hook/huyHook"
+import { useNavigate } from "react-router-dom"
+import axios from "axios"
 
 export default function Adoptions() {
   const [orders, setOrders] = useState<any[]>([])
@@ -15,19 +14,9 @@ export default function Adoptions() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    load()
-  }, [])
-
-  const handleApprove = async (id: string) => {
-    try {
-      await approveAdoptionRequest(id)
-      message.success("Đã duyệt đơn!")
-      load()
-    } catch {
-      message.error("Duyệt thất bại")
-    }
-  }
+  const { data: orders = [], isLoading, refetch } = useListAdoption({
+    resource: "adoptions"
+  })
 
   const handleReject = async (id: string) => {
     try {
@@ -46,12 +35,41 @@ export default function Adoptions() {
     return 'bg-gray-100 text-gray-600'
   }
 
-  const statusLabel = (s: string) => {
-    if (s === 'pending') return 'Chờ duyệt'
-    if (s === 'approved') return 'Đã duyệt'
-    if (s === 'rejected') return 'Từ chối'
-    return s
+  // Sửa Update status
+const updateStatus = async (id: string, status: string, petId: string) => {
+  try {
+    // update adoption
+    await axios.patch(`http://localhost:3000/adoptions/${id}`, {
+      status
+    })
+
+    // ✅ nếu duyệt → update pet
+    if (status === "approved") {
+      await axios.patch(`http://localhost:3000/pets/${petId}`, {
+        status: "Đã nhận"
+      })
+    }
+
+    refetch()
+  } catch (error) {
+    console.error(error)
   }
+}
+
+const sendEmail = async (o: any) => {
+  try {
+    await axios.post("http://localhost:3000/send-email", {
+      email: o.email,
+      name: o.name,
+      petId: o.petId
+    })
+
+    alert("Đã gửi mail thành công!")
+  } catch (error) {
+    console.error(error)
+    alert("Gửi mail thất bại!")
+  }
+}
 
   return (
     <div>
@@ -59,20 +77,91 @@ export default function Adoptions() {
         Danh sách đơn nhận nuôi
       </h1>
 
-      {loading ? (
-        <div className="py-10 text-gray-400 text-center">Đang tải...</div>
-      ) : orders.length === 0 ? (
-        <div className="py-10 text-gray-400 text-center">Chưa có đơn nhận nuôi nào.</div>
-      ) : (
-        <div className="bg-white rounded-xl shadow overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-4 text-left">Tên</th>
-                <th className="p-4 text-left">Thú cưng</th>
-                <th className="p-4 text-left">SĐT</th>
-                <th className="p-4 text-left">Trạng thái</th>
-                <th className="p-4 text-left">Hành động</th>
+      <div className="bg-white rounded-xl shadow overflow-auto">
+        <table className="w-full text-sm">
+
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-4 text-left">Tên</th>
+              <th className="p-4 text-left">Pet ID</th>
+              <th className="p-4 text-left">SĐT</th>
+              <th className="p-4 text-left">Email</th>
+              <th className="p-4 text-left">Địa chỉ</th>
+              <th className="p-4 text-left">Lý do</th>
+              <th className="p-4 text-left">Trạng thái</th>
+              <th className="p-4 text-left">Hành động</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {orders.map((o: any) => (
+              <tr key={o.id} className="border-t">
+
+                <td className="p-4">{o.name}</td>
+                <td className="p-4">{o.petId}</td>
+                <td className="p-4">{o.phone}</td>
+                <td className="p-4">{o.email}</td>
+                <td className="p-4">{o.address}</td>
+                <td className="p-4">{o.reason}</td>
+
+                {/* ✅ STATUS */}
+                <td className="p-4">
+                  <span className={`px-3 py-1 rounded-full text-sm
+                    ${o.status === "approved" && "bg-green-100 text-green-600"}
+                    ${o.status === "rejected" && "bg-red-100 text-red-600"}
+                    ${o.status === "submitted" && "bg-yellow-100 text-yellow-600"}
+                  `}>
+                    {o.status}
+                  </span>
+                </td>
+
+                <td className="p-4 flex gap-2 flex-wrap">
+
+                  {/* XEM PET */}
+                  <button
+                    onClick={() => navigate(`/admin/pet/${o.petId}`)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                  >
+                    Xem thú cưng
+                  </button>
+
+                  {/* DUYỆT */}
+                  <button
+                    onClick={() => updateStatus(o.id, "approved", o.petId)}
+                    disabled={o.status === "approved"}
+                    className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 disabled:opacity-50"
+                  >
+                    Duyệt
+                  </button>
+
+                  {/* TỪ CHỐI */}
+                  <button
+                    onClick={() => updateStatus(o.id, "rejected", o.petId)}
+                    disabled={o.status === "rejected"}
+                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 disabled:opacity-50"
+                  >
+                    Từ chối
+                  </button>
+
+                  {/* DELETE */}
+                  <button
+                    onClick={() => deleteOrder(o.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                  >
+                    Xóa
+                  </button>
+
+                    {/* Gửi gmail */}
+                  <button
+                  onClick={() => sendEmail(o)}
+                  disabled={o.status !== "approved"}
+                  className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 disabled:opacity-50"
+                >
+                  Gửi mail
+                </button>
+
+                </td>
+
               </tr>
             </thead>
             <tbody>

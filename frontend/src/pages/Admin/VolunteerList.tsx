@@ -84,7 +84,7 @@ export default function VolunteerList() {
             tab === "pending" ? "bg-yellow-500 text-white" : "bg-gray-200"
           }`}
         >
-          Chờ duyệt ({pendingCount})
+          Đang chờ ({pendingCount})
         </button>
 
         <button
@@ -93,7 +93,7 @@ export default function VolunteerList() {
             tab === "approved" ? "bg-green-500 text-white" : "bg-gray-200"
           }`}
         >
-          Đã duyệt ({approvedCount})
+          Chấp thuận ({approvedCount})
         </button>
 
         <button
