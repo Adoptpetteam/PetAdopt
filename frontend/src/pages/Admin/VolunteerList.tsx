@@ -77,7 +77,7 @@ const updateStatus = async (id: number, status: Volunteer["status"]) => {
             tab === "pending" ? "bg-yellow-500 text-white" : "bg-gray-200"
           }`}
         >
-          Pending ({pendingCount})
+          Đang chờ ({pendingCount})
         </button>
 
         <button
@@ -86,7 +86,7 @@ const updateStatus = async (id: number, status: Volunteer["status"]) => {
             tab === "approved" ? "bg-green-500 text-white" : "bg-gray-200"
           }`}
         >
-          Approved ({approvedCount})
+          Chấp thuận ({approvedCount})
         </button>
 
         <button
@@ -95,7 +95,7 @@ const updateStatus = async (id: number, status: Volunteer["status"]) => {
             tab === "rejected" ? "bg-red-500 text-white" : "bg-gray-200"
           }`}
         >
-          Rejected ({rejectedCount})
+          Từ chối ({rejectedCount})
         </button>
       </div>
 
