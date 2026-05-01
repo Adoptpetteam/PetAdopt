@@ -9,17 +9,18 @@ export default function AddPet() {
   const { data: categories } = useListCategory({ resource: "category" });
   const { mutate: addPet } = useCreatePet({ resource: "pets" });
 
-  const [form, setForm] = useState({
-    name: "",
-    age: 0,
-    gender: "",
-    image: "",
-    type: "",
-    sterilized: false,
-    color: "",
-    vaccinated: false,
-    description: "",
-  })
+const [form, setForm] = useState({
+  name: "",
+  age: 0,
+  gender: "",
+  image: "",
+  type: "",
+  sterilized: false,
+  color: "",
+  vaccinated: false,
+  description: "",
+  status: "Còn" // ✅ thêm dòng này
+})
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target
