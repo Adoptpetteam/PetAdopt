@@ -34,6 +34,21 @@ const updateStatus = async (id: string, status: string, petId: string) => {
   }
 }
 
+const sendEmail = async (o: any) => {
+  try {
+    await axios.post("http://localhost:3000/send-email", {
+      email: o.email,
+      name: o.name,
+      petId: o.petId
+    })
+
+    alert("Đã gửi mail thành công!")
+  } catch (error) {
+    console.error(error)
+    alert("Gửi mail thất bại!")
+  }
+}
+
   return (
     <div>
       <h1 className="text-3xl font-bold text-[#6272B6] mb-6">
@@ -113,6 +128,15 @@ const updateStatus = async (id: string, status: string, petId: string) => {
                   >
                     Xóa
                   </button>
+
+                    {/* Gửi gmail */}
+                  <button
+                  onClick={() => sendEmail(o)}
+                  disabled={o.status !== "approved"}
+                  className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 disabled:opacity-50"
+                >
+                  Gửi mail
+                </button>
 
                 </td>
 
