@@ -3,12 +3,19 @@ import pic1 from "../assets/images/pic1.png"
 import pic2 from "../assets/images/pic2.png"
 import pic3 from "../assets/images/pic3.png"
 import PetCard from "../components/PetCard"
-import { useListPet } from "../hook/huyHook"
-import { Link } from "react-router-dom"
+import { listPets } from "../api/petApi"
+import { useEffect, useState } from "react"
 
 
 export default function Home() {
-  const { data: pets = [], isLoading } = useListPet({ resource: "pets" })
+  const [pets, setPets] = useState<any[]>([])
+
+  useEffect(() => {
+    listPets({ limit: 8 })
+      .then(res => setPets(res.data || []))
+      .catch(() => setPets([]))
+  }, [])
+
   return (
 <div className="w-full px-[130px]">
 {/* Section 1 - Banner */}
@@ -37,11 +44,9 @@ export default function Home() {
         nâng cao nhận thức cộng đồng về bảo vệ động vật và hạn chế tình trạng bỏ rơi thú cưng.
       </p>
 
-      <Link to="/about">
-  <button className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition">
-    Xem thêm về chúng tôi
-  </button>
-</Link>
+      <button className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition">
+        Về chúng tôi
+      </button>
     </div>
 
     {/* RIGHT - 40% */}
@@ -74,12 +79,6 @@ export default function Home() {
       
       {/* Image */}
       <div className="w-[180px] h-[180px] rounded-full overflow-hidden mb-6">
-        {/* <img 
-          src="/images/pet1.png" 
-          alt="Pet" 
-          className="w-full h-full object-cover"
-        /> */}
-
         <img src={pic1}/>
       </div>
 
@@ -169,34 +168,32 @@ export default function Home() {
   {/* ===== MIDDLE ===== */}
   <div className="flex justify-between mb-16">
 
- <div className="container mx-auto py-10">
+ <div className="container mx-auto py-10 w-full">
 
-      {/* <h1 className="text-3xl font-bold mb-8">
+      <h1 className="text-3xl font-bold mb-8">
         Pet Adoption
-      </h1> */}
+      </h1>
 
       <div className="grid grid-cols-4 gap-6">
-        {isLoading ? (
-          <p>Đang tải...</p>
-        ) : (
-          pets.map((pet) => (
-            <PetCard key={pet.id} pet={pet} />
-          ))
-        )}
+
+        {pets.map((pet) => (
+          <PetCard key={pet._id} pet={pet} />
+        ))}
+
       </div>
 
     </div>
 
-
-
   </div>
 
   {/* ===== BOTTOM ===== */}
-  {/* <div className="text-center">
+  <div className="text-center">
+    <a href="/adopt">
     <button className="bg-[#6272B6] text-white px-10 py-3 rounded-full font-medium transition duration-300 hover:bg-[#4e5fa8]">
       Nhận nuôi
     </button>
-  </div> */}
+    </a>
+  </div>
 
 </section>
 

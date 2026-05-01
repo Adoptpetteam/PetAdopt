@@ -29,3 +29,9 @@ export const register = (user: any) => {
 export const logout = () => {
   localStorage.removeItem("user");
 };
+
+export const isAuthenticated = () => {
+  const token = localStorage.getItem("token");
+  const user = localStorage.getItem("user");
+  return !!(token || user);
+};

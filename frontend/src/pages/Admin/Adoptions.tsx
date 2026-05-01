@@ -3,15 +3,37 @@ import { useNavigate } from "react-router-dom"
 import axios from "axios"
 
 export default function Adoptions() {
-  const navigate = useNavigate()
+  const [orders, setOrders] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = () => {
+    setLoading(true)
+    getAdoptionRequests({ limit: 100 })
+      .then(res => setOrders(res.data || []))
+      .catch(() => message.error("Không tải được danh sách"))
+      .finally(() => setLoading(false))
+  }
 
   const { data: orders = [], isLoading, refetch } = useListAdoption({
     resource: "adoptions"
   })
 
-  const { mutate: deleteOrder } = useDeleteAdoption({
-    resource: "adoptions"
-  })
+  const handleReject = async (id: string) => {
+    try {
+      await rejectAdoptionRequest(id)
+      message.info("Đã từ chối đơn")
+      load()
+    } catch {
+      message.error("Từ chối thất bại")
+    }
+  }
+
+  const statusColor = (s: string) => {
+    if (s === 'pending') return 'bg-yellow-100 text-yellow-600'
+    if (s === 'approved') return 'bg-green-100 text-green-600'
+    if (s === 'rejected') return 'bg-red-100 text-red-600'
+    return 'bg-gray-100 text-gray-600'
+  }
 
   // Sửa Update status
 const updateStatus = async (id: string, status: string, petId: string) => {
@@ -141,11 +163,42 @@ const sendEmail = async (o: any) => {
                 </td>
 
               </tr>
-            ))}
-          </tbody>
-
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {orders.map((o) => (
+                <tr key={o._id} className="border-t">
+                  <td className="p-4">{o.fullName}</td>
+                  <td className="p-4">{o.pet?.name || o.pet || "—"}</td>
+                  <td className="p-4">{o.phone}</td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(o.status)}`}>
+                      {statusLabel(o.status)}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    {o.status === 'pending' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleApprove(o._id)}
+                          className="px-3 py-1 bg-green-500 text-white rounded text-xs"
+                        >
+                          Duyệt
+                        </button>
+                        <button
+                          onClick={() => handleReject(o._id)}
+                          className="px-3 py-1 bg-red-500 text-white rounded text-xs"
+                        >
+                          Từ chối
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

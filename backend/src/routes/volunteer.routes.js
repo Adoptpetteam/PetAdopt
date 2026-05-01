@@ -16,16 +16,8 @@ const volunteerSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
-volunteerSchema.set('toJSON', {
-  transform: (_doc, ret) => {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
-    return ret;
-  }
-});
-
 const Volunteer = mongoose.models.Volunteer || mongoose.model('Volunteer', volunteerSchema);
+console.log('Volunteer route module loaded');
 
 // GET /api/volunteer - Lấy danh sách (admin)
 const { authenticate } = require('../middleware/authMiddleware');
@@ -105,8 +97,9 @@ router.put('/:id/approve', authenticate, async (req, res, next) => {
     if (volunteer.status !== 'pending') {
       return res.status(400).json({ success: false, message: 'Đơn này đã được xử lý' });
     }
+    const { adminNote = '' } = req.body || {};
     volunteer.status = 'approved';
-    volunteer.adminNote = req.body.adminNote || '';
+    volunteer.adminNote = adminNote;
     await volunteer.save();
     res.json({ success: true, message: 'Đã duyệt đơn tình nguyện viên!', data: volunteer });
   } catch (error) {
@@ -124,10 +117,41 @@ router.put('/:id/reject', authenticate, async (req, res, next) => {
     if (volunteer.status !== 'pending') {
       return res.status(400).json({ success: false, message: 'Đơn này đã được xử lý' });
     }
+    const { adminNote = '' } = req.body || {};
     volunteer.status = 'rejected';
-    volunteer.adminNote = req.body.adminNote || '';
+    volunteer.adminNote = adminNote;
     await volunteer.save();
     res.json({ success: true, message: 'Đã từ chối đơn tình nguyện viên', data: volunteer });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/volunteer/:id - Xóa đơn tình nguyện viên (admin)
+router.delete('/:id', authenticate, async (req, res, next) => {
+  try {
+    const volunteer = await Volunteer.findById(req.params.id);
+    if (!volunteer) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn' });
+    }
+
+    await volunteer.deleteOne();
+    res.json({ success: true, message: 'Đã xóa đơn tình nguyện viên' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/volunteer/:id/delete - Xóa đơn tình nguyện viên (admin, fallback)
+router.post('/:id/delete', authenticate, async (req, res, next) => {
+  try {
+    const volunteer = await Volunteer.findById(req.params.id);
+    if (!volunteer) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn' });
+    }
+
+    await volunteer.deleteOne();
+    res.json({ success: true, message: 'Đã xóa đơn tình nguyện viên' });
   } catch (error) {
     next(error);
   }

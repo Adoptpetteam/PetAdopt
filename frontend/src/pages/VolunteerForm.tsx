@@ -1,20 +1,12 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
-
-interface VolunteerFormData {
-  name: string
-  email: string
-  phone: string
-  age: string
-  experience: string
-  availability: string
-  reason: string
-}
+import { message } from "antd"
+import { submitVolunteer } from "../api/volunteerApi"
 
 export default function VolunteerForm() {
   const navigate = useNavigate()
 
-  const [form, setForm] = useState<VolunteerFormData>({
+  const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
@@ -24,42 +16,45 @@ export default function VolunteerForm() {
     reason: "",
   })
 
+  const [loading, setLoading] = useState(false)
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
-
     setForm({
       ...form,
       [name]: name === "age" ? Number(value) : value,
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-  const newVolunteer = {
-    ...form,
-    status: "pending_review",
-    createdAt: new Date().toISOString(),
+    if (!form.name || !form.email || !form.phone || !form.reason) {
+      message.warning("Vui lòng điền đầy đủ thông tin bắt buộc")
+      return
+    }
+
+    setLoading(true)
+    try {
+      await submitVolunteer({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        age: form.age ? Number(form.age) : undefined,
+        experience: form.experience || undefined,
+        availability: form.availability || undefined,
+        reason: form.reason,
+      })
+      message.success("Đăng ký tình nguyện viên thành công!")
+      navigate("/")
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Gửi đơn thất bại")
+    } finally {
+      setLoading(false)
+    }
   }
-
-  try {
-    await fetch("http://localhost:3000/volunteers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newVolunteer),
-    })
-
-    alert("Đăng ký thành công!")
-    navigate("/")
-  } catch (error) {
-    console.error(error)
-    alert("Có lỗi xảy ra!")
-  }
-}
 
   return (
     <div className="max-w-[600px] mx-auto py-20 px-6">
@@ -73,7 +68,7 @@ export default function VolunteerForm() {
       >
         <input
           name="name"
-          placeholder="Họ và tên"
+          placeholder="Họ và tên *"
           value={form.name}
           onChange={handleChange}
           className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
@@ -82,7 +77,8 @@ export default function VolunteerForm() {
 
         <input
           name="email"
-          placeholder="Email"
+          type="email"
+          placeholder="Email *"
           value={form.email}
           onChange={handleChange}
           className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
@@ -91,7 +87,7 @@ export default function VolunteerForm() {
 
         <input
           name="phone"
-          placeholder="Số điện thoại"
+          placeholder="Số điện thoại *"
           value={form.phone}
           onChange={handleChange}
           className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
@@ -100,11 +96,11 @@ export default function VolunteerForm() {
 
         <input
           name="age"
+          type="number"
           placeholder="Tuổi"
           value={form.age}
           onChange={handleChange}
           className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
-          required
         />
 
         <textarea
@@ -125,7 +121,7 @@ export default function VolunteerForm() {
 
         <textarea
           name="reason"
-          placeholder="Lý do bạn muốn làm tình nguyện viên"
+          placeholder="Lý do bạn muốn làm tình nguyện viên *"
           value={form.reason}
           onChange={handleChange}
           className="w-full h-28 bg-[#DDEDFF] rounded-2xl px-6 py-3 outline-none"
@@ -134,9 +130,10 @@ export default function VolunteerForm() {
 
         <button
           type="submit"
-          className="w-full bg-[#6272B6] text-white py-3 rounded-full hover:bg-[#4e5fa8] transition"
+          disabled={loading}
+          className="w-full bg-[#6272B6] text-white py-3 rounded-full hover:bg-[#4e5fa8] transition disabled:opacity-60"
         >
-          Gửi đăng ký
+          {loading ? "Đang gửi..." : "Gửi đăng ký"}
         </button>
       </form>
     </div>

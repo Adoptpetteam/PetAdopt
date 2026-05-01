@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useEffect } from "react";
+import { useState } from "react";
 import {
   Table,
   Button,
@@ -14,7 +13,6 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 interface Product {
-  id: number
   key: string;
   name: string;
   image: string;
@@ -29,19 +27,6 @@ const ProductPage = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [form] = Form.useForm();
-
-  useEffect(() => {
-  fetch("http://localhost:3000/products")
-    .then(res => res.json())
-    .then(data => {
-      // ⚠️ map id → key (antd cần key)
-      const formatted = data.map((item: any) => ({
-        ...item,
-        key: item.id.toString(),
-      }));
-      setData(formatted);
-    });
-}, []);
 
   // 👉 mở modal thêm
   const handleAdd = () => {
@@ -59,58 +44,33 @@ const ProductPage = () => {
 
   // 👉 submit form
   const handleSubmit = () => {
-  form.validateFields().then(async (values) => {
-    if (editingProduct) {
-      // 👉 UPDATE
-      await fetch(`http://localhost:3000/products/${editingProduct.key}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+    form.validateFields().then((values) => {
+      if (editingProduct) {
+        // sửa
+        const newData = data.map((item) =>
+          item.key === editingProduct.key ? { ...item, ...values } : item
+        );
+        setData(newData);
+        message.success("Cập nhật sản phẩm thành công");
+      } else {
+        // thêm
+        const newProduct: Product = {
+          key: Date.now().toString(),
           ...values,
-          id: Number(editingProduct.key),
-        }),
-      });
+        };
+        setData([...data, newProduct]);
+        message.success("Thêm sản phẩm thành công");
+      }
 
-      message.success("Cập nhật sản phẩm thành công");
-    } else {
-      // 👉 CREATE
-      await fetch("http://localhost:3000/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(values),
-      });
-
-      message.success("Thêm sản phẩm thành công");
-    }
-
-    // 👉 reload lại data
-    const res = await fetch("http://localhost:3000/products");
-    const newData = await res.json();
-
-    setData(
-      newData.map((item: any) => ({
-        ...item,
-        key: item.id.toString(),
-      }))
-    );
-
-    setIsModalOpen(false);
-  });
-};
+      setIsModalOpen(false);
+    });
+  };
 
   // 👉 xóa
-const handleDelete = async (key: string) => {
-  await fetch(`http://localhost:3000/products/${key}`, {
-    method: "DELETE",
-  });
-
-  setData(data.filter((item) => item.key !== key));
-  message.success("Đã xóa sản phẩm");
-};
+  const handleDelete = (key: string) => {
+    setData(data.filter((item) => item.key !== key));
+    message.success("Đã xóa sản phẩm");
+  };
 
   const columns: ColumnsType<Product> = [
     {

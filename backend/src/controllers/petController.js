@@ -1,9 +1,12 @@
 const Pet = require('../models/Pet');
 
-// CREATE
 exports.createPet = async (req, res, next) => {
   try {
-    const { name, species, ...rest } = req.body;
+    const {
+      name, species, breed, age, gender, size, color,
+      description, healthStatus, vaccinated, neutered,
+      adoptionFee, location, categoryId
+    } = req.body;
 
     if (!name || !species) {
       return res.status(400).json({
@@ -12,11 +15,29 @@ exports.createPet = async (req, res, next) => {
       });
     }
 
+    // Handle uploaded images
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file => `/uploads/${file.filename}`);
+    }
+
     const pet = new Pet({
       name,
       species,
-      ...rest,
-      createdBy: req.user?.userId || req.user?.id
+      breed,
+      age,
+      gender,
+      size,
+      color,
+      description,
+      healthStatus,
+      vaccinated,
+      neutered,
+      adoptionFee,
+      location,
+      categoryId,
+      images,
+      createdBy: req.user.userId  
     });
 
     await pet.save();
@@ -27,62 +48,68 @@ exports.createPet = async (req, res, next) => {
       data: pet
     });
   } catch (error) {
-    next(error);
+    next(error);  
   }
 };
 
-// GET ALL
 exports.getAllPets = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, ...filters } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      species,
+      status,
+      gender,
+      size,
+      minAge,
+      maxAge,
+      search
+    } = req.query;
 
     const filter = {};
 
-    if (filters.species) filter.species = filters.species;
-    if (filters.status) filter.status = filters.status;
-    if (filters.gender) filter.gender = filters.gender;
-    if (filters.size) filter.size = filters.size;
-
-    if (filters.minAge || filters.maxAge) {
+    if (species) filter.species = species;
+    if (status) filter.status = status;
+    if (gender) filter.gender = gender;
+    if (size) filter.size = size;
+    
+    if (minAge || maxAge) {
       filter.age = {};
-      if (filters.minAge) filter.age.$gte = +filters.minAge;
-      if (filters.maxAge) filter.age.$lte = +filters.maxAge;
+      if (minAge) filter.age.$gte = parseInt(minAge);
+      if (maxAge) filter.age.$lte = parseInt(maxAge);
     }
 
-    if (filters.search) {
+    if (search) {
       filter.$or = [
-        { name: { $regex: filters.search, $options: 'i' } },
-        { breed: { $regex: filters.search, $options: 'i' } },
-        { description: { $regex: filters.search, $options: 'i' } }
+        { name: { $regex: search, $options: 'i' } },
+        { breed: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
       ];
     }
-
-    const skip = (page - 1) * limit;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Pet.countDocuments(filter);
 
     const pets = await Pet.find(filter)
       .populate('createdBy', 'name email')
       .skip(skip)
-      .limit(+limit)
+      .limit(parseInt(limit))
       .sort({ createdAt: -1 });
-
-    const total = await Pet.countDocuments(filter);
 
     res.json({
       success: true,
       data: pets,
       pagination: {
-        page: +page,
-        limit: +limit,
+        page: parseInt(page),
+        limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / parseInt(limit))
       }
     });
   } catch (error) {
-    next(error);
+    next(error);  
   }
 };
 
-// GET BY ID
 exports.getPetById = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id)
@@ -100,53 +127,91 @@ exports.getPetById = async (req, res, next) => {
       data: pet
     });
   } catch (error) {
-    next(error);
+    next(error);  
   }
 };
-
-// UPDATE
-exports.updatePet = async (req, res, next) => {
+exports.getPetById = async (req, res, next) => {
   try {
-    const pet = await Pet.findOne({
-      _id: req.params.id,
-      createdBy: req.user?.userId || req.user?.id
-    });
+    const { id } = req.params;
+
+    const pet = await Pet.findById(id).populate('createdBy', 'name email');
 
     if (!pet) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy hoặc không có quyền'
+        message: 'Không tìm thấy thú cưng'
       });
     }
 
-    Object.keys(req.body).forEach(key => {
-      pet[key] = req.body[key];
-    });
-
-    await pet.save();
-
     res.json({
       success: true,
-      message: 'Cập nhật thành công!',
       data: pet
     });
   } catch (error) {
     next(error);
   }
 };
-
-// DELETE
-exports.deletePet = async (req, res, next) => {
+exports.updatePet = async (req, res, next) => {
   try {
-    const pet = await Pet.findOne({
-      _id: req.params.id,
-      createdBy: req.user?.userId || req.user?.id
-    });
+    const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy hoặc không có quyền'
+        message: 'Không tìm thấy thú cưng'
+      });
+    }
+
+    const body = req.body || {};
+
+    const allowedFields = [
+      'name', 'species', 'breed', 'age', 'gender', 'size', 'color',
+      'description', 'healthStatus', 'vaccinated', 'neutered',
+      'status', 'adoptionFee', 'location', 'categoryId'
+    ];
+
+    allowedFields.forEach(field => {
+      if (body[field] !== undefined) {
+        pet[field] = body[field];
+      }
+    });
+
+    if (req.body.existingImages !== undefined) {
+      try {
+        const existingImages = JSON.parse(req.body.existingImages);
+        if (Array.isArray(existingImages)) {
+          pet.images = existingImages;
+        }
+      } catch (err) {
+        // if parse fails, ignore and keep old images
+      }
+    }
+
+    if (req.files && req.files.length > 0) {
+      const uploadedImages = req.files.map(file => `/uploads/${file.filename}`);
+      pet.images = pet.images ? [...(pet.images || []), ...uploadedImages] : uploadedImages;
+    }
+
+    await pet.save();
+
+    res.json({
+      success: true,
+      message: 'Cập nhật thú cưng thành công!',
+      data: pet
+    });
+  } catch (error) {
+    next(error);  
+  }
+};
+
+exports.deletePet = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thú cưng'
       });
     }
 
@@ -154,9 +219,9 @@ exports.deletePet = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Xóa thành công!'
+      message: 'Xóa thú cưng thành công!'
     });
   } catch (error) {
-    next(error);
+    next(error);  
   }
 };

@@ -1,35 +1,48 @@
 // src/components/layout/Header.tsx
 
-import { Link } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { message } from "antd"
 
 export default function Header() {
-  const [searchTerm, setSearchTerm] = useState("")
-const [pets, setPets] = useState<any[]>([])
-const [filteredPets, setFilteredPets] = useState<any[]>([])
-const [showDropdown, setShowDropdown] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [user, setUser] = useState<any>(null)
 
-const navigate = useNavigate()
-
-useEffect(() => {
-  fetch("http://localhost:3000/pets")
-    .then(res => res.json())
-    .then(data => setPets(data))
-}, [])
-
-useEffect(() => {
-  if (searchTerm.trim() === "") {
-    setFilteredPets([])
-    return
+  const readUser = () => {
+    const stored = localStorage.getItem("user")
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch { return null }
+    }
+    return null
   }
 
-  const result = pets.filter((pet) =>
-    pet.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    // Đọc lại từ localStorage mỗi khi route thay đổi
+    setUser(readUser())
 
-  setFilteredPets(result)
-}, [searchTerm, pets])
+    const handleAuthChange = () => {
+      setUser(readUser())
+    }
+
+    window.addEventListener("auth-change", handleAuthChange)
+    window.addEventListener("storage", handleAuthChange)
+    return () => {
+      window.removeEventListener("auth-change", handleAuthChange)
+      window.removeEventListener("storage", handleAuthChange)
+    }
+  }, [location.pathname])
+
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    setUser(null)
+    message.success("Đã đăng xuất")
+    navigate("/")
+  }
+
   return (
     <header className="w-full mx-auto">
       
@@ -58,26 +71,45 @@ useEffect(() => {
             </span>
         </div>
 
-        <div className="flex gap-4">
-          <Link to="/register" className="hover:underline">
-            Đăng ký
-          </Link>
-          <span>/</span>
-          <Link to="/login" className="hover:underline">
-            Đăng nhập
-          </Link>
+        <div className="flex gap-4 items-center">
+          {user ? (
+            <>
+              <span className="opacity-90 max-w-[200px] truncate" title={user?.email}>
+                Xin chào, {user.name}
+              </span>
+              <span className="opacity-50">|</span>
+              <Link to="/account" className="hover:underline font-medium">
+                Tài khoản
+              </Link>
+              <span className="opacity-50">|</span>
+              <button onClick={handleLogout} className="hover:underline cursor-pointer">Đăng xuất</button>
+            </>
+          ) : (
+            <>
+              <Link to="/register" className="hover:underline">
+                Đăng ký
+              </Link>
+              <span>/</span>
+              <Link to="/login" className="hover:underline">
+                Đăng nhập
+              </Link>
+              <span>|</span>
+              <Link to="/forgot-password" className="hover:underline">
+                Quên mật khẩu
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
       {/* ===== MIDDLE ===== */}
-      
       <div className="h-[100px] flex items-center justify-between px-[130px]">
         
         {/* Logo */}
         <div className="flex items-center gap-2">
-        <Link to="/">
+
           <svg xmlns="http://www.w3.org/2000/svg" width="180" height="54" viewBox="0 0 180 54" fill="none">
-<g clip-path="url(#clip0_33_482)">
+<g clipPath="url(#clip0_33_482)">
 <path d="M39.8839 34.3576C38.7601 33.5396 37.5517 32.9437 36.4801 32.0163C32.4206 28.5049 31.3089 22.0033 25.1507 22.0033C18.9925 22.0033 17.8764 28.5038 13.8212 32.0163C12.7485 32.9437 11.5412 33.5396 10.4175 34.3576C9.29377 35.1756 8.20914 36.2525 7.59463 37.7584C6.88674 39.4778 6.89325 41.5851 7.42525 43.311C7.91966 44.9015 8.86184 46.3167 10.1395 47.3879C12.7018 49.5548 16.1023 49.9264 19.0674 48.3717C21.0999 47.3067 23.039 45.3662 25.1583 45.4323C27.2765 45.3662 29.2167 47.3067 31.2491 48.3717C34.2142 49.9264 37.6136 49.5515 40.177 47.3879C41.4551 46.3171 42.3974 44.9018 42.8913 43.311C43.4244 41.5851 43.4342 39.4778 42.723 37.7584C42.0922 36.2525 41.0054 35.1766 39.8839 34.3576ZM26.2038 35.0477H23.9944V40.8451H21.9576V35.0477H19.7471V33.3879H26.2027L26.2038 35.0477ZM30.5532 40.8451H28.5338V35.1485H28.4882L26.8498 36.2319V34.5082L28.5544 33.3879H30.5489L30.5532 40.8451Z" fill="#6272B6"/>
 <path d="M17.8546 18.8581C21.1888 18.5482 23.345 15.3911 23.2831 11.7812C23.2061 7.2503 21.1714 0.0574519 17.3616 3.04421e-05C14.0111 -0.049807 10.6302 6.69559 11.0558 11.2492C11.4575 15.5591 14.5203 19.168 17.8546 18.8581Z" fill="#6272B6"/>
 <path d="M11.0895 21.1268C10.3295 17.1702 7.43068 11.1853 4.08993 11.7195C1.14763 12.1886 -0.771916 18.6133 0.300773 22.5353C1.317 26.2482 4.56004 28.9372 7.42634 28.155C10.2926 27.3728 11.7008 24.2785 11.0895 21.1268Z" fill="#6272B6"/>
@@ -100,7 +132,6 @@ useEffect(() => {
 </clipPath>
 </defs>
 </svg>
-</Link>
         </div>
 
         {/* Search */}
@@ -130,47 +161,11 @@ useEffect(() => {
   </svg>
 
   {/* Input */}
-<input
-  type="text"
-  placeholder="Tìm kiếm thú cưng..."
-  value={searchTerm}
-  onChange={(e) => {
-    setSearchTerm(e.target.value)
-    setShowDropdown(true)
-  }}
-  onBlur={() => {
-    setTimeout(() => setShowDropdown(false), 200)
-  }}
-  onFocus={() => setShowDropdown(true)}
-  className="w-full border rounded-full pl-12 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6272B6]"
-/>
-
-{showDropdown && searchTerm && (
-            <div className="absolute top-full left-0 w-full bg-white shadow-xl rounded-xl mt-2 max-h-[300px] overflow-y-auto z-50">
-
-              {filteredPets.length > 0 ? (
-                filteredPets.slice(0, 5).map((pet) => (
-                  <div
-                    key={pet.id}
-                    onClick={() => navigate(`/pet/${pet.id}`)}
-                    className="p-3 hover:bg-[#f1f5ff] cursor-pointer border-b"
-                  >
-                    <p className="font-semibold text-[#6272B6]">
-                      {pet.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Tuổi: {pet.age} | Giới tính: {pet.gender}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="p-3 text-gray-500">
-                  Không tìm thấy thú cưng
-                </div>
-              )}
-
-            </div>
-          )}
+  <input
+    type="text"
+    placeholder="Tìm kiếm thú cưng..."
+    className="w-full border rounded-full pl-12 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6272B6]"
+  />
 </div>
 
         {/* Icons */}
@@ -189,7 +184,7 @@ useEffect(() => {
         <Link to="/favorites">
         <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
         <path d="M20 13.3334C20 13.3334 20 13.3334 21.2667 11.6667C22.7333 9.73337 24.9 8.33337 27.5 8.33337C31.65 8.33337 35 11.6834 35 15.8334C35 17.3834 34.5333 18.8167 33.7333 20C32.3833 22.0167 20 35 20 35C20 35 7.61667 22.0167 6.26667 20C5.46667 18.8167 5 17.3834 5 15.8334C5 11.6834 8.35 8.33337 12.5 8.33337C15.1 8.33337 17.2833 9.73337 18.7333 11.6667C20 13.3334 20 13.3334 20 13.3334Z" fill="#666666"/>
-        <path d="M20 13.3334C20 13.3334 20 13.3334 18.7333 11.6667C17.2667 9.73337 15.1 8.33337 12.5 8.33337C8.35 8.33337 5 11.6834 5 15.8334C5 17.3834 5.46667 18.8167 6.26667 20C7.61667 22.0167 20 35 20 35M20 13.3334C20 13.3334 20 13.3334 21.2667 11.6667C22.7333 9.73337 24.9 8.33337 27.5 8.33337C31.65 8.33337 35 11.6834 35 15.8334C35 17.3834 34.5333 18.8167 33.7333 20C32.3833 22.0167 20 35 20 35" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 13.3334C20 13.3334 20 13.3334 18.7333 11.6667C17.2667 9.73337 15.1 8.33337 12.5 8.33337C8.35 8.33337 5 11.6834 5 15.8334C5 17.3834 5.46667 18.8167 6.26667 20C7.61667 22.0167 20 35 20 35M20 13.3334C20 13.3334 20 13.3334 21.2667 11.6667C22.7333 9.73337 24.9 8.33337 27.5 8.33337C31.65 8.33337 35 11.6834 35 15.8334C35 17.3834 34.5333 18.8167 33.7333 20C32.3833 22.0167 20 35 20 35" stroke="#666666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
         </Link>
 

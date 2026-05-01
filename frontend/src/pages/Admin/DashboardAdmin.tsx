@@ -1,38 +1,4 @@
-import React from "react";
-
 const DashboardAdmin = () => {
-
-  const cards = [
-    {
-      title: "Total Revenue",
-      value: "$6659",
-      icon: "ri-database-2-line",
-      bg: "custome-1-bg",
-      color: "primary",
-    },
-    {
-      title: "Total Orders",
-      value: "9856",
-      icon: "ri-shopping-bag-3-line",
-      bg: "custome-2-bg",
-      color: "danger",
-    },
-    {
-      title: "Total Products",
-      value: "893",
-      icon: "ri-chat-3-line",
-      bg: "custome-3-bg",
-      color: "secondary",
-    },
-    {
-      title: "Total Customers",
-      value: "4.6k",
-      icon: "ri-user-add-line",
-      bg: "custome-4-bg",
-      color: "success",
-    },
-  ];
-
   const categories = [
     "vegetable",
     "cup",

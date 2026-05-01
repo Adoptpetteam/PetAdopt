@@ -16,7 +16,7 @@ export default function Cart() {
     const navigate = useNavigate()
 
   const fetchCart = () => {
-    fetch("http://localhost:3000/cart")
+    fetch("http://localhost:5000/api/cart")
       .then(res => res.json())
       .then(data => setCart(data))
   }
@@ -26,14 +26,14 @@ export default function Cart() {
   }, [])
 
   const handleDelete = async (id: number) => {
-    await fetch(`http://localhost:3000/cart/${id}`, {
+    await fetch(`http://localhost:5000/api/cart/${id}`, {
       method: "DELETE",
     })
     fetchCart()
     setSelectedIds(prev => prev.filter(itemId => itemId !== id))
   }
 
-  // ✅ CHỌN TẤT CẢ
+  // CHỌN TẤT CẢ
   const handleSelectAll = () => {
     if (selectedIds.length === cart.length) {
       setSelectedIds([])
@@ -42,7 +42,7 @@ export default function Cart() {
     }
   }
 
-  // ✅ TÍNH TỔNG THEO ITEM ĐÃ CHỌN
+  // TÍNH TỔNG THEO ITEM ĐÃ CHỌN
   const total = cart
     .filter(item => selectedIds.includes(item.id))
     .reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -55,7 +55,7 @@ export default function Cart() {
 
       {cart.length === 0 && <p>Giỏ hàng trống</p>}
 
-      {/* ✅ CHỌN TẤT CẢ */}
+      {/* CHỌN TẤT CẢ */}
       {cart.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
           <input
@@ -74,7 +74,7 @@ export default function Cart() {
             className="flex justify-between items-center bg-white p-4 rounded-xl shadow"
           >
             <div className="flex gap-4 items-center">
-              {/* ✅ CHECKBOX */}
+              {/* CHECKBOX */}
               <input
                 type="checkbox"
                 checked={selectedIds.includes(item.id)}

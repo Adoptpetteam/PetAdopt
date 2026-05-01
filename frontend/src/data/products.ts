@@ -21,5 +21,4 @@ export const products: Product[] = [
     image: "/images/Jack.png",
     description: "Cát sạch, khử mùi tốt",
   },
-  
 ]
