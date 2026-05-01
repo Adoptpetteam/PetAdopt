@@ -63,9 +63,7 @@
       "categoryId": "643c"
     }
   ],
-  "news": [
-
-  ],
+  "news": [],
   "adoptions": [
     {
       "id": "9062",
@@ -128,7 +126,7 @@
       "petId": 1,
       "donationType": "monthly",
       "certificateType": "digital",
-      "status": "submitted",
+      "status": "approved",
       "createdAt": "2026-05-01T01:52:03.428Z",
       "id": "vD4k1sIKz5M"
     }
@@ -154,7 +152,7 @@
       "experience": "adsfasssssss",
       "availability": "34234234",
       "reason": "sdddddđ",
-      "status": "pending_review",
+      "status": "approved",
       "createdAt": "2026-05-01T01:52:22.604Z",
       "id": "rYwbFIKRjNQ"
     }
