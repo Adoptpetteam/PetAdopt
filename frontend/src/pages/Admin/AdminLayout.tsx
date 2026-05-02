@@ -1,6 +1,17 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useNavigate } from "react-router-dom";
+import { message } from "antd";
 
 export default function AdminLayout() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    message.success("Đã đăng xuất hoàn toàn");
+    navigate("/admin/login");
+  };
   return (
     <div className="flex min-h-screen">
 
@@ -20,6 +31,12 @@ export default function AdminLayout() {
           <Link to="/admin/order">Đơn hàng</Link>
           <Link to="/admin/contacts">Liên hệ</Link>
           <Link to="/admin/adopted-pets">Thú đã nhận nuôi</Link>
+          <button 
+            onClick={handleLogout}
+            className="text-left text-red-300 hover:text-red-400 mt-4 font-bold"
+          >
+            Đăng xuất
+          </button>
         </nav>
       </div>
 
