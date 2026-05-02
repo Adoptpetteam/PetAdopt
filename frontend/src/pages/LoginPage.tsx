@@ -36,6 +36,12 @@ export default function LoginPage() {
   };
 
   const handleLoginSuccess = (res: LoginResponse) => {
+    if (res.user.role === "admin") {
+      setError("Tài khoản Quản trị vui lòng đăng nhập tại trang Admin.");
+      message.warning("Đã chặn đăng nhập Admin tại khu vực Người dùng");
+      return;
+    }
+
     localStorage.setItem("token", res.token);
     localStorage.setItem(
       "user",
