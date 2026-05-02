@@ -1,102 +1,70 @@
 import { useEffect, useState } from "react";
-import {
-  Table,
-  Tag,
-  Space,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  Popconfirm,
-} from "antd";
-import type { ColumnsType } from "antd/es/table";
-import axios from "axios";
-
-const { Option } = Select;
+import { Table, Tag, Space, Button, Popconfirm, message } from "antd";
+import type { ColumnsType, TableProps } from "antd/es/table";
+import { apiClient } from "../../api/http";
 
 interface UserType {
-  id: string;
+  _id: string;
   name: string;
   email: string;
-  password: string;
   role: string;
-  status: boolean;
-  online: boolean;
+  isBanned: boolean;
+  isVerified: boolean;
+  createdAt: string;
 }
 
-const API = "http://localhost:3000/users";
+const API = "/admin/users";
 
 const User = () => {
   const [data, setData] = useState<UserType[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserType | null>(null);
-  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   // 👉 Load data
-  const fetchUsers = async () => {
-    const res = await axios.get(API);
-    setData(res.data);
+  const fetchUsers = async (page = 1, limit = 10) => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get(`${API}?page=${page}&limit=${limit}`);
+      setData(res.data.data);
+      setPagination({
+        current: res.data.pagination.page,
+        pageSize: res.data.pagination.limit,
+        total: res.data.pagination.total,
+      });
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách người dùng");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(pagination.current, pagination.pageSize);
   }, []);
 
-  // 👉 Add
-  const handleAdd = () => {
-    setEditingUser(null);
-    form.resetFields();
-    setIsModalOpen(true);
+  // 👉 Xử lý khi đổi trang
+  const handleTableChange: TableProps<UserType>['onChange'] = (newPagination) => {
+    fetchUsers(newPagination.current, newPagination.pageSize);
   };
 
-  // 👉 Edit (fill full data)
-  const handleEdit = (record: UserType) => {
-    setEditingUser(record);
-
-    form.setFieldsValue({
-      name: record.name,
-      email: record.email,
-      password: record.password,
-      role: record.role,
-      status: record.status,
-      online: record.online,
-    });
-
-    setIsModalOpen(true);
-  };
-
-  // 👉 Delete (chỉ xóa khi status = false)
-  const handleDelete = async (user: UserType) => {
-    if (user.status) {
-      alert("Chỉ được xóa user đang bị khóa!");
-      return;
+  // 👉 Khóa / Mở khóa người dùng
+  const handleToggleBan = async (user: UserType) => {
+    try {
+      if (user.isBanned) {
+        await apiClient.put(`${API}/${user._id}/unban`);
+        message.success(`Đã mở khóa tài khoản ${user.name}`);
+      } else {
+        await apiClient.put(`${API}/${user._id}/ban`);
+        message.success(`Đã khóa tài khoản ${user.name}`);
+      }
+      fetchUsers(pagination.current, pagination.pageSize);
+    } catch (error) {
+      message.error("Thao tác thất bại");
     }
-
-    await axios.delete(`${API}/${user.id}`);
-    fetchUsers();
-  };
-
-  // 👉 Submit
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-
-    if (editingUser) {
-      // 👉 giữ nguyên data cũ + update role, status
-      await axios.put(`${API}/${editingUser.id}`, {
-        ...editingUser,
-        name: values.name,
-        email: values.email,
-        role: values.role,
-        status: values.status,
-      });
-    } else {
-      await axios.post(API, values);
-    }
-
-    setIsModalOpen(false);
-    fetchUsers();
   };
 
   // 👉 Columns
@@ -110,55 +78,55 @@ const User = () => {
       dataIndex: "email",
     },
     {
-      title: "Mật khẩu",
-      dataIndex: "password",
-      render: () => "*****",
-    },
-    {
       title: "Quyền",
       dataIndex: "role",
       render: (role) => (
-        <Tag color={role === "admin" ? "volcano" : "blue"}>
-          {role}
-        </Tag>
+        <Tag color={role === "admin" ? "volcano" : "blue"}>{role}</Tag>
       ),
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      render: (status) =>
-        status ? (
-          <Tag color="green">Hoạt động</Tag>
+      title: "Xác thực",
+      dataIndex: "isVerified",
+      render: (isVerified) =>
+        isVerified ? (
+          <Tag color="green">Đã xác thực</Tag>
         ) : (
-          <Tag color="red">Bị khóa</Tag>
+          <Tag color="orange">Chưa xác thực</Tag>
         ),
     },
     {
-      title: "Hoạt động",
-      dataIndex: "online",
-      render: (online) =>
-        online ? (
-          <Tag color="processing">Online</Tag>
+      title: "Trạng thái",
+      dataIndex: "isBanned",
+      render: (isBanned) =>
+        isBanned ? (
+          <Tag color="red">Bị khóa</Tag>
         ) : (
-          <Tag>Offline</Tag>
+          <Tag color="green">Hoạt động</Tag>
         ),
+    },
+    {
+      title: "Ngày tham gia",
+      dataIndex: "createdAt",
+      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
     },
     {
       title: "Action",
       render: (_, record) => (
         <Space>
-          <Button type="primary" onClick={() => handleEdit(record)}>
-            Sửa
-          </Button>
-
-          <Popconfirm
-            title="Bạn có chắc muốn xóa?"
-            onConfirm={() => handleDelete(record)}
-          >
-            <Button danger disabled={record.status}>
-              Xóa
-            </Button>
-          </Popconfirm>
+          {record.role !== "admin" && (
+            <Popconfirm
+              title={
+                record.isBanned
+                  ? "Bạn có chắc muốn mở khóa người dùng này?"
+                  : "Bạn có chắc muốn khóa người dùng này?"
+              }
+              onConfirm={() => handleToggleBan(record)}
+            >
+              <Button danger={!record.isBanned} type={record.isBanned ? "primary" : "default"}>
+                {record.isBanned ? "Mở khóa" : "Khóa"}
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -166,65 +134,21 @@ const User = () => {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Quản lý người dùng</h2>
-
-      <Button type="primary" onClick={handleAdd} style={{ marginBottom: 10 }}>
-        Thêm người dùng
-      </Button>
-
-      <Table rowKey="id" columns={columns} dataSource={data} />
-
-      <Modal
-        title={editingUser ? "Sửa người dùng" : "Thêm người dùng"}
-        open={isModalOpen}
-        onOk={handleSubmit}
-        onCancel={() => setIsModalOpen(false)}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Tên" rules={[{ required: true }]}>
-            <Input disabled={!!editingUser} />
-          </Form.Item>
-
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[{ required: true, type: "email" }]}
-          >
-            <Input disabled={!!editingUser} />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            label="Mật khẩu"
-            rules={editingUser ? [] : [{ required: true }]}
-          >
-            <Input.Password disabled={!!editingUser} />
-          </Form.Item>
-
-          <Form.Item name="role" label="Quyền" rules={[{ required: true }]}>
-            <Select>
-              <Option value="admin">Admin</Option>
-              <Option value="user">User</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            valuePropName="checked"
-          >
-            <Switch checkedChildren="Active" unCheckedChildren="Block" />
-          </Form.Item>
-
-          <Form.Item
-            name="online"
-            label="Hoạt động"
-            valuePropName="checked"
-          >
-            <Switch disabled={!!editingUser} />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <h2 style={{ marginBottom: 20 }}>Quản lý người dùng</h2>
+      <Table 
+        rowKey="_id" 
+        columns={columns} 
+        dataSource={data} 
+        loading={loading}
+        pagination={{
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
+        }}
+        onChange={handleTableChange}
+      />
     </div>
   );
 };
