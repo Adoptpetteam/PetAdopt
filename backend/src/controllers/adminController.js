@@ -209,12 +209,3 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
-module.exports = {
-  getDashboardStats,
-  getAllPetsAdmin,
-  approvePet,
-  rejectPet,
-  banUser,
-  unbanUser,
-  getAllUsers
-};
