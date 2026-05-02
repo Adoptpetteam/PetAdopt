@@ -44,6 +44,7 @@ import EditPet from "../pages/Admin/EditPet";
 // import About from "../pages/About";
 import AdoptedPets from "../pages/Admin/AdoptedPets";
 import AdminRoute from "../routes/AdminRoute";
+import AdminLogin from "../pages/Admin/AdminLogin";
 import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
 import ProductPage from "../pages/Admin/product";
@@ -85,7 +86,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-
+      <Route path="/admin/login" element={<AdminLogin />} />
 
       {/* ADMIN */}
       <Route element={<AdminRoute />}>
