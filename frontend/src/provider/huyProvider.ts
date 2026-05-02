@@ -11,7 +11,8 @@ const axiosClient = axios.create({
 });
 
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const isAdminPage = window.location.pathname.startsWith('/admin');
+  const token = isAdminPage ? localStorage.getItem("admin_token") : localStorage.getItem("token");
 
   if (token) {
     config.headers = config.headers || {};
@@ -27,9 +28,16 @@ axiosClient.interceptors.response.use(
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       if (status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        const isAdminPage = window.location.pathname.startsWith('/admin');
+        if (isAdminPage) {
+          localStorage.removeItem("admin_token");
+          localStorage.removeItem("admin_user");
+          window.location.href = "/admin/login";
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+        }
       }
     }
     return Promise.reject(error);
