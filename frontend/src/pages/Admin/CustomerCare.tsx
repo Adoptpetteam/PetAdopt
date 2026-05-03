@@ -29,8 +29,6 @@ const CustomerCare = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Care | null>(null);
   const [form] = Form.useForm();
-
-  // 👉 load data
   const fetchData = async () => {
     const res = await axios.get("http://localhost:3000/care");
     setData(res.data);
@@ -39,22 +37,16 @@ const CustomerCare = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  // 👉 thêm
   const handleAdd = () => {
     setEditing(null);
     form.resetFields();
     setIsModalOpen(true);
   };
-
-  // 👉 sửa
   const handleEdit = (record: Care) => {
     setEditing(record);
     form.setFieldsValue(record);
     setIsModalOpen(true);
   };
-
-  // 👉 submit
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -62,7 +54,6 @@ const CustomerCare = () => {
       console.log("DATA SUBMIT:", values);
 
       if (editing) {
-        // 👉 chỉ sửa SĐT
         await axios.patch(`http://localhost:3000/care/${editing.id}`, {
           phone: values.phone,
         });
@@ -70,7 +61,7 @@ const CustomerCare = () => {
         message.success("Cập nhật SĐT thành công");
       } else {
         const newItem = {
-          id: Date.now().toString(), // 🔥 FIX ID
+          id: Date.now().toString(), 
           name: values.name,
           petName: values.petName,
           phone: values.phone,
