@@ -80,7 +80,6 @@ const ListCategory: React.FC = () => {
       ),
     },
   ];
-
   return (
     <div style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
       <Card style={{ borderRadius: "12px" }}>
