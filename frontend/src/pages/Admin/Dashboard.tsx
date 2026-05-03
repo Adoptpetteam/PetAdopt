@@ -8,8 +8,6 @@ export default function Dashboard() {
   const [volunteers, setVolunteers] = useState<any[]>([])
   const [posts, setPosts] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
-
-  // 🔥 FETCH DATA
   useEffect(() => {
     fetch("http://localhost:3000/adoptions")
       .then(res => res.json())
@@ -27,13 +25,11 @@ export default function Dashboard() {
       .then(res => res.json())
       .then(data => setCategories(data))
   }, [])
-
   return (
     <div>
       <h1 className="text-3xl font-bold text-[#6272B6] mb-6">
         Trang Quản Lý
       </h1>
-
       <div className="grid grid-cols-3 gap-6">
 
         {/* 🐾 Đơn nhận nuôi */}
@@ -48,8 +44,6 @@ export default function Dashboard() {
             Xem chi tiết
           </button>
         </div>
-
-        {/* ⏳ Pending */}
         {/* <div className="bg-white p-6 rounded-xl shadow">
           <h2 className="text-gray-500">Đơn pending</h2>
           <p className="text-3xl font-bold">
@@ -63,8 +57,6 @@ export default function Dashboard() {
             Xem chi tiết
           </button>
         </div> */}
-
-        {/* 🙋 TNV */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h2 className="text-gray-500">Tổng TNV</h2>
           <p className="text-3xl font-bold">{volunteers.length}</p>
@@ -89,8 +81,6 @@ export default function Dashboard() {
             Xem chi tiết
           </button>
         </div>
-
-        {/* 📂 Danh mục */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h2 className="text-gray-500">Tổng danh mục</h2>
           <p className="text-3xl font-bold">{categories.length}</p>
