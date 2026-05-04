@@ -1,5 +1,6 @@
 const Pet = require('../models/Pet');
 
+// CREATE PET
 exports.createPet = async (req, res, next) => {
   try {
     const {
@@ -8,6 +9,7 @@ exports.createPet = async (req, res, next) => {
       adoptionFee, location, categoryId
     } = req.body;
 
+    // ✅ validate cơ bản
     if (!name || !species) {
       return res.status(400).json({
         success: false,
@@ -15,7 +17,15 @@ exports.createPet = async (req, res, next) => {
       });
     }
 
-    // Handle uploaded images
+    // ✅ tránh crash nếu chưa login
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Bạn cần đăng nhập'
+      });
+    }
+
+    // ✅ handle images
     let images = [];
     if (req.files && req.files.length > 0) {
       images = req.files.map(file => `/uploads/${file.filename}`);
@@ -35,9 +45,9 @@ exports.createPet = async (req, res, next) => {
       neutered,
       adoptionFee,
       location,
-      categoryId,
+      categoryId: categoryId || null,
       images,
-      createdBy: req.user.userId  
+      createdBy: req.user.userId
     });
 
     await pet.save();
@@ -47,53 +57,30 @@ exports.createPet = async (req, res, next) => {
       message: 'Tạo thú cưng thành công!',
       data: pet
     });
+
   } catch (error) {
-    next(error);  
+    console.error("CREATE PET ERROR:", error); // 🔥 cực quan trọng để debug
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
+// GET ALL
 exports.getAllPets = async (req, res, next) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      species,
-      status,
-      gender,
-      size,
-      minAge,
-      maxAge,
-      search
-    } = req.query;
+    const { page = 1, limit = 10 } = req.query;
 
-    const filter = {};
-
-    if (species) filter.species = species;
-    if (status) filter.status = status;
-    if (gender) filter.gender = gender;
-    if (size) filter.size = size;
-    
-    if (minAge || maxAge) {
-      filter.age = {};
-      if (minAge) filter.age.$gte = parseInt(minAge);
-      if (maxAge) filter.age.$lte = parseInt(maxAge);
-    }
-
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { breed: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Pet.countDocuments(filter);
 
-    const pets = await Pet.find(filter)
+    const pets = await Pet.find()
       .populate('createdBy', 'name email')
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
+
+    const total = await Pet.countDocuments();
 
     res.json({
       success: true,
@@ -101,15 +88,17 @@ exports.getAllPets = async (req, res, next) => {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit))
+        total
       }
     });
+
   } catch (error) {
-    next(error);  
+    console.error("GET PETS ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
+// GET BY ID (fix duplicate)
 exports.getPetById = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id)
@@ -126,31 +115,14 @@ exports.getPetById = async (req, res, next) => {
       success: true,
       data: pet
     });
+
   } catch (error) {
-    next(error);  
+    console.error("GET PET ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-exports.getPetById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
 
-    const pet = await Pet.findById(id).populate('createdBy', 'name email');
-
-    if (!pet) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy thú cưng'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: pet
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// UPDATE
 exports.updatePet = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id);
@@ -162,48 +134,28 @@ exports.updatePet = async (req, res, next) => {
       });
     }
 
-    const body = req.body || {};
-
-    const allowedFields = [
-      'name', 'species', 'breed', 'age', 'gender', 'size', 'color',
-      'description', 'healthStatus', 'vaccinated', 'neutered',
-      'status', 'adoptionFee', 'location', 'categoryId'
-    ];
-
-    allowedFields.forEach(field => {
-      if (body[field] !== undefined) {
-        pet[field] = body[field];
-      }
-    });
-
-    if (req.body.existingImages !== undefined) {
-      try {
-        const existingImages = JSON.parse(req.body.existingImages);
-        if (Array.isArray(existingImages)) {
-          pet.images = existingImages;
-        }
-      } catch (err) {
-        // if parse fails, ignore and keep old images
-      }
-    }
+    Object.assign(pet, req.body);
 
     if (req.files && req.files.length > 0) {
       const uploadedImages = req.files.map(file => `/uploads/${file.filename}`);
-      pet.images = pet.images ? [...(pet.images || []), ...uploadedImages] : uploadedImages;
+      pet.images = [...(pet.images || []), ...uploadedImages];
     }
 
     await pet.save();
 
     res.json({
       success: true,
-      message: 'Cập nhật thú cưng thành công!',
+      message: 'Cập nhật thành công!',
       data: pet
     });
+
   } catch (error) {
-    next(error);  
+    console.error("UPDATE PET ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
+// DELETE
 exports.deletePet = async (req, res, next) => {
   try {
     const pet = await Pet.findById(req.params.id);
@@ -219,9 +171,11 @@ exports.deletePet = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Xóa thú cưng thành công!'
+      message: 'Xóa thành công!'
     });
+
   } catch (error) {
-    next(error);  
+    console.error("DELETE PET ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
