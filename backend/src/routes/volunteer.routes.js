@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const { sendEmail } = require('../utils/emailService');
 
 const volunteerSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -101,6 +102,22 @@ router.put('/:id/approve', authenticate, async (req, res, next) => {
     volunteer.status = 'approved';
     volunteer.adminNote = adminNote;
     await volunteer.save();
+
+    try {
+      const subject = 'Bạn đã trúng tuyển tình nguyện viên';
+      const html = `
+        <p>Chào ${volunteer.name},</p>
+        <p>Cảm ơn bạn đã đăng ký tham gia đội ngũ tình nguyện viên của chúng tôi.</p>
+        <p>Đơn của bạn đã được <strong>chấp thuận</strong>.</p>
+        <p><strong>Ghi chú admin:</strong> ${adminNote || 'Không có ghi chú.'}</p>
+        <p>Chúng tôi sẽ liên hệ bạn trong thời gian sớm nhất để sắp xếp buổi phỏng vấn.</p>
+        <p>Trân trọng,<br/>PetAdopt Team</p>
+      `;
+      await sendEmail(volunteer.email, subject, html);
+    } catch (emailError) {
+      console.error('Lỗi gửi email duyệt tình nguyện viên:', emailError.message || emailError);
+    }
+
     res.json({ success: true, message: 'Đã duyệt đơn tình nguyện viên!', data: volunteer });
   } catch (error) {
     next(error);
@@ -121,6 +138,22 @@ router.put('/:id/reject', authenticate, async (req, res, next) => {
     volunteer.status = 'rejected';
     volunteer.adminNote = adminNote;
     await volunteer.save();
+
+    try {
+      const subject = 'Đơn tình nguyện viên của bạn đã bị từ chối';
+      const html = `
+        <p>Chào ${volunteer.name},</p>
+        <p>Cảm ơn bạn đã gửi đơn đăng ký tình nguyện viên.</p>
+        <p>Rất tiếc, đơn của bạn hiện tại đã bị <strong>từ chối</strong>.</p>
+        <p><strong>Ghi chú admin:</strong> ${adminNote || 'Không có ghi chú.'}</p>
+        <p>Chúng tôi cảm ơn sự quan tâm của bạn và hy vọng có thể hợp tác cùng bạn trong dịp khác.</p>
+        <p>Trân trọng,<br/>PetAdopt Team</p>
+      `;
+      await sendEmail(volunteer.email, subject, html);
+    } catch (emailError) {
+      console.error('Lỗi gửi email từ chối tình nguyện viên:', emailError.message || emailError);
+    }
+
     res.json({ success: true, message: 'Đã từ chối đơn tình nguyện viên', data: volunteer });
   } catch (error) {
     next(error);
