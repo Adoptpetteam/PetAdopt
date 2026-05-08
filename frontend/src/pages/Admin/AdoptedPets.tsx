@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
+import { apiClient } from "../../api/http"
 import { useNavigate } from "react-router-dom"
 
 export default function AdoptedPets() {
@@ -11,28 +11,29 @@ export default function AdoptedPets() {
     const fetchData = async () => {
       try {
         const [adoptionsRes, petsRes] = await Promise.all([
-          axios.get("http://localhost:3000/adoptions"),
-          axios.get("http://localhost:3000/pets")
+          apiClient.get("/adoption"),
+          apiClient.get("/pets")
         ])
 
         // ✅ Lọc những đơn đã được duyệt
-        const approved = adoptionsRes.data.filter(
+        const approved = adoptionsRes.data.data.filter(
           (a: any) => a.status === "approved"
         )
 
         // ✅ Join dữ liệu
         const result = approved.map((a: any) => {
-          const pet = petsRes.data.find(
-            (p: any) => p.id == a.petId
+          const petId = a.pet?._id || a.pet
+          const pet = petsRes.data.data.find(
+            (p: any) => p._id === petId || p.id === petId
           )
 
           return {
-                    ...a,
-                    petName: pet?.name,
-                    petImage: pet?.image,
-                    vaccinated: pet?.vaccinated,
-                    sterilized: pet?.sterilized
-                }
+            ...a,
+            petName: a.pet?.name || pet?.name,
+            petImage: a.pet?.images?.[0] || pet?.image,
+            vaccinated: pet?.vaccinated,
+            sterilized: pet?.sterilized
+          }
         })
 
         setData(result)
@@ -47,17 +48,13 @@ export default function AdoptedPets() {
   }, [])
 
   const handleUndo = async (id: string) => {
-  try {
-    await axios.patch(`http://localhost:3000/adoptions/${id}`, {
-      status: "submitted"
-    })
-
-    // reload lại data
-    window.location.reload()
-  } catch (error) {
-    console.error(error)
-  }
-}
+    try {
+      await apiClient.put(`/adoption/${id}/cancel`);
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   if (loading) {
     return <div className="text-center py-20">Đang tải...</div>
@@ -88,7 +85,7 @@ export default function AdoptedPets() {
 
           <tbody>
             {data.map((item) => (
-              <tr key={item.id} className="border-t text-center">
+              <tr key={item._id} className="border-t text-center">
 
                 <td className="p-4">
                   <img
@@ -102,8 +99,8 @@ export default function AdoptedPets() {
                   {item.petName || "Không rõ"}
                 </td>
 
-                <td className="p-4">{item.name}</td>
-                <td className="p-4">{item.phone}</td>
+                <td className="p-4">{item.fullName || item.user?.name}</td>
+                <td className="p-4">{item.phone || item.user?.phone}</td>
 
                 <td className="p-4">
                   {new Date(item.createdAt).toLocaleDateString()}
@@ -133,7 +130,7 @@ export default function AdoptedPets() {
 
                 <td className="p-4">
                 <button
-                    onClick={() => navigate(`/admin/pet/${item.petId}`)}
+                    onClick={() => navigate(`/admin/pets/edit/${item.pet?._id || item.pet}`)}
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                 >
                     Xem chi tiết
@@ -142,7 +139,7 @@ export default function AdoptedPets() {
 
                 <td className="p-4">
                 <button
-                    onClick={() => handleUndo(item.id)}
+                    onClick={() => handleUndo(item._id)}
                     className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600"
                 >
                     Hoàn tác

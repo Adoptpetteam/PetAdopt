@@ -18,6 +18,7 @@ import SuccessPage from "../pages/SuccessPage";
 import AdminLayout from "../pages/Admin/AdminLayout";
 import Dashboard from "../pages/Admin/Dashboard";
 import Adoptions from "../pages/Admin/Adoptions";
+import AdoptionDetail from "../pages/Admin/AdoptionDetail";
 import VolunteerForm from "../pages/VolunteerForm";
 import VolunteerList from "../pages/Admin/VolunteerList";
 import VolunteerDetail from "../pages/Admin/VolunteerDetail";
@@ -94,6 +95,7 @@ export default function AppRoutes() {
           <Route index element={<Dashboard />} />
 
           <Route path="adoptions" element={<Adoptions />} />
+          <Route path="adoptions/:id" element={<AdoptionDetail />} />
           {/* <Route path="pet/:id" element={<PetDetailAdmin />} /> */}
 
           <Route path="volunteers" element={<VolunteerList />} />
