@@ -1,37 +1,28 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { apiClient } from "../../api/http";
 
 import { useListAdoption } from "../../hook/huyHook";
 
 export default function Adoptions() {
   const navigate = useNavigate();
 
-  const { data: orders = [], isLoading, refetch } = useListAdoption({
-    resource: "adoptions",
+  const { data: orders = [], refetch } = useListAdoption({
+    resource: "adoption",
   });
 
   // STATUS COLOR
   const statusColor = (s: string) => {
     if (s === "approved") return "bg-green-100 text-green-600";
     if (s === "rejected") return "bg-red-100 text-red-600";
-    if (s === "submitted") return "bg-yellow-100 text-yellow-600";
+    if (s === "pending") return "bg-yellow-100 text-yellow-600";
     return "bg-gray-100 text-gray-600";
   };
 
   // UPDATE STATUS
-  const updateStatus = async (id: string, status: string, petId: string) => {
+  const updateStatus = async (id: string, status: "approved" | "rejected") => {
     try {
-      await axios.patch(`http://localhost:3000/adoptions/${id}`, {
-        status,
-      });
-
-      if (status === "approved") {
-        await axios.patch(`http://localhost:3000/pets/${petId}`, {
-          status: "Đã nhận",
-        });
-      }
-
+      const action = status === "approved" ? "approve" : "reject";
+      await apiClient.put(`/adoption/${id}/${action}`, {});
       refetch();
     } catch (error) {
       console.error(error);
@@ -40,23 +31,11 @@ export default function Adoptions() {
 
   // DELETE
   const deleteOrder = async (id: string) => {
-    await axios.delete(`http://localhost:3000/adoptions/${id}`);
-    refetch();
-  };
-
-  // SEND EMAIL
-  const sendEmail = async (o: any) => {
     try {
-      await axios.post("http://localhost:3000/send-email", {
-        email: o.email,
-        name: o.name,
-        petId: o.petId,
-      });
-
-      alert("Đã gửi mail thành công!");
+      await apiClient.delete(`/adoption/${id}`);
+      refetch();
     } catch (error) {
       console.error(error);
-      alert("Gửi mail thất bại!");
     }
   };
 
@@ -81,11 +60,11 @@ export default function Adoptions() {
 
           <tbody>
             {orders.map((o: any) => (
-              <tr key={o.id} className="border-t">
-                <td className="p-4">{o.name}</td>
-                <td className="p-4">{o.petId}</td>
-                <td className="p-4">{o.phone}</td>
-                <td className="p-4">{o.email}</td>
+              <tr key={o._id} className="border-t">
+                <td className="p-4">{o.fullName || o.user?.name}</td>
+                <td className="p-4">{o.pet?.name || "Không rõ"}</td>
+                <td className="p-4">{o.phone || o.user?.phone}</td>
+                <td className="p-4">{o.user?.email || "Không rõ"}</td>
 
                 <td className="p-4">
                   <span className={`px-3 py-1 rounded-full text-sm ${statusColor(o.status)}`}>
@@ -96,39 +75,33 @@ export default function Adoptions() {
                 <td className="p-4 flex gap-2 flex-wrap">
 
                   <button
-                    onClick={() => navigate(`/admin/pet/${o.petId}`)}
+                    onClick={() => navigate(`/admin/adoptions/${o._id}`)}
                     className="bg-blue-500 text-white px-3 py-1 rounded"
                   >
-                    Xem
+                    Xem chi tiết đơn nhận nuôi
                   </button>
 
                   <button
-                    onClick={() => updateStatus(o.id, "approved", o.petId)}
-                    className="bg-green-500 text-white px-3 py-1 rounded"
+                    onClick={() => updateStatus(o._id, "approved")}
+                    disabled={o.status !== "pending"}
+                    className="bg-green-500 text-white px-3 py-1 rounded disabled:opacity-50"
                   >
                     Duyệt
                   </button>
 
                   <button
-                    onClick={() => updateStatus(o.id, "rejected", o.petId)}
-                    className="bg-yellow-500 text-white px-3 py-1 rounded"
+                    onClick={() => updateStatus(o._id, "rejected")}
+                    disabled={o.status !== "pending"}
+                    className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
                   >
                     Từ chối
                   </button>
 
                   <button
-                    onClick={() => deleteOrder(o.id)}
+                    onClick={() => deleteOrder(o._id)}
                     className="bg-red-500 text-white px-3 py-1 rounded"
                   >
                     Xóa
-                  </button>
-
-                  <button
-                    onClick={() => sendEmail(o)}
-                    disabled={o.status !== "approved"}
-                    className="bg-purple-500 text-white px-3 py-1 rounded disabled:opacity-50"
-                  >
-                    Mail
                   </button>
 
                 </td>
