@@ -12,6 +12,8 @@ const volunteerRoutes = require('./src/routes/volunteer.routes');
 const contactRoutes = require('./src/routes/contact.routes');
 const categoryRoutes = require('./src/routes/category.routes'); 
 const adminRoutes = require('./src/routes/admin.routes');
+const productRoutes = require('./src/routes/product.routes');
+const orderRoutes = require('./src/routes/order.routes');
 
 const app = express();
 
@@ -30,7 +32,8 @@ app.use('/api/volunteer', volunteerRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err);
