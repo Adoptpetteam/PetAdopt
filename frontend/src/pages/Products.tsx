@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../api/http"; 
-import { message, Skeleton, Tag, Badge } from "antd";
-import { ShoppingCartOutlined, EyeOutlined } from "@ant-design/icons";
+import { message, Skeleton, Tag, Badge, Input, Select, Slider, Card, Button } from "antd";
+import { ShoppingCartOutlined, EyeOutlined, SearchOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons";
 
 interface Product {
   _id: string;
@@ -16,6 +16,11 @@ export default function Products() {
   const navigate = useNavigate();
   const [data, setData] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // --- States phục vụ Tìm kiếm & Lọc ---
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]); // Mặc định từ 0đ -> 10trđ
 
   const loadProducts = async () => {
     try {
@@ -40,17 +45,130 @@ export default function Products() {
     loadProducts();
   }, []);
 
+  // --- Lấy danh sách các danh mục duy nhất từ dữ liệu thực tế để hiển thị trong bộ lọc ---
+  const categories = useMemo(() => {
+    const list = data.map((p) => p.category).filter(Boolean) as string[];
+    return ["all", ...Array.from(new Set(list))];
+  }, [data]);
+
+  // --- Logic lọc dữ liệu ---
+  const filteredProducts = useMemo(() => {
+    return data.filter((product) => {
+      // 1. Lọc theo từ khóa tìm kiếm (Không phân biệt hoa thường)
+      const matchesSearch = product.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+      // 2. Lọc theo danh mục
+      const matchesCategory =
+        selectedCategory === "all" || product.category === selectedCategory;
+
+      // 3. Lọc theo khoảng giá
+      const matchesPrice =
+        product.price >= priceRange[0] && product.price <= priceRange[1];
+
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+  }, [data, searchQuery, selectedCategory, priceRange]);
+
+  // --- Reset bộ lọc về mặc định ---
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setPriceRange([0, 10000000]);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-[1200px] mx-auto py-16 px-6">
+        
         {/* Tiêu đề xịn xò */}
-        <div className="flex flex-col items-center mb-16">
+        <div className="flex flex-col items-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
             Bộ Sưu Tập <span className="text-[#6272B6]">Thú Cưng</span>
           </h1>
           <div className="h-1 w-20 bg-[#6272B6] rounded-full"></div>
           <p className="text-gray-500 mt-4">Khám phá những người bạn nhỏ đáng yêu nhất</p>
         </div>
+
+        {/* ================= THANH TÌM KIẾM & BỘ LỌC ================= */}
+        <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-gray-100 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+            
+            {/* Ô tìm kiếm tên sản phẩm */}
+            <div className="md:col-span-4">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Tìm kiếm thú cưng
+              </label>
+              <Input
+                placeholder="Nhập tên bé thú cưng cần tìm..."
+                prefix={<SearchOutlined className="text-gray-400" />}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                allowClear
+                size="large"
+                className="rounded-xl border-gray-200 hover:border-[#6272B6] focus:border-[#6272B6] h-11"
+              />
+            </div>
+
+            {/* Bộ lọc danh mục */}
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Phân loại danh mục
+              </label>
+              <Select
+                value={selectedCategory}
+                onChange={(value) => setSelectedCategory(value)}
+                size="large"
+                className="w-full rounded-xl"
+                popupClassName="rounded-xl"
+                options={categories.map((cat) => ({
+                  value: cat,
+                  label: cat === "all" ? "Tất cả danh mục" : cat,
+                }))}
+              />
+            </div>
+
+            {/* Bộ lọc khoảng giá */}
+            <div className="md:col-span-4">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Khoảng giá (VNĐ)
+                </label>
+                <span className="text-xs font-semibold text-[#6272B6]">
+                  {priceRange[0].toLocaleString()}đ - {priceRange[1].toLocaleString()}đ
+                </span>
+              </div>
+              <div className="px-2">
+                <Slider
+                  range
+                  min={0}
+                  max={10000000}
+                  step={100000}
+                  value={priceRange}
+                  onChange={(val) => setPriceRange(val as [number, number])}
+                  tooltip={{ formatter: (val) => `${val?.toLocaleString()}đ` }}
+                  trackStyle={{ backgroundColor: "#6272B6" }}
+                  handleStyle={{ borderColor: "#6272B6" }}
+                />
+              </div>
+            </div>
+
+            {/* Nút reset lọc nhanh */}
+            <div className="md:col-span-1 flex justify-end">
+              <Button
+                type="text"
+                danger
+                onClick={handleResetFilters}
+                icon={<ReloadOutlined />}
+                className="h-11 w-full md:w-11 flex items-center justify-center rounded-xl hover:bg-red-50"
+                title="Xóa bộ lọc"
+              />
+            </div>
+
+          </div>
+        </div>
+        {/* ========================================================= */}
 
         {/* Danh sách sản phẩm */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -62,7 +180,7 @@ export default function Products() {
                   <Skeleton active paragraph={{ rows: 2 }} />
                 </div>
               ))
-            : data.map((p) => (
+            : filteredProducts.map((p) => (
                 <Badge.Ribbon 
                     key={p._id} 
                     text="New" 
@@ -95,9 +213,9 @@ export default function Products() {
 
                     {/* Content */}
                     <div className="p-6 flex flex-col flex-grow">
-                      <div className="mb-2">
+                      <div className="mb-2 flex items-center justify-between">
                          <Tag color="blue" className="rounded-full px-3 border-none bg-blue-50 text-blue-500 text-[10px] uppercase font-bold">
-                            Thú cưng
+                           {p.category || "Thú cưng"}
                          </Tag>
                       </div>
                       
@@ -125,11 +243,19 @@ export default function Products() {
               ))}
         </div>
 
-        {/* Empty State */}
-        {!loading && data.length === 0 && (
-          <div className="text-center py-32 bg-white rounded-[3rem] shadow-inner">
-            <img src="https://cdn-icons-png.flaticon.com/512/6134/6134065.png" className="w-24 mx-auto mb-6 opacity-20" alt="empty" />
-            <p className="text-gray-400 text-lg">Hiện chưa có người bạn nào sẵn sàng...</p>
+        {/* Empty State khi không tìm thấy kết quả lọc */}
+        {!loading && filteredProducts.length === 0 && (
+          <div className="text-center py-24 bg-white rounded-[3rem] shadow-sm border border-dashed border-gray-200">
+            <img src="https://cdn-icons-png.flaticon.com/512/6134/6134065.png" className="w-24 mx-auto mb-6 opacity-25" alt="empty" />
+            <h3 className="text-gray-700 font-bold text-lg mb-1">Không tìm thấy thú cưng phù hợp</h3>
+            <p className="text-gray-400 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn xem sao nhé!</p>
+            <Button 
+              onClick={handleResetFilters} 
+              type="primary" 
+              className="bg-[#6272B6] hover:bg-[#505f9c] border-none rounded-xl px-6 h-10"
+            >
+              Reset bộ lọc
+            </Button>
           </div>
         )}
       </div>
