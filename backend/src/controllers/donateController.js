@@ -113,6 +113,12 @@ exports.createPayment = (req, res) => {
         .map(([k, v]) => `${k}=${v}`)
         .join('&')}`;
 
+    console.log('[Donate] TmnCode:', vnp_TmnCode);
+    console.log('[Donate] HashSecret exists:', !!vnp_HashSecret);
+    console.log('[Donate] VNP URL:', vnpUrl);
+    console.log('[Donate] Return URL:', returnUrl);
+    console.log('[Donate] Payment URL:', paymentUrl.substring(0, 200));
+
     res.json({ paymentUrl, orderId });
 };
 
