@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
@@ -33,63 +32,46 @@ exports.checkoutOrder = async (req, res) => {
       if (p.quantity < qty) return res.status(400).json({ success: false, message: `Not enough stock for ${p.name}` });
     }
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      // Decrease stock
-      for (const it of items) {
-        const qty = toNumber(it.quantity);
-        await Product.updateOne(
-          { _id: it.productId, quantity: { $gte: qty } },
-          { $inc: { quantity: -qty } },
-          { session }
-        );
-      }
-
-      const orderItems = items.map((it) => {
-        const p = productMap.get(String(it.productId));
-        return {
-          product: p._id,
-          name: p.name,
-          image: p.image,
-          price: p.price,
-          quantity: toNumber(it.quantity),
-        };
-      });
-
-      const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-
-      const order = await Order.create(
-        [
-          {
-            user: userId,
-            status: 'paid',
-            paymentMethod,
-            customer: {
-              name: customer.name,
-              phone: customer.phone,
-              address: customer.address,
-              reason: customer.reason,
-            },
-            items: orderItems,
-            totals: { subtotal, total: subtotal },
-          },
-        ],
-        { session }
+    // Decrease stock
+    for (const it of items) {
+      const qty = toNumber(it.quantity);
+      await Product.updateOne(
+        { _id: it.productId, quantity: { $gte: qty } },
+        { $inc: { quantity: -qty } }
       );
-
-      await session.commitTransaction();
-      session.endSession();
-
-      return res.status(201).json({
-        success: true,
-        data: order[0],
-      });
-    } catch (e) {
-      await session.abortTransaction();
-      session.endSession();
-      throw e;
     }
+
+    const orderItems = items.map((it) => {
+      const p = productMap.get(String(it.productId));
+      return {
+        product: p._id,
+        name: p.name,
+        image: p.image,
+        price: p.price,
+        quantity: toNumber(it.quantity),
+      };
+    });
+
+    const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    const order = await Order.create({
+      user: userId,
+      status: 'paid',
+      paymentMethod,
+      customer: {
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        reason: customer.reason,
+      },
+      items: orderItems,
+      totals: { subtotal, total: subtotal },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: order,
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
