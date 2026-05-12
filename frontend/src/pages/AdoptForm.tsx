@@ -94,7 +94,14 @@ export default function AdoptForm() {
 
   if (loading) return <div className="text-center py-40">Đang tải...</div>;
 
-  const petImage = pet?.image || (pet?.images?.[0]) || "/images/Jack.png";
+  // const petImage = pet?.image || (pet?.images?.[0]) || "/images/Jack.png";
+  const petImage =
+  pet.image
+    ? `http://localhost:5000${pet.image}`
+    : pet.images?.[0]
+      ? `http://localhost:5000${pet.images[0]}`
+      : "/images/Jack.png";
+  const petId = pet._id || id
 
   return (
     <div className="max-w-[1000px] mx-auto py-20 px-6">
