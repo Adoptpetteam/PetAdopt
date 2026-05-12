@@ -136,10 +136,10 @@ const OrderPage = () => {
       title: "Sản phẩm",
       render: (_, r) => (
         <span className="text-sm text-gray-600">
-          {r.items.length} sản phẩm
+          {r.items.length} sản phẩm · {r.items.map(i => i.name).join(', ').slice(0, 40)}{r.items.map(i => i.name).join(', ').length > 40 ? '...' : ''}
         </span>
       ),
-      width: 100,
+      width: 200,
     },
     {
       title: "Tổng tiền",
