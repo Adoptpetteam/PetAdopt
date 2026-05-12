@@ -120,14 +120,15 @@ const OrderPage = () => {
       title: "Khách hàng",
       render: (_, r) => (
         <div>
-          <p className="font-semibold text-gray-800">{r.customer.name}</p>
-          <p className="text-xs text-gray-400">{r.customer.phone}</p>
+          <p className="font-semibold text-gray-800">{r.customer?.name || '—'}</p>
+          <p className="text-xs text-gray-400">{r.customer?.phone || '—'}</p>
         </div>
       ),
     },
     {
       title: "Địa chỉ",
       dataIndex: ["customer", "address"],
+      render: (val: string) => val || '—',
       ellipsis: true,
       width: 180,
     },
@@ -276,15 +277,15 @@ const OrderPage = () => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-400">Khách hàng</p>
-                <p className="font-semibold">{detailOrder.customer.name}</p>
+                <p className="font-semibold">{detailOrder.customer?.name || '—'}</p>
               </div>
               <div>
                 <p className="text-gray-400">Điện thoại</p>
-                <p className="font-semibold">{detailOrder.customer.phone}</p>
+                <p className="font-semibold">{detailOrder.customer?.phone || '—'}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-gray-400">Địa chỉ</p>
-                <p className="font-semibold">{detailOrder.customer.address}</p>
+                <p className="font-semibold">{detailOrder.customer?.address || '—'}</p>
               </div>
               <div>
                 <p className="text-gray-400">Thanh toán</p>
