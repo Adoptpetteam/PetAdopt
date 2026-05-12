@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { Table, Tag, Space, Select, message, Button, Input, Modal, Card, Statistic, Row, Col, Divider, Timeline, Avatar, Typography, Progress, Empty, Spin } from "antd";
+import { Table, Tag, Space, Select, message, Button, Input, Modal, Card, Statistic, Row, Col, Divider, Avatar, Typography, Badge } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, PhoneOutlined, HomeOutlined, PrinterOutlined, InboxOutlined } from "@ant-design/icons";
+import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, TruckOutlined, GiftOutlined } from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 
 const { Text, Title } = Typography;
@@ -18,7 +18,7 @@ interface Order {
   _id: string;
   createdAt: string;
   updatedAt: string;
-  status: "pending" | "paid" | "cancelled";
+  status: "pending" | "paid" | "shipping" | "completed" | "cancelled";
   paymentMethod: "cod" | "vnpay";
   customer: { name: string; phone: string; address: string };
   items: OrderItem[];
@@ -28,7 +28,9 @@ interface Order {
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "Chờ xử lý", color: "orange", icon: <ClockCircleOutlined /> },
-  paid: { label: "Đã thanh toán", color: "green", icon: <CheckCircleOutlined /> },
+  paid: { label: "Đã thanh toán", color: "blue", icon: <CheckCircleOutlined /> },
+  shipping: { label: "Đang giao hàng", color: "purple", icon: <TruckOutlined /> },
+  completed: { label: "Hoàn thành", color: "green", icon: <GiftOutlined /> },
   cancelled: { label: "Đã hủy", color: "red", icon: <CloseCircleOutlined /> },
 };
 
@@ -85,11 +87,13 @@ const OrderPage = () => {
 
   const stats = useMemo(() => {
     const total = filteredData.length;
-    const revenue = filteredData.filter(o => o.status === "paid").reduce((sum, o) => sum + o.totals.total, 0);
+    const revenue = filteredData.filter(o => o.status === "completed" || o.status === "paid").reduce((sum, o) => sum + o.totals.total, 0);
     const pending = filteredData.filter(o => o.status === "pending").length;
     const paid = filteredData.filter(o => o.status === "paid").length;
+    const shipping = filteredData.filter(o => o.status === "shipping").length;
+    const completed = filteredData.filter(o => o.status === "completed").length;
     const cancelled = filteredData.filter(o => o.status === "cancelled").length;
-    return { total, revenue, pending, paid, cancelled };
+    return { total, revenue, pending, paid, shipping, completed, cancelled };
   }, [filteredData]);
 
   const columns: ColumnsType<Order> = [
@@ -159,15 +163,17 @@ const OrderPage = () => {
         return (
           <Space size="small">
             <Tag icon={cfg.icon} color={cfg.color}>{cfg.label}</Tag>
-            <Select value={status} size="small" style={{ width: 130 }} onChange={(value) => handleChangeStatus(value, record)}>
+            <Select value={status} size="small" style={{ width: 150 }} onChange={(value) => handleChangeStatus(value, record)}>
               <Select.Option value="pending">Chờ xử lý</Select.Option>
               <Select.Option value="paid">Đã thanh toán</Select.Option>
+              <Select.Option value="shipping">Đang giao hàng</Select.Option>
+              <Select.Option value="completed">Hoàn thành</Select.Option>
               <Select.Option value="cancelled">Đã hủy</Select.Option>
             </Select>
           </Space>
         );
       },
-      width: 240,
+      width: 260,
     },
     {
       title: "",
@@ -186,24 +192,34 @@ const OrderPage = () => {
       </div>
 
       <Row gutter={16} className="mb-6">
-        <Col span={6}>
+        <Col span={4}>
           <Card>
-            <Statistic title="Tổng đơn hàng" value={stats.total} prefix={<ShoppingOutlined />} valueStyle={{ color: "#3f8600" }} />
+            <Statistic title="Tổng đơn" value={stats.total} prefix={<ShoppingOutlined />} valueStyle={{ color: "#3f8600" }} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={5}>
           <Card>
             <Statistic title="Doanh thu" value={stats.revenue} suffix="đ" prefix={<DollarOutlined />} valueStyle={{ color: "#6272B6" }} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={3}>
           <Card>
             <Statistic title="Chờ xử lý" value={stats.pending} prefix={<ClockCircleOutlined />} valueStyle={{ color: "#faad14" }} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card>
-            <Statistic title="Đã thanh toán" value={stats.paid} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#52c41a" }} />
+            <Statistic title="Đã thanh toán" value={stats.paid} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#1890ff" }} />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Đang giao" value={stats.shipping} prefix={<TruckOutlined />} valueStyle={{ color: "#722ed1" }} />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Hoàn thành" value={stats.completed} prefix={<GiftOutlined />} valueStyle={{ color: "#52c41a" }} />
           </Card>
         </Col>
       </Row>
@@ -211,10 +227,12 @@ const OrderPage = () => {
       <Card className="mb-4">
         <Space size="middle" className="w-full" wrap>
           <Input placeholder="Tìm theo mã, tên, SĐT..." prefix={<SearchOutlined />} value={search} onChange={(e) => setSearch(e.target.value)} allowClear style={{ width: 300 }} />
-          <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 160 }}>
+          <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 180 }}>
             <Select.Option value="all">Tất cả trạng thái</Select.Option>
             <Select.Option value="pending">Chờ xử lý</Select.Option>
             <Select.Option value="paid">Đã thanh toán</Select.Option>
+            <Select.Option value="shipping">Đang giao hàng</Select.Option>
+            <Select.Option value="completed">Hoàn thành</Select.Option>
             <Select.Option value="cancelled">Đã hủy</Select.Option>
           </Select>
           <Tag color="blue">{filteredData.length} đơn</Tag>
@@ -271,6 +289,8 @@ const OrderPage = () => {
               <Select value={detailOrder.status} onChange={(value) => handleChangeStatus(value, detailOrder)} style={{ width: 200 }}>
                 <Select.Option value="pending">Chờ xử lý</Select.Option>
                 <Select.Option value="paid">Đã thanh toán</Select.Option>
+                <Select.Option value="shipping">Đang giao hàng</Select.Option>
+                <Select.Option value="completed">Hoàn thành</Select.Option>
                 <Select.Option value="cancelled">Đã hủy</Select.Option>
               </Select>
               <Button type="primary" onClick={() => setDetailOrder(null)}>Đóng</Button>

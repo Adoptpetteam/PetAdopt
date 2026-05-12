@@ -313,7 +313,7 @@ exports.listAllOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['pending', 'paid', 'cancelled'].includes(status)) {
+    if (!['pending', 'paid', 'shipping', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
