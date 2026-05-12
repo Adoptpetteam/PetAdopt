@@ -46,6 +46,15 @@ const orderSchema = new mongoose.Schema(
       enum: ['pending', 'paid', 'shipping', 'completed', 'cancelled'],
       default: 'pending',
     },
+
+    statusHistory: [
+      {
+        status: { type: String },
+        changedAt: { type: Date, default: Date.now },
+        note: { type: String, default: '' },
+        _id: false,
+      },
+    ],
     paymentMethod: {
       type: String,
       enum: ['cod', 'vnpay'],

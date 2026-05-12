@@ -185,7 +185,10 @@ exports.checkoutOrder = async (req, res) => {
     }
 
     // ===== COD FLOW: đánh dấu paid ngay =====
-    await Order.findByIdAndUpdate(createdOrder._id, { status: 'paid' });
+    await Order.findByIdAndUpdate(createdOrder._id, {
+      status: 'paid',
+      $push: { statusHistory: { status: 'paid', note: 'Thanh toán COD khi nhận hàng' } },
+    });
 
     return res.status(201).json({
       success: true,
@@ -243,14 +246,20 @@ exports.vnpayReturn = async (req, res) => {
     const orderId = order._id;
 
     if (responseCode === '00') {
-      await Order.findByIdAndUpdate(orderId, { status: 'paid' });
+      await Order.findByIdAndUpdate(orderId, {
+        status: 'paid',
+        $push: { statusHistory: { status: 'paid', note: 'Thanh toán VNPay thành công' } },
+      });
       return res.redirect(`${frontendBase}/orders/success?status=success&orderId=${orderId}`);
     } else {
       if (order.status === 'pending') {
         for (const item of order.items) {
           await Product.updateOne({ _id: item.product }, { $inc: { quantity: item.quantity } });
         }
-        await Order.findByIdAndUpdate(orderId, { status: 'cancelled' });
+        await Order.findByIdAndUpdate(orderId, {
+          status: 'cancelled',
+          $push: { statusHistory: { status: 'cancelled', note: `VNPay thất bại - mã lỗi ${responseCode}` } },
+        });
       }
       return res.redirect(`${frontendBase}/orders/success?status=fail&orderId=${orderId}&code=${responseCode}`);
     }
@@ -312,12 +321,19 @@ exports.listAllOrders = async (req, res) => {
 // ===============================
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, note } = req.body;
     if (!['pending', 'paid', 'shipping', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
-    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        status,
+        $push: { statusHistory: { status, note: note || `Admin cập nhật: ${status}` } },
+      },
+      { new: true }
+    );
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
