@@ -126,6 +126,30 @@ exports.checkoutOrder = async (req, res) => {
     // Calculate total
     const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+    // ===== TRỪ KHO NGAY (cả COD lẫn VNPay) =====
+    // Trừ trước khi tạo order để tránh oversell
+    for (const item of items) {
+      const qty = toNumber(item.quantity);
+      const updated = await Product.updateOne(
+        { _id: item.productId, quantity: { $gte: qty } },
+        { $inc: { quantity: -qty } }
+      );
+      if (updated.modifiedCount === 0) {
+        // Hoàn lại stock đã trừ trước đó
+        for (const prev of items) {
+          if (String(prev.productId) === String(item.productId)) break;
+          await Product.updateOne(
+            { _id: prev.productId },
+            { $inc: { quantity: toNumber(prev.quantity) } }
+          );
+        }
+        return res.status(400).json({
+          success: false,
+          message: `Sản phẩm "${productMap.get(String(item.productId))?.name}" vừa hết hàng`,
+        });
+      }
+    }
+
     // Create order
     const createdOrder = await Order.create({
       user: userId,
@@ -149,13 +173,7 @@ exports.checkoutOrder = async (req, res) => {
         req.socket?.remoteAddress ||
         '127.0.0.1';
 
-      const orderInfo = `Thanh toan don hang ${createdOrder._id}`;
-      const { payUrl, txnRef } = createVNPayUrl(
-        createdOrder._id,
-        subtotal,
-        ipAddr
-      );
-
+      const { payUrl, txnRef } = createVNPayUrl(createdOrder._id, subtotal, ipAddr);
       await Order.findByIdAndUpdate(createdOrder._id, { vnpayTxnRef: txnRef });
 
       return res.status(201).json({
@@ -166,14 +184,7 @@ exports.checkoutOrder = async (req, res) => {
       });
     }
 
-    // ===== COD FLOW: trừ stock ngay =====
-    for (const item of items) {
-      const qty = toNumber(item.quantity);
-      await Product.updateOne(
-        { _id: item.productId, quantity: { $gte: qty } },
-        { $inc: { quantity: -qty } }
-      );
-    }
+    // ===== COD FLOW: đánh dấu paid ngay =====
     await Order.findByIdAndUpdate(createdOrder._id, { status: 'paid' });
 
     return res.status(201).json({
