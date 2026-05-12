@@ -1,5 +1,5 @@
-const Order = require('../models/Order');
-const Product = require('../models/Product');
+const Order = require('./src/models/Order');
+const Product = require('./src/models/Product');
 const mongoose = require('mongoose');
 
 // ===============================
@@ -407,6 +407,58 @@ exports.getComparison = async (req, res) => {
     });
   } catch (err) {
     console.error('GET COMPARISON ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// GET /api/statistics/inventory
+// Thống kê tồn kho sản phẩm
+// ===============================
+exports.getInventory = async (req, res) => {
+  try {
+    const { lowStockThreshold = 10 } = req.query;
+    const threshold = Number(lowStockThreshold);
+
+    // Tất cả sản phẩm với thông tin tồn kho
+    const products = await Product.find({}, 'name price quantity category image').lean();
+
+    const totalProducts = products.length;
+    const outOfStock = products.filter(p => p.quantity === 0);
+    const lowStock = products.filter(p => p.quantity > 0 && p.quantity <= threshold);
+    const inStock = products.filter(p => p.quantity > threshold);
+
+    // Tổng giá trị tồn kho
+    const totalInventoryValue = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+
+    // Thống kê theo danh mục
+    const byCategory = products.reduce((acc, p) => {
+      const cat = p.category || 'Không phân loại';
+      if (!acc[cat]) acc[cat] = { count: 0, totalQuantity: 0, totalValue: 0 };
+      acc[cat].count += 1;
+      acc[cat].totalQuantity += p.quantity;
+      acc[cat].totalValue += p.price * p.quantity;
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        summary: {
+          totalProducts,
+          totalInventoryValue,
+          outOfStockCount: outOfStock.length,
+          lowStockCount: lowStock.length,
+          inStockCount: inStock.length,
+        },
+        outOfStock,
+        lowStock,
+        byCategory,
+        allProducts: products.sort((a, b) => a.quantity - b.quantity),
+      }
+    });
+  } catch (err) {
+    console.error('GET INVENTORY ERROR:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

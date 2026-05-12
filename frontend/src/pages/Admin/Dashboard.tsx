@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { message } from "antd"
 import { getAdoptionRequests } from "../../api/adoptionApi"
+import StatisticsWidget from "../../components/StatisticsWidget"
 
 export default function Dashboard() {
 
@@ -55,6 +56,11 @@ export default function Dashboard() {
             <p className="text-3xl font-bold text-green-500 mt-2">{stats.approved}</p>
           </div>
 
+        </div>
+
+        {/* Thống kê doanh thu 30 ngày */}
+        <div className="mt-6">
+          <StatisticsWidget />
         </div>
       )}
     </div>

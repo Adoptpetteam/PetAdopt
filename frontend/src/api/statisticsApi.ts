@@ -198,3 +198,51 @@ export async function getComparison(params: {
   );
   return data;
 }
+
+// ===============================
+// INVENTORY TYPES
+// ===============================
+
+export type InventoryProduct = {
+  _id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  category: string;
+  image: string;
+};
+
+export type InventoryByCategory = {
+  [category: string]: {
+    count: number;
+    totalQuantity: number;
+    totalValue: number;
+  };
+};
+
+export type InventoryResponse = {
+  success: boolean;
+  data: {
+    summary: {
+      totalProducts: number;
+      totalInventoryValue: number;
+      outOfStockCount: number;
+      lowStockCount: number;
+      inStockCount: number;
+    };
+    outOfStock: InventoryProduct[];
+    lowStock: InventoryProduct[];
+    byCategory: InventoryByCategory;
+    allProducts: InventoryProduct[];
+  };
+};
+
+export async function getInventory(params?: {
+  lowStockThreshold?: number;
+}): Promise<InventoryResponse> {
+  const { data } = await apiClient.get<InventoryResponse>(
+    "/statistics/inventory",
+    { params }
+  );
+  return data;
+}

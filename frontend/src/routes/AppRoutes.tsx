@@ -46,6 +46,7 @@ import AdoptedPets from "../pages/Admin/AdoptedPets";
 import ProductPage from "../pages/Admin/product";
 import OrderPage from "../pages/Admin/order";
 import CustomerPage from "../pages/Admin/CustomerPage"; // thêm dòng này
+import Statistics from "../pages/Admin/Statistics";
 
 import AdminRoute from "../routes/AdminRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
@@ -165,6 +166,12 @@ export default function AppRoutes() {
           <Route
             path="order"
             element={<OrderPage />}
+          />
+
+          {/* THỐNG KÊ */}
+          <Route
+            path="statistics"
+            element={<Statistics />}
           />
 
           {/* THÔNG TIN KHÁCH HÀNG */}
