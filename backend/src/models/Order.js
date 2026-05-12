@@ -54,6 +54,7 @@ const orderSchema = new mongoose.Schema(
 
     vnpayTxnRef: {
       type: String,
+      index: true,
     },
 
     customer: {
