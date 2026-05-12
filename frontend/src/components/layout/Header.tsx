@@ -35,6 +35,13 @@ export default function Header() {
     return null
   }
 
+  // Hover
+  const navItemClass =
+  "relative hover:text-[#6272B6] pb-[8px] " +
+  "after:content-[''] after:absolute after:left-0 after:bottom-0 " +
+  "after:h-[2px] after:w-0 after:bg-[#6272B6] " +
+  "hover:after:w-full after:transition-all after:duration-300";
+
   useEffect(() => {
     // Đọc lại từ localStorage mỗi khi route thay đổi
     setUser(readUser())
@@ -225,13 +232,13 @@ export default function Header() {
 
       {/* ===== BOTTOM NAV ===== */}
       <nav className="h-[60px] flex items-center px-[130px] gap-20 text-gray-700 font-medium">
-        <Link to="/" className="hover:text-[#6272B6]">Trang chủ</Link>
-        <Link to="/adopt" className="hover:text-[#6272B6]">Nhận nuôi</Link>
-        <Link to="/donate" className="hover:text-[#6272B6]">Ủng hộ</Link>
-        <Link to="/volunteer" className="hover:text-[#6272B6]">Tình nguyện viên</Link>
-        <Link to="/news" className="hover:text-[#6272B6]">Tin tức</Link>
-        <Link to="/products" className="hover:text-[#6272B6]">Sản phẩm</Link>
-        <Link to="/contact" className="hover:text-[#6272B6]">Liên hệ</Link>
+        <Link to="/" className={navItemClass}>Trang chủ</Link>
+        <Link to="/adopt" className={navItemClass}>Nhận nuôi</Link>
+        <Link to="/donate" className={navItemClass}>Ủng hộ</Link>
+        <Link to="/volunteer" className={navItemClass}>Tình nguyện viên</Link>
+        <Link to="/news" className={navItemClass}>Tin tức</Link>
+        <Link to="/products" className={navItemClass}>Sản phẩm</Link>
+        <Link to="/contact" className={navItemClass}>Liên hệ</Link>
       </nav>
 
       {/* ===== DONORS MARQUEE ===== */}
