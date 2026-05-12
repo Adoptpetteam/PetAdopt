@@ -60,6 +60,13 @@ export default function Checkout() {
     0
   );
 
+  const totalQty = selectedItems.reduce((sum, item) => sum + item.cartQuantity, 0);
+
+  const isFormValid =
+    form.name.trim().length > 0 &&
+    form.phone.trim().length > 0 &&
+    form.address.trim().length > 0;
+
   const handlePlaceOrder = async () => {
     if (!form.name.trim()) return message.error("Vui lòng nhập họ tên");
     if (!form.phone.trim()) return message.error("Vui lòng nhập số điện thoại");
@@ -269,7 +276,7 @@ export default function Checkout() {
           {/* RIGHT - Đơn hàng */}
           <Card className="rounded-3xl shadow-xl border-0 p-2">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">
-              Đơn hàng ({selectedItems.length} sản phẩm)
+              Đơn hàng ({totalQty} sản phẩm)
             </h2>
 
             <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 mb-4">
@@ -338,7 +345,8 @@ export default function Checkout() {
               loading={loading}
               icon={<CreditCardOutlined />}
               onClick={handlePlaceOrder}
-              className="w-full h-14 rounded-2xl bg-[#6272B6] text-lg font-bold border-0 hover:bg-[#4a569d]"
+              disabled={!isFormValid}
+              className="w-full h-14 rounded-2xl bg-[#6272B6] text-lg font-bold border-0 hover:bg-[#4a569d] disabled:opacity-50"
             >
               {loading
                 ? "Đang xử lý..."
