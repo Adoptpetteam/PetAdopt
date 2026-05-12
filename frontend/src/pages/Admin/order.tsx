@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { Table, Tag, Space, Select, message, Button, Input, Modal, Card, Statistic, Row, Col, Divider, Avatar, Typography, Badge } from "antd";
+import { Table, Tag, Space, Select, message, Button, Input, Modal, Card, Statistic, Row, Col, Divider, Avatar, Typography, Badge, Popconfirm } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, TruckOutlined, GiftOutlined } from "@ant-design/icons";
+import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, TruckOutlined, GiftOutlined, DeleteOutlined } from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 
 const { Text, Title } = Typography;
@@ -74,6 +74,19 @@ const OrderPage = () => {
       }
     } catch (e: any) {
       message.error(e?.response?.data?.message || "Cập nhật thất bại");
+    }
+  };
+
+  const handleDeleteOrder = async (record: Order) => {
+    try {
+      await apiClient.delete(`/orders/${record._id}`);
+      setData((prev) => prev.filter((item) => item._id !== record._id));
+      message.success("Đã xóa đơn hàng và hoàn lại kho");
+      if (detailOrder?._id === record._id) {
+        setDetailOrder(null);
+      }
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Xóa thất bại");
     }
   };
 
@@ -178,9 +191,21 @@ const OrderPage = () => {
     {
       title: "",
       render: (_, record) => (
-        <Button type="link" icon={<EyeOutlined />} onClick={() => setDetailOrder(record)}>Chi tiết</Button>
+        <Space>
+          <Button type="link" icon={<EyeOutlined />} onClick={() => setDetailOrder(record)}>Chi tiết</Button>
+          <Popconfirm
+            title="Xóa đơn hàng"
+            description="Bạn có chắc muốn xóa đơn hàng này? Kho sẽ được hoàn lại."
+            onConfirm={() => handleDeleteOrder(record)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okType="danger"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>Xóa</Button>
+          </Popconfirm>
+        </Space>
       ),
-      width: 90,
+      width: 140,
     },
   ];
 
@@ -293,6 +318,16 @@ const OrderPage = () => {
                 <Select.Option value="completed">Hoàn thành</Select.Option>
                 <Select.Option value="cancelled">Đã hủy</Select.Option>
               </Select>
+              <Popconfirm
+                title="Xóa đơn hàng"
+                description="Bạn có chắc muốn xóa đơn hàng này? Kho sẽ được hoàn lại."
+                onConfirm={() => handleDeleteOrder(detailOrder)}
+                okText="Xóa"
+                cancelText="Hủy"
+                okType="danger"
+              >
+                <Button danger icon={<DeleteOutlined />}>Xóa đơn hàng</Button>
+              </Popconfirm>
               <Button type="primary" onClick={() => setDetailOrder(null)}>Đóng</Button>
             </Space>
           </div>

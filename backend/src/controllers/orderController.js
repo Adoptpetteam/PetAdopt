@@ -360,3 +360,30 @@ exports.updateOrderStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+// ===============================
+// DELETE /api/orders/:id (admin)
+// ===============================
+exports.deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Hoàn lại stock nếu đơn hàng chưa hoàn thành
+    if (['pending', 'paid', 'shipping'].includes(order.status)) {
+      const Product = require('../models/Product');
+      for (const item of order.items) {
+        await Product.updateOne(
+          { _id: item.product },
+          { $inc: { quantity: item.quantity } }
+        );
+      }
+    }
+
+    await Order.findByIdAndDelete(req.params.id);
+    return res.status(200).json({ success: true, message: 'Đã xóa đơn hàng và hoàn lại kho' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
