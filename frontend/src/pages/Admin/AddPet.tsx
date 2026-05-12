@@ -93,10 +93,21 @@ formData.append("categoryId", String(form.categoryId));
       onSuccess: () => {
         navigate("/admin/pets");
       },
-      onError: (error) => {
-        console.error(error);
-        alert("Lỗi tạo pet!");
-      },
+      // onError: (error) => {
+      //   console.error(error);
+      //   alert("Lỗi tạo pet!");
+      // },
+      onError: (error:any) => {
+  console.log("FULL ERROR:", error);
+
+  console.log("RESPONSE:", error.response);
+
+  console.log("DATA:", error.response?.data);
+
+  console.log("STATUS:", error.response?.status);
+
+  alert(JSON.stringify(error.response?.data));
+},
     });
   };
 
@@ -132,13 +143,26 @@ formData.append("categoryId", String(form.categoryId));
         <input name="breed" placeholder="Giống" onChange={handleChange} className="input" />
         <input name="age" type="number" placeholder="Tuổi" onChange={handleChange} className="input" />
 
-        <select name="gender" onChange={handleChange} className="input">
+        {/* Gender */}
+        <select
+          name="gender"
+          value={form.gender}
+          onChange={handleChange}
+          className="input"
+        >
           <option value="">-- Giới tính --</option>
           <option value="male">Đực</option>
           <option value="female">Cái</option>
         </select>
 
-        <select name="size" onChange={handleChange} className="input">
+        {/* Size */}
+        <select
+          name="size"
+          value={form.size}
+          onChange={handleChange}
+          className="input"
+        >
+          <option value="">-- Kích thước --</option>
           <option value="small">Nhỏ</option>
           <option value="medium">Trung bình</option>
           <option value="large">Lớn</option>
@@ -184,6 +208,24 @@ formData.append("categoryId", String(form.categoryId));
           onChange={handleChange}
           className="w-full h-24 bg-[#DDEDFF] rounded-2xl px-4 py-2 outline-none"
         />
+
+            {/*Health Status*/}
+                  <select
+            name="healthStatus"
+            value={form.healthStatus}
+            onChange={handleChange}
+            className="input"
+          >
+            <option value="">-- Tình trạng sức khỏe --</option>
+
+            <option value="excellent">Rất tốt</option>
+
+            <option value="good">Tốt</option>
+
+            <option value="fair">Bình thường</option>
+
+            <option value="needs_care">Cần chăm sóc</option>
+          </select>
 
         <label className="flex items-center gap-2">
           <input type="checkbox" name="vaccinated" onChange={handleChange} />
