@@ -271,6 +271,23 @@ exports.vnpayReturn = async (req, res) => {
 };
 
 // ===============================
+// GET /api/orders/me/:id
+// ===============================
+exports.getMyOrderById = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const order = await Order.findOne({ _id: req.params.id, user: userId });
+    if (!order) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+
+    return res.status(200).json({ success: true, data: order });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
 // GET /api/orders/me
 // ===============================
 exports.listMyOrders = async (req, res) => {
