@@ -27,21 +27,17 @@ export default function Home() {
     }
   }
 
-  // Tự động chuyển Slide sau mỗi 4 giây
+  // Fix slide show
   useEffect(() => {
-    resetTimeout()
-    timeoutRef.current = setTimeout(
-      () =>
-        setCurrentIndex((prevIndex) =>
-          prevIndex === bannerImages.length - 1 ? 0 : prevIndex + 1
-        ),
-      4000
+  const interval = setInterval(() => {
+    setCurrentIndex((prev) =>
+      prev === bannerImages.length - 1 ? 0 : prev + 1
     )
+  }, 4000)
 
-    return () => {
-      resetTimeout()
-    }
-  }, [currentIndex, bannerImages.length])
+  return () => clearInterval(interval)
+}, [bannerImages.length])
+
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev === bannerImages.length - 1 ? 0 : prev + 1))
