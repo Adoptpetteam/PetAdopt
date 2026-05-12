@@ -214,6 +214,8 @@ exports.vnpayReturn = async (req, res) => {
     console.log('[VNPay Return] secureHash:', secureHash);
     console.log('[VNPay Return] signed:    ', signed);
     console.log('[VNPay Return] match:', secureHash === signed);
+    console.log('[VNPay Return] responseCode:', vnpParams['vnp_ResponseCode']);
+    console.log('[VNPay Return] txnRef:', vnpParams['vnp_TxnRef']);
 
     if (secureHash !== signed) {
       return res.redirect(`${frontendBase}/orders/success?status=fail&message=invalid_signature`);
