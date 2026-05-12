@@ -11,6 +11,7 @@ import {
   CarOutlined,
   BankOutlined,
   EyeOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 
 interface OrderItem {
@@ -108,15 +109,24 @@ export default function Orders() {
             <h1 className="text-3xl font-bold text-[#6272B6]">Đơn hàng của tôi</h1>
             <p className="text-gray-400 mt-1">{orders.length} đơn hàng</p>
           </div>
-          <Link to="/products">
+          <div className="flex gap-2">
             <Button
-              type="primary"
-              icon={<ShoppingOutlined />}
-              className="rounded-full bg-[#6272B6] border-0 h-10"
+              icon={<ReloadOutlined />}
+              onClick={loadOrders}
+              className="rounded-full"
             >
-              Mua thêm
+              Làm mới
             </Button>
-          </Link>
+            <Link to="/products">
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                className="rounded-full bg-[#6272B6] border-0 h-10"
+              >
+                Mua thêm
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {orders.length === 0 ? (
