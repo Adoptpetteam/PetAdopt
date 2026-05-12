@@ -182,7 +182,8 @@ export default function EditPet() {
                 {existingImages.map((img, index) => (
                   <div key={index} className="relative">
                     <img
-                      src={`http://localhost:5000/uploads/${img}`}
+                      // src={`http://localhost:5000/uploads/${img}`}
+                      src={`http://localhost:5000${img}`}
                       alt={`Existing ${index + 1}`}
                       className="w-20 h-20 object-cover rounded"
                     />
