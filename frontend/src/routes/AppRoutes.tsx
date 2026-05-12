@@ -51,6 +51,7 @@ import AdminRoute from "../routes/AdminRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
 import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
+import Supporters from "../pages/Admin/Supporters";
 
 export default function AppRoutes() {
   return (
@@ -137,6 +138,8 @@ export default function AppRoutes() {
             path="volunteers/:id"
             element={<VolunteerDetail />}
           />
+
+          <Route path="/admin/supporters" element={<Supporters />} />
 
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
