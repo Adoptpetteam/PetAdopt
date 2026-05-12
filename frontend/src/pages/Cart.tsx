@@ -61,6 +61,11 @@ export default function Cart() {
 
   const handleQuantityChange = (id: string, value: number | null) => {
     if (!value || value < 1) return;
+    const item = cart.find((i) => i._id === id);
+    if (item && item.quantity > 0 && value > item.quantity) {
+      message.warning(`Chỉ còn ${item.quantity} sản phẩm trong kho`);
+      value = item.quantity;
+    }
     const newCart = cart.map((item) =>
       item._id === id ? { ...item, cartQuantity: value } : item
     );
