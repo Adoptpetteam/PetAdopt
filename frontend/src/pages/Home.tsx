@@ -8,6 +8,7 @@ import Banner4 from "../assets/images/Banner4.jpg"
 import PetCard from "../components/PetCard"
 import { listPets } from "../api/petApi"
 import { useEffect, useState, useRef } from "react"
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const [pets, setPets] = useState<any[]>([])
@@ -120,9 +121,12 @@ export default function Home() {
                 nâng cao nhận thức cộng đồng về bảo vệ động vật và hạn chế tình trạng bỏ rơi thú cưng.
               </p>
 
-              <button className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition">
-                Về chúng tôi
-              </button>
+              <Link
+  to="/about"
+  className="bg-[#6272B6] text-white px-6 py-3 rounded-lg hover:bg-[#4f5fa3] transition inline-block"
+>
+  Về chúng tôi
+</Link>
             </div>
 
             {/* RIGHT - 40% (Đã được chuẩn hóa thuộc tính clipPath viết chuẩn React) */}

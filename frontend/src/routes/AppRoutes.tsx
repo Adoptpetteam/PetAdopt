@@ -53,12 +53,16 @@ import AdminLogin from "../pages/Admin/AdminLogin";
 import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
 import Supporters from "../pages/Admin/Supporters";
+import About from "../pages/About";
+
+
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* USER */}
       <Route element={<MainLayout />}>
+        <Route path="/about" element={<About />} />
         <Route path="/" element={<Home />} />
         <Route path="/adopt" element={<Adopt />} />
         <Route path="/pet/:id" element={<Details />} />
