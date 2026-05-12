@@ -47,8 +47,10 @@ interface Order {
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: "Chờ xử lý", color: "orange" },
-  paid: { label: "Đã thanh toán", color: "green" },
+  paid: { label: "Đã thanh toán", color: "purple" },
   cancelled: { label: "Đã hủy", color: "red" },
+  shipping: { label: "Đang giao", color: "blue" },
+  completed: { label: "Hoàn thành", color: "green" },
 };
 
 const paymentLabels: Record<string, { label: string; color: string }> = {
@@ -244,6 +246,8 @@ const OrderPage = () => {
           <Option value="all">Tất cả trạng thái</Option>
           <Option value="pending">Chờ xử lý</Option>
           <Option value="paid">Đã thanh toán</Option>
+          <Option value="shipping">Đang giao</Option>
+          <Option value="completed">Hoàn thành</Option>
           <Option value="cancelled">Đã hủy</Option>
         </Select>
         <Tag color="blue">{filteredData.length} đơn</Tag>
