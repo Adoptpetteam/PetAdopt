@@ -9,6 +9,7 @@ interface Product {
   name: string;
   image: string;
   price: number;
+  quantity: number;
   category?: string;
 }
 
@@ -20,7 +21,21 @@ export default function Products() {
   // --- States phục vụ Tìm kiếm & Lọc ---
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]); // Mặc định từ 0đ -> 10trđ
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
+
+  const handleAddToCart = (p: Product) => {
+    if (p.quantity <= 0) return message.warning("Sản phẩm đã hết hàng");
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const idx = cart.findIndex((item: any) => item._id === p._id);
+    if (idx > -1) {
+      cart[idx].cartQuantity += 1;
+    } else {
+      cart.push({ ...p, cartQuantity: 1 });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event("cart-change"));
+    message.success(`Đã thêm "${p.name}" vào giỏ hàng`);
+  };
 
   const loadProducts = async () => {
     try {
@@ -183,9 +198,8 @@ export default function Products() {
             : filteredProducts.map((p) => (
                 <Badge.Ribbon 
                     key={p._id} 
-                    text="New" 
-                    color="#6272B6" 
-                    style={{ display: p.price > 1000000 ? 'block' : 'none' }}
+                    text={p.quantity <= 0 ? "Hết hàng" : p.quantity <= 5 ? `Còn ${p.quantity}` : "New"} 
+                    color={p.quantity <= 0 ? "red" : p.quantity <= 5 ? "orange" : "#6272B6"}
                 >
                   <div
                     className="group bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-transparent hover:border-blue-100 flex flex-col h-full relative"
@@ -231,8 +245,14 @@ export default function Products() {
                           {(p.price || 0).toLocaleString()}đ
                         </p>
                         <button 
-                          onClick={() => navigate(`/products/${p._id}`)}
-                          className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-[#6272B6] hover:text-white transition-all shadow-sm"
+                          onClick={() => handleAddToCart(p)}
+                          disabled={p.quantity <= 0}
+                          className={`p-2 rounded-xl transition-all shadow-sm ${
+                            p.quantity > 0
+                              ? "bg-[#6272B6] text-white hover:bg-[#4a569d]"
+                              : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                          }`}
+                          title={p.quantity > 0 ? "Thêm vào giỏ" : "Hết hàng"}
                         >
                           <ShoppingCartOutlined />
                         </button>
