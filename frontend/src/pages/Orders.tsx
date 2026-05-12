@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Tag, Empty, Spin, Collapse, Divider } from "antd";
+import { Button, Tag, Empty, Spin, Divider, Modal } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../api/http";
 import { message } from "antd";
@@ -10,6 +10,7 @@ import {
   CloseCircleOutlined,
   CarOutlined,
   BankOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 
 interface OrderItem {
@@ -60,6 +61,7 @@ const paymentConfig = {
 export default function Orders() {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailOrder, setDetailOrder] = useState<OrderData | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -195,6 +197,16 @@ export default function Orders() {
                         {order.totals.total.toLocaleString()}đ
                       </p>
                     </div>
+
+                    <div>
+                      <Button
+                        icon={<EyeOutlined />}
+                        onClick={() => setDetailOrder(order)}
+                        className="rounded-full border-[#6272B6] text-[#6272B6]"
+                      >
+                        Chi tiết
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Order items */}
@@ -242,6 +254,98 @@ export default function Orders() {
           </div>
         )}
       </div>
+
+      {/* Detail Modal */}
+      <Modal
+        open={!!detailOrder}
+        onCancel={() => setDetailOrder(null)}
+        footer={null}
+        title={
+          detailOrder
+            ? `Chi tiết đơn #${detailOrder._id.slice(-8).toUpperCase()}`
+            : ""
+        }
+        width={600}
+      >
+        {detailOrder && (() => {
+          const status = statusConfig[detailOrder.status] || statusConfig.pending;
+          const payment = paymentConfig[detailOrder.paymentMethod] || paymentConfig.cod;
+          return (
+            <div className="space-y-5 pt-2">
+              {/* Thông tin chung */}
+              <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 rounded-xl p-4">
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Mã đơn hàng</p>
+                  <p className="font-mono font-bold text-gray-700">#{detailOrder._id.slice(-8).toUpperCase()}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Ngày đặt</p>
+                  <p className="font-semibold text-gray-700">
+                    {new Date(detailOrder.createdAt).toLocaleDateString("vi-VN", {
+                      day: "2-digit", month: "2-digit", year: "numeric",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Phương thức thanh toán</p>
+                  <Tag color={payment.color} icon={payment.icon} className="rounded-full">
+                    {payment.label}
+                  </Tag>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Trạng thái</p>
+                  <Tag color={status.color} icon={status.icon} className="rounded-full">
+                    {status.label}
+                  </Tag>
+                </div>
+              </div>
+
+              {/* Thông tin giao hàng */}
+              <div className="text-sm bg-blue-50 rounded-xl p-4">
+                <p className="font-semibold text-gray-700 mb-2">📦 Thông tin giao hàng</p>
+                <p><span className="text-gray-400">Người nhận:</span> <span className="font-semibold">{detailOrder.customer?.name || '—'}</span></p>
+                <p className="mt-1"><span className="text-gray-400">Điện thoại:</span> <span className="font-semibold">{detailOrder.customer?.phone || '—'}</span></p>
+                <p className="mt-1"><span className="text-gray-400">Địa chỉ:</span> <span className="font-semibold">{detailOrder.customer?.address || '—'}</span></p>
+              </div>
+
+              {/* Danh sách sản phẩm */}
+              <div>
+                <p className="font-semibold text-gray-700 mb-3">🛍️ Sản phẩm đặt mua</p>
+                <div className="space-y-3">
+                  {detailOrder.items.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 border-b pb-3 last:border-0">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-14 h-14 rounded-xl object-cover border flex-shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://placehold.co/56x56?text=No+Image";
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">
+                          {item.quantity} × {item.price.toLocaleString()}đ
+                        </p>
+                      </div>
+                      <p className="font-bold text-[#6272B6] text-sm flex-shrink-0">
+                        {(item.price * item.quantity).toLocaleString()}đ
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tổng tiền */}
+              <div className="flex justify-between items-center pt-2 border-t font-bold text-lg">
+                <span className="text-gray-700">Tổng cộng</span>
+                <span className="text-[#6272B6] text-xl">{detailOrder.totals.total.toLocaleString()}đ</span>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
     </div>
   );
 }
