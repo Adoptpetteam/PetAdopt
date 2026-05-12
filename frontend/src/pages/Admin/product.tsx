@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Table,
   Button,
@@ -9,152 +9,238 @@ import {
   InputNumber,
   message,
   Popconfirm,
+  Typography,
+  Image,
 } from "antd";
+import { apiClient } from "../../api/http";
 import type { ColumnsType } from "antd/es/table";
 
-interface Product {
-  key: string;
+const { Title } = Typography;
+
+interface ProductRow {
+  _id: string;
   name: string;
   image: string;
   price: number;
   quantity: number;
-  description: string;
+  description?: string;
+  category?: string;
 }
 
 const ProductPage = () => {
-  const [data, setData] = useState<Product[]>([]);
+  const [data, setData] = useState<ProductRow[]>([]);
+  const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
+  const [submitting, setSubmitting] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
+  
   const [form] = Form.useForm();
 
-  // 👉 mở modal thêm
-  const handleAdd = () => {
-    setEditingProduct(null);
-    form.resetFields();
+  // Hàm lấy token và header dùng chung
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("admin_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  // 👉 Tải danh sách sản phẩm từ API
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get("/products", {
+        headers: getAuthHeader(),
+        params: { limit: 100, page: 1 },
+      });
+      // Kiểm tra cấu trúc data trả về từ backend của bạn
+      const result = res.data.data || res.data;
+      setData(Array.isArray(result) ? result : []);
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Không thể tải danh sách sản phẩm");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // 👉 Mở modal (Thêm mới hoặc Chỉnh sửa)
+  const handleOpenModal = (product: ProductRow | null = null) => {
+    setEditingProduct(product);
+    if (product) {
+      form.setFieldsValue(product);
+    } else {
+      form.resetFields();
+    }
     setIsModalOpen(true);
   };
 
-  // 👉 mở modal sửa
-  const handleEdit = (record: Product) => {
-    setEditingProduct(record);
-    form.setFieldsValue(record);
-    setIsModalOpen(true);
-  };
+  // 👉 Xử lý Lưu dữ liệu (Submit Form)
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      
+      const config = { headers: getAuthHeader() };
 
-  // 👉 submit form
-  const handleSubmit = () => {
-    form.validateFields().then((values) => {
       if (editingProduct) {
-        // sửa
-        const newData = data.map((item) =>
-          item.key === editingProduct.key ? { ...item, ...values } : item
-        );
-        setData(newData);
+        await apiClient.put(`/products/${editingProduct._id}`, values, config);
         message.success("Cập nhật sản phẩm thành công");
       } else {
-        // thêm
-        const newProduct: Product = {
-          key: Date.now().toString(),
-          ...values,
-        };
-        setData([...data, newProduct]);
-        message.success("Thêm sản phẩm thành công");
+        await apiClient.post("/products", values, config);
+        message.success("Thêm sản phẩm mới thành công");
       }
 
       setIsModalOpen(false);
-    });
+      loadProducts();
+    } catch (e: any) {
+      if (e?.errorFields) return; // Lỗi validation tại giao diện
+      message.error(e?.response?.data?.message || "Có lỗi xảy ra khi lưu");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // 👉 xóa
-  const handleDelete = (key: string) => {
-    setData(data.filter((item) => item.key !== key));
-    message.success("Đã xóa sản phẩm");
+  // 👉 Xử lý Xóa sản phẩm
+  const handleDelete = async (id: string) => {
+    try {
+      await apiClient.delete(`/products/${id}`, {
+        headers: getAuthHeader(),
+      });
+      message.success("Đã xóa sản phẩm");
+      loadProducts();
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Xóa thất bại");
+    }
   };
 
-  const columns: ColumnsType<Product> = [
+  const columns: ColumnsType<ProductRow> = [
     {
       title: "Ảnh",
       dataIndex: "image",
+      key: "image",
+      width: 90,
       render: (img) => (
-        <img src={img} alt="" style={{ width: 60, height: 60, objectFit: "cover" }} />
+        <Image
+          src={img}
+          alt="product"
+          width={60}
+          height={60}
+          style={{ objectFit: "cover", borderRadius: 4 }}
+          fallback="https://placehold.co/60x60?text=No+Img"
+        />
       ),
     },
     {
       title: "Tên sản phẩm",
       dataIndex: "name",
+      key: "name",
+      width: 250,
     },
     {
       title: "Giá",
       dataIndex: "price",
-      render: (price) => price.toLocaleString() + " đ",
+      key: "price",
+      width: 120,
+      render: (price) => (
+        <span style={{ fontWeight: 500 }}>
+          {new Intl.NumberFormat("vi-VN").format(price || 0)} đ
+        </span>
+      ),
     },
     {
       title: "Số lượng",
       dataIndex: "quantity",
+      key: "quantity",
+      width: 100,
+      align: "center",
     },
     {
       title: "Mô tả",
       dataIndex: "description",
+      key: "description",
+      ellipsis: true, // Nếu mô tả dài quá sẽ hiện dấu ...
     },
     {
       title: "Hành động",
+      key: "action",
+      width: 160,
+      fixed: "right",
       render: (_, record) => (
-        <Space>
-          <Button type="primary" onClick={() => handleEdit(record)}>
+        <Space size="small">
+          <Button 
+            type="primary" 
+            size="small" 
+            onClick={() => handleOpenModal(record)}
+          >
             Sửa
           </Button>
 
-          {/* 👉 chỉ cho xóa khi hết hàng */}
-          {record.quantity === 0 && (
-            <Popconfirm
-              title="Xóa sản phẩm?"
-              onConfirm={() => handleDelete(record.key)}
-            >
-              <Button danger>Xóa</Button>
-            </Popconfirm>
-          )}
+          <Popconfirm
+            title="Xác nhận xóa?"
+            description={`Bạn có chắc muốn xóa ${record.name}?`}
+            onConfirm={() => handleDelete(record._id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true, size: "small" }}
+            cancelButtonProps={{ size: "small" }}
+          >
+            <Button danger size="small">Xóa</Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ];
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Quản lý sản phẩm</h2>
+    <div style={{ padding: "24px" }}>
+      <div style={{ marginBottom: 16 }}>
+        <Title level={4}>Quản lý sản phẩm</Title>
+        <Button type="primary" onClick={() => handleOpenModal()}>
+          Thêm sản phẩm
+        </Button>
+      </div>
 
-      <Button type="primary" onClick={handleAdd} style={{ marginBottom: 16 }}>
-        Thêm sản phẩm
-      </Button>
+      <Table
+        columns={columns}
+        dataSource={data}
+        rowKey="_id"
+        loading={loading}
+        bordered
+        pagination={{ pageSize: 8 }}
+      />
 
-      <Table columns={columns} dataSource={data} rowKey="key" />
-
-      {/* MODAL */}
       <Modal
-        title={editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm"}
+        title={editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
         open={isModalOpen}
         onOk={handleSubmit}
         onCancel={() => setIsModalOpen(false)}
+        confirmLoading={submitting}
+        destroyOnClose
+        okText="Xác nhận"
+        cancelText="Hủy bỏ"
       >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true }]}>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
             <Input />
           </Form.Item>
 
-          <Form.Item name="image" label="Link ảnh" rules={[{ required: true }]}>
+          <Form.Item name="image" label="Link ảnh" rules={[{ required: true, message: 'Vui lòng nhập link ảnh' }]}>
             <Input />
           </Form.Item>
 
-          <Form.Item name="price" label="Giá" rules={[{ required: true }]}>
-            <InputNumber style={{ width: "100%" }} />
-          </Form.Item>
+          <div style={{ display: "flex", gap: "16px" }}>
+            <Form.Item name="price" label="Giá" rules={[{ required: true }]} style={{ flex: 1 }}>
+              <InputNumber style={{ width: "100%" }} min={0} />
+            </Form.Item>
 
-          <Form.Item name="quantity" label="Số lượng" rules={[{ required: true }]}>
-            <InputNumber style={{ width: "100%" }} />
-          </Form.Item>
+            <Form.Item name="quantity" label="Số lượng" rules={[{ required: true }]} style={{ flex: 1 }}>
+              <InputNumber style={{ width: "100%" }} min={0} />
+            </Form.Item>
+          </div>
 
           <Form.Item name="description" label="Mô tả">
-            <Input.TextArea />
+            <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
       </Modal>

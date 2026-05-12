@@ -26,11 +26,11 @@ export default function AddPet() {
     adoptionFee: 0,
     location: "",
     categoryId: "",
-    images: [],
+    images: [] as File[],
   });
 
-  // HANDLE INPUT CHANGE
-  const handleChange = (e:any) => {
+  // ===== HANDLE INPUT =====
+  const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
 
     setForm((prev) => ({
@@ -44,8 +44,8 @@ export default function AddPet() {
     }));
   };
 
-  // HANDLE IMAGE UPLOAD
-  const handleImageChange = (e:any) => {
+  // ===== HANDLE IMAGE =====
+  const handleImageChange = (e: any) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -57,57 +57,59 @@ export default function AddPet() {
     setFileKey((prev) => prev + 1);
   };
 
-  const removeImage = (index:any) => {
+  const removeImage = (index: number) => {
     setForm((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
-  // SUBMIT
-  const handleSubmit = (e:any) => {
+  // ===== SUBMIT =====
+  const handleSubmit = (e: any) => {
     e.preventDefault();
 
     const formData = new FormData();
 
-formData.append("name", form.name);
-formData.append("species", form.species);
-formData.append("breed", form.breed);
-formData.append("age", String(form.age));
-formData.append("gender", form.gender);
-formData.append("size", form.size);
-formData.append("color", form.color);
-formData.append("description", form.description);
-formData.append("healthStatus", form.healthStatus);
-formData.append("vaccinated", form.vaccinated ? "1" : "0");
-formData.append("neutered", form.neutered ? "1" : "0");
-formData.append("adoptionFee", String(form.adoptionFee));
-formData.append("location", form.location);
-formData.append("categoryId", String(form.categoryId));
+    // REQUIRED
+    formData.append("name", form.name);
+    formData.append("species", form.species.toLowerCase());
 
+    // OPTIONAL (chỉ gửi nếu có)
+    if (form.breed) formData.append("breed", form.breed);
+    if (form.age) formData.append("age", String(form.age));
+    if (form.gender) formData.append("gender", form.gender);
+    if (form.size) formData.append("size", form.size);
+    if (form.color) formData.append("color", form.color);
+    if (form.description) formData.append("description", form.description);
+    if (form.healthStatus) formData.append("healthStatus", form.healthStatus);
+    if (form.location) formData.append("location", form.location);
+    if (form.categoryId) formData.append("categoryId", form.categoryId);
+
+    // BOOLEAN đúng format
+    formData.append("vaccinated", String(form.vaccinated));
+    formData.append("neutered", String(form.neutered));
+
+    if (form.adoptionFee)
+      formData.append("adoptionFee", String(form.adoptionFee));
+
+    // IMAGES
     form.images.forEach((file) => {
       formData.append("images", file);
     });
+
+    // DEBUG (nếu cần)
+    // for (let pair of formData.entries()) {
+    //   console.log(pair[0], pair[1]);
+    // }
 
     addPet(formData, {
       onSuccess: () => {
         navigate("/admin/pets");
       },
-      // onError: (error) => {
-      //   console.error(error);
-      //   alert("Lỗi tạo pet!");
-      // },
-      onError: (error:any) => {
-  console.log("FULL ERROR:", error);
-
-  console.log("RESPONSE:", error.response);
-
-  console.log("DATA:", error.response?.data);
-
-  console.log("STATUS:", error.response?.status);
-
-  alert(JSON.stringify(error.response?.data));
-},
+      onError: (error) => {
+        console.error("CREATE PET ERROR:", error);
+        alert("Tạo thú cưng thất bại!");
+      },
     });
   };
 
@@ -118,7 +120,7 @@ formData.append("categoryId", String(form.categoryId));
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-xl shadow">
-
+        
         <input name="name" placeholder="Tên" onChange={handleChange} className="input" required />
 
         <select name="species" onChange={handleChange} className="input" required>
@@ -131,16 +133,18 @@ formData.append("categoryId", String(form.categoryId));
           <option value="other">Khác</option>
         </select>
 
+        {/* 🔥 FIX _id */}
         <select name="categoryId" onChange={handleChange} className="input">
           <option value="">-- Chọn danh mục --</option>
-          {categories?.map((c:any) => (
-            <option key={c.id} value={c.id}>
+          {categories?.map((c: any) => (
+            <option key={c._id} value={c._id}>
               {c.name}
             </option>
           ))}
         </select>
 
         <input name="breed" placeholder="Giống" onChange={handleChange} className="input" />
+
         <input name="age" type="number" placeholder="Tuổi" onChange={handleChange} className="input" />
 
         {/* Gender */}

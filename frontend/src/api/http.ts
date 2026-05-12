@@ -8,7 +8,9 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const isAdminPage = window.location.pathname.startsWith('/admin');
+  const token = isAdminPage ? localStorage.getItem("admin_token") : localStorage.getItem("token");
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

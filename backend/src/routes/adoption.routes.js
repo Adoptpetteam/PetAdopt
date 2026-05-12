@@ -6,6 +6,7 @@ const {
   getAdoptionRequestById,
   approveAdoptionRequest,
   rejectAdoptionRequest,
+  deleteAdoptionRequest,
   cancelAdoptionRequest,
   getMyAdoptionRequests
 } = require('../controllers/adoptionController');
@@ -28,12 +29,15 @@ router.put('/:id/cancel', cancelAdoptionRequest);
 
 // Admin routes
 // GET /api/adoption - Danh sách tất cả đơn (admin)
-router.get('/', getAdoptionRequests);
+router.get('/', authenticate, isAdmin, getAdoptionRequests);
 
 // PUT /api/adoption/:id/approve - Duyệt đơn (admin)
-router.put('/:id/approve', approveAdoptionRequest);
+router.put('/:id/approve', authenticate, isAdmin, approveAdoptionRequest);
 
 // PUT /api/adoption/:id/reject - Từ chối đơn (admin)
-router.put('/:id/reject', rejectAdoptionRequest);
+router.put('/:id/reject', authenticate, isAdmin, rejectAdoptionRequest);
+
+// DELETE /api/adoption/:id - Xóa đơn nhận nuôi (admin)
+router.delete('/:id', authenticate, isAdmin, deleteAdoptionRequest);
 
 module.exports = router;
