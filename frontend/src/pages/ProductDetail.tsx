@@ -8,7 +8,8 @@ import {
   HeartOutlined, 
   SafetyCertificateOutlined,
   TruckOutlined,
-  UndoOutlined
+  UndoOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 
 interface Product {
@@ -59,11 +60,27 @@ export default function ProductDetail() {
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    // Thông báo cực xịn với icon
+    window.dispatchEvent(new Event("cart-change"));
     message.open({
       type: 'success',
-      content: `Đã thêm ${buyQty} ${product.name} vào giỏ hàng thành công!`,
+      content: `Đã thêm ${buyQty} ${product.name} vào giỏ hàng!`,
       icon: <ShoppingCartOutlined style={{ color: '#6272B6' }} />,
+    });
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingItemIndex = cart.findIndex((item: any) => item._id === product._id);
+    if (existingItemIndex > -1) {
+      cart[existingItemIndex].cartQuantity += buyQty;
+    } else {
+      cart.push({ ...product, cartQuantity: buyQty });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event("cart-change"));
+    navigate("/checkout", {
+      state: { selectedItems: [{ ...product, cartQuantity: buyQty }] },
     });
   };
 
@@ -146,18 +163,30 @@ export default function ProductDetail() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   onClick={handleAddToCart}
                   disabled={product.quantity <= 0}
-                  className={`flex-grow h-16 rounded-2xl flex items-center justify-center gap-3 font-black text-lg transition-all shadow-lg ${
-                    product.quantity > 0 
-                    ? "bg-[#6272B6] text-white hover:bg-[#4a569d] hover:-translate-y-1 active:scale-95 shadow-blue-200" 
+                  className={`flex-1 h-14 rounded-2xl flex items-center justify-center gap-2 font-bold text-base transition-all border-2 ${
+                    product.quantity > 0
+                    ? "border-[#6272B6] text-[#6272B6] hover:bg-blue-50 active:scale-95"
+                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  <ShoppingCartOutlined className="text-xl" />
+                  {product.quantity > 0 ? "Thêm vào giỏ" : "Hết hàng"}
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={product.quantity <= 0}
+                  className={`flex-1 h-14 rounded-2xl flex items-center justify-center gap-2 font-bold text-base transition-all shadow-lg ${
+                    product.quantity > 0
+                    ? "bg-[#6272B6] text-white hover:bg-[#4a569d] hover:-translate-y-1 active:scale-95 shadow-blue-200"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
                 >
-                  <ShoppingCartOutlined className="text-2xl" />
-                  {product.quantity > 0 ? "THÊM VÀO GIỎ" : "HẾT HÀNG"}
+                  <ThunderboltOutlined className="text-xl" />
+                  Mua ngay
                 </button>
               </div>
 
