@@ -238,6 +238,7 @@ export default function Header() {
         <Link to="/volunteer" className={navItemClass}>Tình nguyện viên</Link>
         <Link to="/news" className={navItemClass}>Tin tức</Link>
         <Link to="/products" className={navItemClass}>Sản phẩm</Link>
+        <Link to="/orders" className={navItemClass}>Đơn hàng</Link>
         <Link to="/contact" className={navItemClass}>Liên hệ</Link>
       </nav>
 
