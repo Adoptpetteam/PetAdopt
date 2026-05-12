@@ -90,7 +90,9 @@ app.use('/api/orders', orderRoutes);
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'API is running'
+    message: 'API is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
   });
 });
 
