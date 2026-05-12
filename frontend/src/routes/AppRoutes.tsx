@@ -42,27 +42,34 @@ import ListCategory from "../pages/Admin/Category/ListCategory";
 import Pets from "../pages/Admin/Pets";
 import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
-// import About from "../pages/About";
 import AdoptedPets from "../pages/Admin/AdoptedPets";
+import ProductPage from "../pages/Admin/product";
+import OrderPage from "../pages/Admin/order";
+import CustomerPage from "../pages/Admin/CustomerPage"; // thêm dòng này
+
 import AdminRoute from "../routes/AdminRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
 import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
-import ProductPage from "../pages/Admin/product";
-import OrderPage from "../pages/Admin/order";
+import Supporters from "../pages/Admin/Supporters";
 
 export default function AppRoutes() {
   return (
     <Routes>
-
       {/* USER */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/adopt" element={<Adopt />} />
         <Route path="/pet/:id" element={<Details />} />
         <Route path="/adopt-form/:id" element={<AdoptForm />} />
-        <Route path="/payment/method/:id" element={<PaymentMethod />} />
-        <Route path="/payment/:method/:id" element={<AdoptQR />} />
+        <Route
+          path="/payment/method/:id"
+          element={<PaymentMethod />}
+        />
+        <Route
+          path="/payment/:method/:id"
+          element={<AdoptQR />}
+        />
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/volunteer" element={<VolunteerForm />} />
         <Route path="/contact" element={<Contact />} />
@@ -70,56 +77,108 @@ export default function AppRoutes() {
         <Route path="/news" element={<News />} />
         <Route path="/news/:id" element={<NewsDetail />} />
         <Route path="/products" element={<Products />} />
-        <Route path="/products/:id" element={<ProductDetail />} />
+        <Route
+          path="/products/:id"
+          element={<ProductDetail />}
+        />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/success" element={<OrderSuccess />} />
+        <Route
+          path="/orders/success"
+          element={<OrderSuccess />}
+        />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/chatbot" element={<ChatBot />} />
+
         <Route element={<ProtectedRoute />}>
-          <Route path="/vaccination-schedule" element={<div className="py-20 text-center">Tính năng đang phát triển</div>} />
+          <Route
+            path="/vaccination-schedule"
+            element={
+              <div className="py-20 text-center">
+                Tính năng đang phát triển
+              </div>
+            }
+          />
         </Route>
       </Route>
 
       {/* AUTH */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route
+        path="/forgot-password"
+        element={<ForgotPasswordPage />}
+      />
+      <Route
+        path="/admin/login"
+        element={<AdminLogin />}
+      />
 
       {/* ADMIN */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
 
-          <Route path="adoptions" element={<Adoptions />} />
-          <Route path="adoptions/:id" element={<AdoptionDetail />} />
-          {/* <Route path="pet/:id" element={<PetDetailAdmin />} /> */}
+          <Route
+            path="adoptions"
+            element={<Adoptions />}
+          />
+          <Route
+            path="adoptions/:id"
+            element={<AdoptionDetail />}
+          />
 
-          <Route path="volunteers" element={<VolunteerList />} />
-          <Route path="volunteers/:id" element={<VolunteerDetail />} />
+          <Route
+            path="volunteers"
+            element={<VolunteerList />}
+          />
+          <Route
+            path="volunteers/:id"
+            element={<VolunteerDetail />}
+          />
+
+          <Route path="/admin/supporters" element={<Supporters />} />
 
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
-          <Route path="category" element={<ListCategory />} />
+          <Route
+            path="category"
+            element={<ListCategory />}
+          />
+
           <Route path="pets" element={<Pets />} />
-          <Route path="pets/add" element={<AddPet />} />
-          <Route path="pets/edit/:id" element={<EditPet />} />
-          <Route path="product" element={<ProductPage />} />
-          <Route path="order" element={<OrderPage />} />
+          <Route
+            path="pets/add"
+            element={<AddPet />}
+          />
+          <Route
+            path="pets/edit/:id"
+            element={<EditPet />}
+          />
 
-          {/* <Route path="contacts" element={<AdminContacts />} /> */}
-          {/* <Route path="contacts/:id" element={<ContactDetail />} /> */}
+          <Route
+            path="product"
+            element={<ProductPage />}
+          />
+          <Route
+            path="order"
+            element={<OrderPage />}
+          />
 
-          {/* <Route path="pets" element={<AdminPets />} /> */}
-          <Route path="pets/add" element={<AddPet />} />
-          <Route path="pets/edit/:id" element={<EditPet />} />
-          <Route path="adopted-pets" element={<AdoptedPets />} />
+          {/* THÔNG TIN KHÁCH HÀNG */}
+          <Route
+            path="customers"
+            element={<CustomerPage />}
+          />
+
+          <Route
+            path="adopted-pets"
+            element={<AdoptedPets />}
+          />
         </Route>
       </Route>
-
     </Routes>
   );
 }

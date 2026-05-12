@@ -3,6 +3,8 @@ import { message } from "antd"
 import { getAdoptionRequests } from "../../api/adoptionApi"
 
 export default function Dashboard() {
+
+  
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,

@@ -27,10 +27,19 @@ export default function AdoptedPets() {
             (p: any) => p._id === petId || p.id === petId
           )
 
+          // Đường dẫn ảnh
+          const imagePath =
+              a.pet?.images?.[0] ||
+              pet?.images?.[0] ||
+              pet?.image;
+
           return {
             ...a,
             petName: a.pet?.name || pet?.name,
-            petImage: a.pet?.images?.[0] || pet?.image,
+            // petImage: a.pet?.images?.[0] || pet?.image,
+            petImage: imagePath
+            ? `http://localhost:5000${imagePath}`
+            : "/placeholder.png",
             vaccinated: pet?.vaccinated,
             sterilized: pet?.sterilized
           }
