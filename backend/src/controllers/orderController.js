@@ -1,94 +1,314 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const crypto = require('crypto');
+const querystring = require('querystring');
+const { VNPAY_CONFIG } = require('../config/paymentConfig');
 
+// ===============================
+// HELPER
+// ===============================
 function toNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
 
+function sortObject(obj) {
+  const sorted = {};
+  const keys = Object.keys(obj).sort();
+  for (const key of keys) {
+    sorted[key] = obj[key];
+  }
+  return sorted;
+}
+
+function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
+  const tmnCode = VNPAY_CONFIG.TMN_CODE;
+  const secretKey = VNPAY_CONFIG.HASH_SECRET;
+  const vnpUrl = VNPAY_CONFIG.URL;
+  const returnUrl = VNPAY_CONFIG.RETURN_URL;
+
+  // Timezone Vietnam (UTC+7)
+  const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  const createDate =
+    `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}` +
+    `${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
+
+  // txnRef: chỉ dùng ký tự an toàn, tối đa 100 ký tự
+  const txnRef = `${Date.now()}${String(orderId).slice(-8)}`;
+
+  // orderInfo: chỉ dùng ASCII, không dấu tiếng Việt
+  const safeOrderInfo = `Thanh toan don hang ${String(orderId).slice(-8)}`;
+
+  let vnpParams = {
+    vnp_Version: '2.1.0',
+    vnp_Command: 'pay',
+    vnp_TmnCode: tmnCode,
+    vnp_Locale: 'vn',
+    vnp_CurrCode: 'VND',
+    vnp_TxnRef: txnRef,
+    vnp_OrderInfo: safeOrderInfo,
+    vnp_OrderType: 'other',
+    vnp_Amount: amount * 100,
+    vnp_ReturnUrl: returnUrl,
+    vnp_IpAddr: ipAddr || '127.0.0.1',
+    vnp_CreateDate: createDate,
+  };
+
+  // Sort theo key alphabet
+  vnpParams = sortObject(vnpParams);
+
+  // Tạo chuỗi ký — KHÔNG encode URL ở bước này
+  const signData = querystring.stringify(vnpParams, { encode: false });
+  const hmac = crypto.createHmac('sha512', secretKey);
+  const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+
+  // Thêm hash vào params rồi mới build URL (có encode)
+  vnpParams['vnp_SecureHash'] = signed;
+
+  const payUrl = `${vnpUrl}?${querystring.stringify(vnpParams)}`;
+
+  return { payUrl, txnRef };
+}
+
+// ===============================
 // POST /api/orders/checkout
+// ===============================
 exports.checkoutOrder = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
     const { paymentMethod, customer, items } = req.body;
+
+    // Validate
     if (!paymentMethod || !customer || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'Invalid payload' });
     }
 
-    // Validate products exist + stock
-    const productIds = items.map((i) => i.productId);
-    const uniqueIds = [...new Set(productIds)];
+    if (!['cod', 'vnpay'].includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Invalid payment method' });
+    }
 
-    const products = await Product.find({ _id: { $in: uniqueIds } });
+    // Find products
+    const productIds = items.map((i) => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
     const productMap = new Map(products.map((p) => [String(p._id), p]));
 
-    for (const it of items) {
-      const p = productMap.get(String(it.productId));
-      if (!p) return res.status(400).json({ success: false, message: `Product not found: ${it.productId}` });
-      const qty = toNumber(it.quantity);
-      if (qty <= 0) return res.status(400).json({ success: false, message: 'Quantity must be > 0' });
-      if (p.quantity < qty) return res.status(400).json({ success: false, message: `Not enough stock for ${p.name}` });
+    // Validate stock
+    for (const item of items) {
+      const product = productMap.get(String(item.productId));
+      if (!product) {
+        return res.status(400).json({ success: false, message: `Không tìm thấy sản phẩm: ${item.productId}` });
+      }
+      const qty = toNumber(item.quantity);
+      if (qty <= 0) {
+        return res.status(400).json({ success: false, message: 'Số lượng phải lớn hơn 0' });
+      }
+      if (product.quantity < qty) {
+        return res.status(400).json({ success: false, message: `Không đủ hàng: ${product.name}` });
+      }
     }
 
     // Decrease stock
-    for (const it of items) {
-      const qty = toNumber(it.quantity);
-      await Product.updateOne(
-        { _id: it.productId, quantity: { $gte: qty } },
+    for (const item of items) {
+      const qty = toNumber(item.quantity);
+      const updated = await Product.updateOne(
+        { _id: item.productId, quantity: { $gte: qty } },
         { $inc: { quantity: -qty } }
       );
+      if (updated.modifiedCount === 0) {
+        return res.status(400).json({ success: false, message: 'Sản phẩm đã hết hàng' });
+      }
     }
 
-    const orderItems = items.map((it) => {
-      const p = productMap.get(String(it.productId));
+    // Build order items
+    const orderItems = items.map((item) => {
+      const product = productMap.get(String(item.productId));
       return {
-        product: p._id,
-        name: p.name,
-        image: p.image,
-        price: p.price,
-        quantity: toNumber(it.quantity),
+        product: product._id,
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        quantity: toNumber(item.quantity),
       };
     });
 
-    const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    // Calculate total
+    const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    const order = await Order.create({
+    // Create order
+    const createdOrder = await Order.create({
       user: userId,
-      status: 'paid',
+      status: 'pending',
       paymentMethod,
       customer: {
         name: customer.name,
         phone: customer.phone,
         address: customer.address,
-        reason: customer.reason,
+        reason: customer.reason || '',
       },
       items: orderItems,
       totals: { subtotal, total: subtotal },
     });
 
+    // ===== VNPAY FLOW =====
+    if (paymentMethod === 'vnpay') {
+      const ipAddr =
+        req.headers['x-forwarded-for'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        '127.0.0.1';
+
+      const orderInfo = `Thanh toan don hang ${createdOrder._id}`;
+      const { payUrl, txnRef } = createVNPayUrl(
+        createdOrder._id,
+        subtotal,
+        orderInfo,
+        ipAddr
+      );
+
+      // Lưu txnRef để đối chiếu khi callback
+      await Order.findByIdAndUpdate(createdOrder._id, { vnpayTxnRef: txnRef });
+
+      return res.status(201).json({
+        success: true,
+        paymentMethod: 'vnpay',
+        payUrl,
+        data: createdOrder,
+      });
+    }
+
+    // ===== COD FLOW =====
     return res.status(201).json({
       success: true,
-      data: order,
+      paymentMethod: 'cod',
+      data: createdOrder,
+    });
+  } catch (err) {
+    console.error('CHECKOUT ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// GET /api/orders/vnpay-return
+// VNPay redirect về sau khi thanh toán
+// ===============================
+exports.vnpayReturn = async (req, res) => {
+  try {
+    const vnpParams = { ...req.query };
+    const secureHash = vnpParams['vnp_SecureHash'];
+
+    delete vnpParams['vnp_SecureHash'];
+    delete vnpParams['vnp_SecureHashType'];
+
+    const sortedParams = sortObject(vnpParams);
+    const signData = querystring.stringify(sortedParams, { encode: false });
+    const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.HASH_SECRET);
+    const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+
+    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    if (secureHash !== signed) {
+      return res.redirect(`${frontendBase}/orders/success?status=fail&message=invalid_signature`);
+    }
+
+    const responseCode = vnpParams['vnp_ResponseCode'];
+    const txnRef = vnpParams['vnp_TxnRef'];
+    const order = await Order.findOne({ vnpayTxnRef: txnRef });
+
+    if (!order) {
+      return res.redirect(`${frontendBase}/orders/success?status=fail&message=order_not_found`);
+    }
+
+    const orderId = order._id;
+
+    if (responseCode === '00') {
+      await Order.findByIdAndUpdate(orderId, { status: 'paid' });
+      return res.redirect(`${frontendBase}/orders/success?status=success&orderId=${orderId}`);
+    } else {
+      if (order.status === 'pending') {
+        for (const item of order.items) {
+          await Product.updateOne({ _id: item.product }, { $inc: { quantity: item.quantity } });
+        }
+        await Order.findByIdAndUpdate(orderId, { status: 'cancelled' });
+      }
+      return res.redirect(`${frontendBase}/orders/success?status=fail&orderId=${orderId}&code=${responseCode}`);
+    }
+  } catch (err) {
+    console.error('VNPAY RETURN ERROR:', err);
+    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendBase}/orders/success?status=fail&message=server_error`);
+  }
+};
+
+// ===============================
+// GET /api/orders/me
+// ===============================
+exports.listMyOrders = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, data: orders });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// GET /api/orders (admin)
+// ===============================
+exports.listAllOrders = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await Order.countDocuments(filter);
+    const orders = await Order.find(filter)
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    return res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) },
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// GET /api/orders/me
-exports.listMyOrders = async (req, res) => {
+// ===============================
+// PUT /api/orders/:id/status (admin)
+// ===============================
+exports.updateOrderStatus = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id;
-    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const { status } = req.body;
+    if (!['pending', 'paid', 'cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
 
-    const orders = await Order.find({ user: userId })
-      .sort({ createdAt: -1 });
+    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
 
-    res.status(200).json({ success: true, data: orders });
+    return res.status(200).json({ success: true, data: order });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
-
