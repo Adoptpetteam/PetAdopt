@@ -1,5 +1,3 @@
-// src/components/layout/Header.tsx
-
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { message, Badge } from "antd"
@@ -35,12 +33,18 @@ export default function Header() {
     return null
   }
 
-  // Hover
-  const navItemClass =
-  "relative hover:text-[#6272B6] pb-[8px] " +
-  "after:content-[''] after:absolute after:left-0 after:bottom-0 " +
-  "after:h-[2px] after:w-0 after:bg-[#6272B6] " +
-  "hover:after:w-full after:transition-all after:duration-300";
+  // Hover + active
+  const navItemClass = (path: string) => {
+    const isActive = location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+    return (
+      "relative pb-[8px] " +
+      "after:content-[''] after:absolute after:left-0 after:bottom-0 " +
+      "after:h-[2px] after:bg-[#6272B6] after:transition-all after:duration-300 " +
+      (isActive
+        ? "text-[#6272B6] font-semibold after:w-full"
+        : "hover:text-[#6272B6] after:w-0 hover:after:w-full")
+    );
+  };
 
   useEffect(() => {
     // Đọc lại từ localStorage mỗi khi route thay đổi
@@ -232,14 +236,14 @@ export default function Header() {
 
       {/* ===== BOTTOM NAV ===== */}
       <nav className="h-[60px] flex items-center px-[130px] gap-20 text-gray-700 font-medium">
-        <Link to="/" className={navItemClass}>Trang chủ</Link>
-        <Link to="/adopt" className={navItemClass}>Nhận nuôi</Link>
-        <Link to="/donate" className={navItemClass}>Ủng hộ</Link>
-        <Link to="/volunteer" className={navItemClass}>Tình nguyện viên</Link>
-        <Link to="/news" className={navItemClass}>Tin tức</Link>
-        <Link to="/products" className={navItemClass}>Sản phẩm</Link>
-        <Link to="/orders" className={navItemClass}>Đơn hàng</Link>
-        <Link to="/contact" className={navItemClass}>Liên hệ</Link>
+        <Link to="/" className={navItemClass("/")}>Trang chủ</Link>
+        <Link to="/adopt" className={navItemClass("/adopt")}>Nhận nuôi</Link>
+        <Link to="/donate" className={navItemClass("/donate")}>Ủng hộ</Link>
+        <Link to="/volunteer" className={navItemClass("/volunteer")}>Tình nguyện viên</Link>
+        <Link to="/news" className={navItemClass("/news")}>Tin tức</Link>
+        <Link to="/products" className={navItemClass("/products")}>Sản phẩm</Link>
+        <Link to="/orders" className={navItemClass("/orders")}>Đơn hàng</Link>
+        <Link to="/contact" className={navItemClass("/contact")}>Liên hệ</Link>
       </nav>
 
       {/* ===== DONORS MARQUEE ===== */}
