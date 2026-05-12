@@ -1,50 +1,186 @@
-import { useParams } from "react-router-dom"
-import { products } from "../data/products"
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { apiClient } from "../api/http";
+import { Spin, message, InputNumber, Breadcrumb, Tag } from "antd";
+import { 
+  ShoppingCartOutlined, 
+  ArrowLeftOutlined, 
+  HeartOutlined, 
+  SafetyCertificateOutlined,
+  TruckOutlined,
+  UndoOutlined
+} from "@ant-design/icons";
+
+interface Product {
+  _id: string;
+  name: string;
+  image: string;
+  price: number;
+  description: string;
+  quantity: number;
+  category?: string;
+}
 
 export default function ProductDetail() {
-  const { id } = useParams()
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [buyQty, setBuyQty] = useState(1);
 
-  const product = products.find(p => p.id === Number(id))
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get(`/products/${id}`);
+      if (res.data && res.data.success) {
+        setProduct(res.data.data);
+      }
+    } catch (error) {
+      message.error("Không tìm thấy sản phẩm này");
+      navigate("/products");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (!product) {
-    return <div className="text-center py-20">Không tìm thấy sản phẩm</div>
-  }
+  useEffect(() => {
+    if (id) fetchProduct();
+  }, [id]);
 
   const handleAddToCart = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
+    if (!product) return;
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingItemIndex = cart.findIndex((item: any) => item._id === product._id);
 
-    cart.push(product)
+    if (existingItemIndex > -1) {
+      cart[existingItemIndex].cartQuantity += buyQty;
+    } else {
+      cart.push({ ...product, cartQuantity: buyQty });
+    }
 
-    localStorage.setItem("cart", JSON.stringify(cart))
+    localStorage.setItem("cart", JSON.stringify(cart));
+    // Thông báo cực xịn với icon
+    message.open({
+      type: 'success',
+      content: `Đã thêm ${buyQty} ${product.name} vào giỏ hàng thành công!`,
+      icon: <ShoppingCartOutlined style={{ color: '#6272B6' }} />,
+    });
+  };
 
-    alert("Đã thêm vào giỏ hàng 🛒")
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center h-screen bg-gray-50">
+      <Spin size="large" tip="Đang tải siêu phẩm..." />
+    </div>
+  );
+
+  if (!product) return null;
 
   return (
-    <div className="max-w-[900px] mx-auto py-20 px-6 grid grid-cols-2 gap-10">
-      <img
-        src={product.image}
-        className="w-full h-[400px] object-cover rounded-xl"
-      />
+    <div className="bg-[#F8F9FB] min-h-screen pb-20">
+      <div className="max-w-[1200px] mx-auto pt-10 px-6">
+        {/* Breadcrumb cho chuyên nghiệp */}
+        <Breadcrumb className="mb-8 text-gray-500">
+          <Breadcrumb.Item className="cursor-pointer" onClick={() => navigate("/")}>Trang chủ</Breadcrumb.Item>
+          <Breadcrumb.Item className="cursor-pointer" onClick={() => navigate("/products")}>Sản phẩm</Breadcrumb.Item>
+          <Breadcrumb.Item>{product.name}</Breadcrumb.Item>
+        </Breadcrumb>
 
-      <div>
-        <h1 className="text-3xl font-bold">{product.name}</h1>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* CỘT TRÁI: HÌNH ẢNH (6/12) */}
+          <div className="lg:col-span-7">
+            <div className="sticky top-28">
+              <div className="bg-white p-4 rounded-[2.5rem] shadow-xl shadow-blue-100/50 relative group">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-auto rounded-[2rem] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                />
+                <button className="absolute top-8 right-8 w-12 h-12 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors shadow-md">
+                  <HeartOutlined className="text-xl" />
+                </button>
+              </div>
+            </div>
+          </div>
 
-        <p className="text-[#6272B6] text-xl font-bold mt-4">
-          {product.price.toLocaleString()}đ
-        </p>
+          {/* CỘT PHẢI: THÔNG TIN (5/12) */}
+          <div className="lg:col-span-5 flex flex-col">
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <Tag color="blue" className="mb-4 border-none bg-blue-50 text-[#6272B6] font-bold px-4 py-1 rounded-full">
+                SẢN PHẨM BÁN CHẠY
+              </Tag>
+              
+              <h1 className="text-4xl font-black text-gray-900 leading-tight mb-4">
+                {product.name}
+              </h1>
 
-        <p className="mt-4 text-gray-600">
-          {product.description}
-        </p>
+              <div className="flex items-baseline gap-2 mb-8">
+                <span className="text-4xl font-black text-[#6272B6]">
+                  {(product.price || 0).toLocaleString()}đ
+                </span>
+                <span className="text-gray-400 line-through text-lg">
+                  {(product.price * 1.2).toLocaleString()}đ
+                </span>
+              </div>
 
-        <button
-          onClick={handleAddToCart}
-          className="mt-6 px-6 py-3 bg-[#6272B6] text-white rounded-full"
-        >
-          Thêm vào giỏ hàng
-        </button>
+              <div className="space-y-6 mb-10">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Mô tả chi tiết</h3>
+                  <p className="text-gray-600 leading-relaxed text-lg italic">
+                    "{product.description || "Một sản phẩm tuyệt vời dành cho thú cưng của bạn với chất lượng đã được kiểm chứng."}"
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-gray-700">Số lượng:</span>
+                  <InputNumber 
+                    min={1} 
+                    max={product.quantity} 
+                    value={buyQty} 
+                    onChange={(v) => setBuyQty(v || 1)}
+                    className="rounded-lg h-10 flex items-center w-24 border-gray-200"
+                  />
+                  <span className="text-gray-400 text-sm font-medium">
+                    (Kho còn: {product.quantity})
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.quantity <= 0}
+                  className={`flex-grow h-16 rounded-2xl flex items-center justify-center gap-3 font-black text-lg transition-all shadow-lg ${
+                    product.quantity > 0 
+                    ? "bg-[#6272B6] text-white hover:bg-[#4a569d] hover:-translate-y-1 active:scale-95 shadow-blue-200" 
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  <ShoppingCartOutlined className="text-2xl" />
+                  {product.quantity > 0 ? "THÊM VÀO GIỎ" : "HẾT HÀNG"}
+                </button>
+              </div>
+
+              {/* Các cam kết bên dưới nút mua */}
+              <div className="grid grid-cols-3 gap-2 mt-10 pt-10 border-t border-gray-50">
+                <div className="text-center">
+                  <TruckOutlined className="text-2xl text-blue-400 mb-2" />
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Giao nhanh</p>
+                </div>
+                <div className="text-center">
+                  <SafetyCertificateOutlined className="text-2xl text-green-400 mb-2" />
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Chính hãng</p>
+                </div>
+                <div className="text-center">
+                  <UndoOutlined className="text-2xl text-orange-400 mb-2" />
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Đổi trả 7 ngày</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
-  )
+  );
 }

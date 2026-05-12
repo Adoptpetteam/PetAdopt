@@ -13,7 +13,13 @@ export default function Header() {
     const stored = localStorage.getItem("user")
     if (stored) {
       try {
-        return JSON.parse(stored)
+        const parsedUser = JSON.parse(stored);
+        if (parsedUser?.role === "admin") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          return null;
+        }
+        return parsedUser;
       } catch { return null }
     }
     return null
@@ -38,8 +44,10 @@ export default function Header() {
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
+    localStorage.removeItem("admin_token")
+    localStorage.removeItem("admin_user")
     setUser(null)
-    message.success("Đã đăng xuất")
+    message.success("Đã đăng xuất hoàn toàn")
     navigate("/")
   }
 
@@ -206,6 +214,18 @@ export default function Header() {
         <Link to="/products" className="hover:text-[#6272B6]">Sản phẩm</Link>
         <Link to="/contact" className="hover:text-[#6272B6]">Liên hệ</Link>
       </nav>
+
+      {/* ===== DONORS MARQUEE ===== */}
+      <div className="bg-[#FFF5E1] text-[#D48B3B] h-10 flex items-center overflow-hidden border-t border-b border-[#F3E0C0]">
+        <div className="animate-marquee font-medium text-sm">
+          <span className="mx-10">❤️ Cảm ơn bạn Nguyễn Văn A đã ủng hộ 500,000đ</span>
+          <span className="mx-10">❤️ Cảm ơn bạn Trần Thị B đã ủng hộ 200,000đ</span>
+          <span className="mx-10">❤️ Cảm ơn bạn Lê Hoàng C đã ủng hộ 1,000,000đ</span>
+          <span className="mx-10">❤️ Cảm ơn bạn Phạm D đã ủng hộ 100,000đ</span>
+          <span className="mx-10">❤️ Cảm ơn bạn Vũ E đã ủng hộ 50,000đ</span>
+          <span className="mx-10">❤️ Cảm ơn bạn Đỗ Văn Kiên đã ủng hộ 2,000,000đ</span>
+        </div>
+      </div>
 
     </header>
   )

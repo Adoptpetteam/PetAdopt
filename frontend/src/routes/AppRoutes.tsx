@@ -18,6 +18,7 @@ import SuccessPage from "../pages/SuccessPage";
 import AdminLayout from "../pages/Admin/AdminLayout";
 import Dashboard from "../pages/Admin/Dashboard";
 import Adoptions from "../pages/Admin/Adoptions";
+import AdoptionDetail from "../pages/Admin/AdoptionDetail";
 import VolunteerForm from "../pages/VolunteerForm";
 import VolunteerList from "../pages/Admin/VolunteerList";
 import VolunteerDetail from "../pages/Admin/VolunteerDetail";
@@ -44,6 +45,7 @@ import EditPet from "../pages/Admin/EditPet";
 // import About from "../pages/About";
 import AdoptedPets from "../pages/Admin/AdoptedPets";
 import AdminRoute from "../routes/AdminRoute";
+import AdminLogin from "../pages/Admin/AdminLogin";
 import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
 import ProductPage from "../pages/Admin/product";
@@ -85,7 +87,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-
+      <Route path="/admin/login" element={<AdminLogin />} />
 
       {/* ADMIN */}
       <Route element={<AdminRoute />}>
@@ -93,6 +95,7 @@ export default function AppRoutes() {
           <Route index element={<Dashboard />} />
 
           <Route path="adoptions" element={<Adoptions />} />
+          <Route path="adoptions/:id" element={<AdoptionDetail />} />
           {/* <Route path="pet/:id" element={<PetDetailAdmin />} /> */}
 
           <Route path="volunteers" element={<VolunteerList />} />
