@@ -1,26 +1,10 @@
-import { useEffect, useState } from "react";
-import {
-  Table,
-  Tag,
-  Space,
-  Select,
-  message,
-  Popconfirm,
-  Spin,
-  Button,
-  Input,
-  Tooltip,
-  Modal,
-} from "antd";
+import { useEffect, useState, useMemo } from "react";
+import { Table, Tag, Space, Select, message, Button, Input, Modal, Card, Statistic, Row, Col, Divider, Timeline, Avatar, Typography, Progress, Empty, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import {
-  ReloadOutlined,
-  EyeOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, PhoneOutlined, HomeOutlined, PrinterOutlined, InboxOutlined } from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 
-const { Option } = Select;
+const { Text, Title } = Typography;
 
 interface OrderItem {
   product: string;
@@ -33,29 +17,24 @@ interface OrderItem {
 interface Order {
   _id: string;
   createdAt: string;
+  updatedAt: string;
   status: "pending" | "paid" | "cancelled";
   paymentMethod: "cod" | "vnpay";
-  customer: {
-    name: string;
-    phone: string;
-    address: string;
-  };
+  customer: { name: string; phone: string; address: string };
   items: OrderItem[];
   totals: { subtotal: number; total: number };
   user?: { name: string; email: string };
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pending: { label: "Chờ xử lý", color: "orange" },
-  paid: { label: "Đã thanh toán", color: "purple" },
-  cancelled: { label: "Đã hủy", color: "red" },
-  shipping: { label: "Đang giao", color: "blue" },
-  completed: { label: "Hoàn thành", color: "green" },
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  pending: { label: "Chờ xử lý", color: "orange", icon: <ClockCircleOutlined /> },
+  paid: { label: "Đã thanh toán", color: "green", icon: <CheckCircleOutlined /> },
+  cancelled: { label: "Đã hủy", color: "red", icon: <CloseCircleOutlined /> },
 };
 
-const paymentLabels: Record<string, { label: string; color: string }> = {
-  cod: { label: "COD", color: "orange" },
-  vnpay: { label: "VNPay", color: "blue" },
+const paymentConfig: Record<string, { label: string; color: string; icon: any }> = {
+  cod: { label: "COD", color: "orange", icon: <CarOutlined /> },
+  vnpay: { label: "VNPay", color: "blue", icon: <BankOutlined /> },
 };
 
 const OrderPage = () => {
@@ -68,7 +47,7 @@ const OrderPage = () => {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const params: any = { limit: 100 };
+      const params: any = { limit: 1000 };
       if (statusFilter !== "all") params.status = statusFilter;
       const res = await apiClient.get("/orders", { params });
       setData(res.data.data || []);
@@ -86,265 +65,216 @@ const OrderPage = () => {
   const handleChangeStatus = async (value: string, record: Order) => {
     try {
       await apiClient.put(`/orders/${record._id}/status`, { status: value });
-      setData((prev) =>
-        prev.map((item) =>
-          item._id === record._id ? { ...item, status: value as any } : item
-        )
-      );
+      setData((prev) => prev.map((item) => (item._id === record._id ? { ...item, status: value as any } : item)));
       message.success("Cập nhật trạng thái thành công");
+      if (detailOrder?._id === record._id) {
+        setDetailOrder({ ...detailOrder, status: value as any });
+      }
     } catch (e: any) {
       message.error(e?.response?.data?.message || "Cập nhật thất bại");
     }
   };
 
-  const filteredData = data.filter((o) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      o._id.toLowerCase().includes(q) ||
-      o.customer.name.toLowerCase().includes(q) ||
-      o.customer.phone.includes(q)
-    );
-  });
+  const filteredData = useMemo(() => {
+    return data.filter((o) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return o._id.toLowerCase().includes(q) || o.customer.name.toLowerCase().includes(q) || o.customer.phone.includes(q);
+    });
+  }, [data, search]);
+
+  const stats = useMemo(() => {
+    const total = filteredData.length;
+    const revenue = filteredData.filter(o => o.status === "paid").reduce((sum, o) => sum + o.totals.total, 0);
+    const pending = filteredData.filter(o => o.status === "pending").length;
+    const paid = filteredData.filter(o => o.status === "paid").length;
+    const cancelled = filteredData.filter(o => o.status === "cancelled").length;
+    return { total, revenue, pending, paid, cancelled };
+  }, [filteredData]);
 
   const columns: ColumnsType<Order> = [
     {
       title: "Mã đơn",
       dataIndex: "_id",
-      render: (id: string) => (
-        <span className="font-mono text-xs text-gray-600">
-          #{id.slice(-8).toUpperCase()}
-        </span>
-      ),
-      width: 110,
+      render: (id: string) => <Text code className="text-xs">#{id.slice(-8).toUpperCase()}</Text>,
+      width: 100,
     },
     {
       title: "Khách hàng",
       render: (_, r) => (
-        <div>
-          <p className="font-semibold text-gray-800">{r.customer?.name || '—'}</p>
-          <p className="text-xs text-gray-400">{r.customer?.phone || '—'}</p>
-        </div>
-      ),
-    },
-    {
-      title: "Địa chỉ",
-      dataIndex: ["customer", "address"],
-      render: (val: string) => val || '—',
-      ellipsis: true,
-      width: 180,
-    },
-    {
-      title: "Sản phẩm",
-      render: (_, r) => (
-        <span className="text-sm text-gray-600">
-          {r.items.length} sản phẩm · {r.items.map(i => i.name).join(', ').slice(0, 40)}{r.items.map(i => i.name).join(', ').length > 40 ? '...' : ''}
-        </span>
+        <Space>
+          <Avatar icon={<UserOutlined />} size="small" />
+          <div>
+            <div className="font-semibold text-sm">{r.customer?.name || "—"}</div>
+            <Text type="secondary" className="text-xs">{r.customer?.phone || "—"}</Text>
+          </div>
+        </Space>
       ),
       width: 200,
     },
     {
+      title: "Sản phẩm",
+      render: (_, r) => (
+        <div>
+          <Text className="text-xs">{r.items.length} sản phẩm</Text>
+          <div className="text-xs text-gray-400 truncate max-w-[150px]">{r.items.map(i => i.name).join(", ")}</div>
+        </div>
+      ),
+      width: 180,
+    },
+    {
       title: "Tổng tiền",
       dataIndex: ["totals", "total"],
-      render: (total: number) => (
-        <span className="font-bold text-[#6272B6]">
-          {total.toLocaleString()}đ
-        </span>
-      ),
-      width: 130,
+      render: (total: number) => <Text strong className="text-[#6272B6]">{total.toLocaleString()}đ</Text>,
+      width: 120,
       sorter: (a, b) => a.totals.total - b.totals.total,
     },
     {
       title: "Thanh toán",
       dataIndex: "paymentMethod",
       render: (method: string) => {
-        const cfg = paymentLabels[method] || { label: method, color: "default" };
-        return <Tag color={cfg.color}>{cfg.label}</Tag>;
+        const cfg = paymentConfig[method] || { label: method, color: "default", icon: null };
+        return <Tag icon={cfg.icon} color={cfg.color}>{cfg.label}</Tag>;
       },
-      width: 100,
+      width: 110,
     },
     {
       title: "Ngày đặt",
       dataIndex: "createdAt",
-      render: (d: string) =>
-        new Date(d).toLocaleDateString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }),
+      render: (d: string) => (
+        <div>
+          <div className="text-xs">{new Date(d).toLocaleDateString("vi-VN")}</div>
+          <Text type="secondary" className="text-xs">{new Date(d).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</Text>
+        </div>
+      ),
       width: 110,
-      sorter: (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       defaultSortOrder: "descend",
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       render: (status: string, record: Order) => {
-        const cfg = statusLabels[status] || { label: status, color: "default" };
+        const cfg = statusConfig[status] || { label: status, color: "default", icon: null };
         return (
-          <Space>
-            <Tag color={cfg.color}>{cfg.label}</Tag>
-            <Select
-              value={status}
-              style={{ width: 150 }}
-              size="small"
-              onChange={(value) => handleChangeStatus(value, record)}
-            >
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="paid">Đã thanh toán</Option>
-              <Option value="cancelled">Đã hủy</Option>
+          <Space size="small">
+            <Tag icon={cfg.icon} color={cfg.color}>{cfg.label}</Tag>
+            <Select value={status} size="small" style={{ width: 130 }} onChange={(value) => handleChangeStatus(value, record)}>
+              <Select.Option value="pending">Chờ xử lý</Select.Option>
+              <Select.Option value="paid">Đã thanh toán</Select.Option>
+              <Select.Option value="cancelled">Đã hủy</Select.Option>
             </Select>
           </Space>
         );
       },
-      width: 260,
+      width: 240,
     },
     {
-      title: "Chi tiết",
+      title: "",
       render: (_, record) => (
-        <Tooltip title="Xem chi tiết">
-          <Button
-            type="text"
-            icon={<EyeOutlined />}
-            onClick={() => setDetailOrder(record)}
-          />
-        </Tooltip>
+        <Button type="link" icon={<EyeOutlined />} onClick={() => setDetailOrder(record)}>Chi tiết</Button>
       ),
-      width: 70,
+      width: 90,
     },
   ];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Quản lý đơn hàng</h2>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={loadOrders}
-          loading={loading}
-        >
-          Làm mới
-        </Button>
+        <Title level={3} className="m-0">📦 Quản lý đơn hàng</Title>
+        <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading}>Làm mới</Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 mb-4 flex-wrap">
-        <Input
-          placeholder="Tìm theo mã, tên, SĐT..."
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-          style={{ width: 280 }}
-        />
-        <Select
-          value={statusFilter}
-          onChange={setStatusFilter}
-          style={{ width: 160 }}
-        >
-          <Option value="all">Tất cả trạng thái</Option>
-          <Option value="pending">Chờ xử lý</Option>
-          <Option value="paid">Đã thanh toán</Option>
-          <Option value="shipping">Đang giao</Option>
-          <Option value="completed">Hoàn thành</Option>
-          <Option value="cancelled">Đã hủy</Option>
-        </Select>
-        <Tag color="blue">{filteredData.length} đơn</Tag>
-      </div>
+      <Row gutter={16} className="mb-6">
+        <Col span={6}>
+          <Card>
+            <Statistic title="Tổng đơn hàng" value={stats.total} prefix={<ShoppingOutlined />} valueStyle={{ color: "#3f8600" }} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Doanh thu" value={stats.revenue} suffix="đ" prefix={<DollarOutlined />} valueStyle={{ color: "#6272B6" }} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Chờ xử lý" value={stats.pending} prefix={<ClockCircleOutlined />} valueStyle={{ color: "#faad14" }} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Đã thanh toán" value={stats.paid} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#52c41a" }} />
+          </Card>
+        </Col>
+      </Row>
 
-      <Table
-        columns={columns}
-        dataSource={filteredData}
-        rowKey="_id"
-        bordered
-        loading={loading}
-        pagination={{ pageSize: 15, showSizeChanger: true }}
-        scroll={{ x: 1100 }}
-        size="middle"
-      />
+      <Card className="mb-4">
+        <Space size="middle" className="w-full" wrap>
+          <Input placeholder="Tìm theo mã, tên, SĐT..." prefix={<SearchOutlined />} value={search} onChange={(e) => setSearch(e.target.value)} allowClear style={{ width: 300 }} />
+          <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 160 }}>
+            <Select.Option value="all">Tất cả trạng thái</Select.Option>
+            <Select.Option value="pending">Chờ xử lý</Select.Option>
+            <Select.Option value="paid">Đã thanh toán</Select.Option>
+            <Select.Option value="cancelled">Đã hủy</Select.Option>
+          </Select>
+          <Tag color="blue">{filteredData.length} đơn</Tag>
+        </Space>
+      </Card>
 
-      {/* Detail Modal */}
-      <Modal
-        open={!!detailOrder}
-        onCancel={() => setDetailOrder(null)}
-        footer={null}
-        title={
-          detailOrder
-            ? `Chi tiết đơn #${detailOrder._id.slice(-8).toUpperCase()}`
-            : ""
-        }
-        width={600}
-      >
+      <Card>
+        <Table columns={columns} dataSource={filteredData} rowKey="_id" loading={loading} pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn` }} scroll={{ x: 1200 }} />
+      </Card>
+
+      <Modal open={!!detailOrder} onCancel={() => setDetailOrder(null)} footer={null} title={<Space><ShoppingOutlined />Chi tiết đơn hàng #{detailOrder?._id.slice(-8).toUpperCase()}</Space>} width={700}>
         {detailOrder && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-400">Khách hàng</p>
-                <p className="font-semibold">{detailOrder.customer?.name || '—'}</p>
-              </div>
-              <div>
-                <p className="text-gray-400">Điện thoại</p>
-                <p className="font-semibold">{detailOrder.customer?.phone || '—'}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-gray-400">Địa chỉ</p>
-                <p className="font-semibold">{detailOrder.customer?.address || '—'}</p>
-              </div>
-              <div>
-                <p className="text-gray-400">Thanh toán</p>
-                <Tag
-                  color={
-                    paymentLabels[detailOrder.paymentMethod]?.color || "default"
-                  }
-                >
-                  {paymentLabels[detailOrder.paymentMethod]?.label ||
-                    detailOrder.paymentMethod}
-                </Tag>
-              </div>
-              <div>
-                <p className="text-gray-400">Trạng thái</p>
-                <Tag
-                  color={statusLabels[detailOrder.status]?.color || "default"}
-                >
-                  {statusLabels[detailOrder.status]?.label || detailOrder.status}
-                </Tag>
+          <div>
+            <Row gutter={16} className="mb-4">
+              <Col span={12}>
+                <Card size="small" title={<Space><UserOutlined />Thông tin khách hàng</Space>}>
+                  <p><Text strong>Họ tên:</Text> {detailOrder.customer?.name}</p>
+                  <p><Text strong>SĐT:</Text> {detailOrder.customer?.phone}</p>
+                  <p><Text strong>Địa chỉ:</Text> {detailOrder.customer?.address}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card size="small" title="Thông tin đơn hàng">
+                  <p><Text strong>Thanh toán:</Text> <Tag icon={paymentConfig[detailOrder.paymentMethod]?.icon} color={paymentConfig[detailOrder.paymentMethod]?.color}>{paymentConfig[detailOrder.paymentMethod]?.label}</Tag></p>
+                  <p><Text strong>Trạng thái:</Text> <Tag icon={statusConfig[detailOrder.status]?.icon} color={statusConfig[detailOrder.status]?.color}>{statusConfig[detailOrder.status]?.label}</Tag></p>
+                  <p><Text strong>Ngày đặt:</Text> {new Date(detailOrder.createdAt).toLocaleString("vi-VN")}</p>
+                </Card>
+              </Col>
+            </Row>
+
+            <Divider>Sản phẩm</Divider>
+            <div className="space-y-3 mb-4">
+              {detailOrder.items.map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=No+Image"; }} />
+                  <div className="flex-1">
+                    <Text strong>{item.name}</Text>
+                    <div className="text-xs text-gray-500">{item.quantity} × {item.price.toLocaleString()}đ</div>
+                  </div>
+                  <Text strong className="text-[#6272B6]">{(item.price * item.quantity).toLocaleString()}đ</Text>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <Text strong className="text-lg">Tổng cộng</Text>
+                <Text strong className="text-2xl text-[#6272B6]">{detailOrder.totals.total.toLocaleString()}đ</Text>
               </div>
             </div>
 
-            <div>
-              <p className="font-semibold text-gray-700 mb-2">Sản phẩm:</p>
-              <div className="space-y-2">
-                {detailOrder.items.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 border-b pb-2">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://placehold.co/48x48?text=No+Image";
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">{item.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {item.quantity} × {item.price.toLocaleString()}đ
-                      </p>
-                    </div>
-                    <p className="font-bold text-[#6272B6] text-sm">
-                      {(item.price * item.quantity).toLocaleString()}đ
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between font-bold text-lg mt-3 pt-2 border-t">
-                <span>Tổng cộng</span>
-                <span className="text-[#6272B6]">
-                  {detailOrder.totals.total.toLocaleString()}đ
-                </span>
-              </div>
-            </div>
+            <Divider />
+            <Space>
+              <Select value={detailOrder.status} onChange={(value) => handleChangeStatus(value, detailOrder)} style={{ width: 200 }}>
+                <Select.Option value="pending">Chờ xử lý</Select.Option>
+                <Select.Option value="paid">Đã thanh toán</Select.Option>
+                <Select.Option value="cancelled">Đã hủy</Select.Option>
+              </Select>
+              <Button type="primary" onClick={() => setDetailOrder(null)}>Đóng</Button>
+            </Space>
           </div>
         )}
       </Modal>
