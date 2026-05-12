@@ -25,7 +25,13 @@ export default function PetDetail() {
     return <div className="text-center py-40">Không tìm thấy thú cưng</div>
   }
 
-  const petImage = pet.image || (pet.images?.[0]) || "/images/Jack.png"
+  // const petImage = pet.image || (pet.images?.[0]) || "/images/Jack.png"
+  const petImage =
+  pet.image
+    ? `http://localhost:5000${pet.image}`
+    : pet.images?.[0]
+      ? `http://localhost:5000${pet.images[0]}`
+      : "/images/Jack.png";
   const petId = pet._id || id
 
   return (

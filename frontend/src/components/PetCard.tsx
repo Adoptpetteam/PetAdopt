@@ -9,7 +9,15 @@ export default function PetCard({ pet }: Props) {
   const petName = pet.name || pet.pet?.name || "Unknown"
   const petAge = pet.age || pet.pet?.age || "-"
   const petGender = pet.gender || pet.pet?.gender || "-"
-  const petImage = pet.images?.[0] || pet.image || pet.pet?.images?.[0] || "https://via.placeholder.com/300"
+  // const petImage = pet.images?.[0] || pet.image || pet.pet?.images?.[0] || "https://via.placeholder.com/300"
+  const imagePath =
+  pet.images?.[0] ||
+  pet.image ||
+  pet.pet?.images?.[0];
+
+const petImage = imagePath
+  ? `http://localhost:5000${imagePath}`
+  : "https://via.placeholder.com/300";
 
   return (
     <Link to={`/pet/${petId}`}>

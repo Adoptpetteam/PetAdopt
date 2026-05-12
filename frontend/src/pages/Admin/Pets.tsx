@@ -73,7 +73,17 @@ const navigate = useNavigate();
             className="bg-white shadow rounded-xl p-4 flex justify-between items-center"
           >
             <div className="flex gap-4 items-center">
-              <img src={p.image || p.images?.[0] || '/placeholder.png'} className="w-20 h-20 object-cover rounded" />
+              {/* <img src={p.image || p.images?.[0] || '/placeholder.png'} className="w-20 h-20 object-cover rounded" /> */}
+              <img
+  src={
+    p.image
+      ? `http://localhost:5000${p.image}`
+      : p.images?.[0]
+        ? `http://localhost:5000${p.images[0]}`
+        : "/placeholder.png"
+  }
+  className="w-20 h-20 object-cover rounded"
+/>
 
               <div>
                 <p className="font-semibold">{p.name}</p>
