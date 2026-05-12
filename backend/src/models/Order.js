@@ -19,7 +19,7 @@ const orderSchema = new mongoose.Schema(
       enum: ['paid', 'pending', 'cancelled'],
       default: 'paid',
     },
-    paymentMethod: { type: String, enum: ['momo', 'zalopay'], required: true },
+    paymentMethod: { type: String, enum: ['COD', 'Banking', 'momo', 'zalopay', 'vnpay'], required: true },
     customer: {
       name: { type: String, required: true, trim: true },
       phone: { type: String, required: true, trim: true },
