@@ -21,7 +21,7 @@ function sortObject(obj) {
   return sorted;
 }
 
-function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
+function createVNPayUrl(orderId, amount, ipAddr) {
   const tmnCode = VNPAY_CONFIG.TMN_CODE;
   const secretKey = VNPAY_CONFIG.HASH_SECRET;
   const vnpUrl = VNPAY_CONFIG.URL;
@@ -34,10 +34,7 @@ function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
     `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}` +
     `${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
 
-  // txnRef: chỉ dùng ký tự an toàn, tối đa 100 ký tự
   const txnRef = `${Date.now()}${String(orderId).slice(-8)}`;
-
-  // orderInfo: chỉ dùng ASCII, không dấu tiếng Việt
   const safeOrderInfo = `Thanh toan don hang ${String(orderId).slice(-8)}`;
 
   let vnpParams = {
@@ -49,7 +46,7 @@ function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
     vnp_TxnRef: txnRef,
     vnp_OrderInfo: safeOrderInfo,
     vnp_OrderType: 'other',
-    vnp_Amount: amount * 100,
+    vnp_Amount: String(amount * 100),
     vnp_ReturnUrl: returnUrl,
     vnp_IpAddr: ipAddr || '127.0.0.1',
     vnp_CreateDate: createDate,
@@ -58,15 +55,16 @@ function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   // Sort theo key alphabet
   vnpParams = sortObject(vnpParams);
 
-  // Tạo chuỗi ký — KHÔNG encode URL ở bước này
-  const signData = querystring.stringify(vnpParams, { encode: false });
+  // Build chuỗi ký: encode từng value bằng encodeURIComponent, thay %20 bằng +
+  const signData = Object.entries(vnpParams)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%20/g, '+')}`)
+    .join('&');
+
   const hmac = crypto.createHmac('sha512', secretKey);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-  // Thêm hash vào params rồi mới build URL (có encode)
-  vnpParams['vnp_SecureHash'] = signed;
-
-  const payUrl = `${vnpUrl}?${querystring.stringify(vnpParams)}`;
+  // Build URL cuối: dùng cùng cách encode
+  const payUrl = `${vnpUrl}?${signData}&vnp_SecureHash=${signed}`;
 
   return { payUrl, txnRef };
 }
@@ -113,18 +111,6 @@ exports.checkoutOrder = async (req, res) => {
       }
     }
 
-    // Decrease stock
-    for (const item of items) {
-      const qty = toNumber(item.quantity);
-      const updated = await Product.updateOne(
-        { _id: item.productId, quantity: { $gte: qty } },
-        { $inc: { quantity: -qty } }
-      );
-      if (updated.modifiedCount === 0) {
-        return res.status(400).json({ success: false, message: 'Sản phẩm đã hết hàng' });
-      }
-    }
-
     // Build order items
     const orderItems = items.map((item) => {
       const product = productMap.get(String(item.productId));
@@ -167,11 +153,9 @@ exports.checkoutOrder = async (req, res) => {
       const { payUrl, txnRef } = createVNPayUrl(
         createdOrder._id,
         subtotal,
-        orderInfo,
         ipAddr
       );
 
-      // Lưu txnRef để đối chiếu khi callback
       await Order.findByIdAndUpdate(createdOrder._id, { vnpayTxnRef: txnRef });
 
       return res.status(201).json({
@@ -182,11 +166,20 @@ exports.checkoutOrder = async (req, res) => {
       });
     }
 
-    // ===== COD FLOW =====
+    // ===== COD FLOW: trừ stock ngay =====
+    for (const item of items) {
+      const qty = toNumber(item.quantity);
+      await Product.updateOne(
+        { _id: item.productId, quantity: { $gte: qty } },
+        { $inc: { quantity: -qty } }
+      );
+    }
+    await Order.findByIdAndUpdate(createdOrder._id, { status: 'paid' });
+
     return res.status(201).json({
       success: true,
       paymentMethod: 'cod',
-      data: createdOrder,
+      data: { ...createdOrder.toObject(), status: 'paid' },
     });
   } catch (err) {
     console.error('CHECKOUT ERROR:', err);
@@ -207,11 +200,20 @@ exports.vnpayReturn = async (req, res) => {
     delete vnpParams['vnp_SecureHashType'];
 
     const sortedParams = sortObject(vnpParams);
-    const signData = querystring.stringify(sortedParams, { encode: false });
+
+    // Dùng cùng cách encode như khi tạo URL
+    const signData = Object.entries(sortedParams)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%20/g, '+')}`)
+      .join('&');
+
     const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.HASH_SECRET);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
     const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    console.log('[VNPay Return] secureHash:', secureHash);
+    console.log('[VNPay Return] signed:    ', signed);
+    console.log('[VNPay Return] match:', secureHash === signed);
 
     if (secureHash !== signed) {
       return res.redirect(`${frontendBase}/orders/success?status=fail&message=invalid_signature`);
