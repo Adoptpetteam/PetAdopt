@@ -80,17 +80,19 @@ const VaccinationSchedule = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [schedulesRes, petsRes] = await Promise.all([
-        apiClient.get("/vaccinations/me"),
-        apiClient.get("/pets") // Assuming there's an endpoint to get user's pets
-      ]);
+      // Chỉ load schedules trước, pets sẽ load sau
+      const schedulesRes = await apiClient.get("/vaccinations/me");
 
       if (schedulesRes.data.success) {
         setSchedules(schedulesRes.data.data);
       }
 
-      // For now, we'll create mock pets data since we might not have pets endpoint
-      setPets([]);
+      // Tạm thời dùng mock data cho pets
+      setPets([
+        { _id: "1", name: "Buddy", breed: "Golden Retriever", age: 2, image: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=100" },
+        { _id: "2", name: "Mimi", breed: "Persian Cat", age: 1, image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100" },
+        { _id: "3", name: "Max", breed: "German Shepherd", age: 3, image: "https://images.unsplash.com/photo-1551717743-49959800b1f6?w=100" }
+      ]);
     } catch (error) {
       console.error("Error loading data:", error);
       message.error("Không thể tải dữ liệu");
