@@ -8,15 +8,17 @@ import {
   Radio,
   Card,
   Divider,
-  Spin,
+  Tag,
 } from "antd";
 import {
   UserOutlined,
   PhoneOutlined,
-  HomeOutlined,
   CreditCardOutlined,
   CarOutlined,
   BankOutlined,
+  TagOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 
 interface CartItem {
@@ -34,6 +36,14 @@ export default function Checkout() {
   const selectedItems: CartItem[] = location.state?.selectedItems || [];
 
   const [loading, setLoading] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    code: string;
+    description: string;
+    discount: number;
+    finalTotal: number;
+  } | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -59,6 +69,8 @@ export default function Checkout() {
     (sum, item) => sum + item.price * item.cartQuantity,
     0
   );
+  const discount = appliedVoucher?.discount ?? 0;
+  const finalTotal = total - discount;
 
   const totalQty = selectedItems.reduce((sum, item) => sum + item.cartQuantity, 0);
 
@@ -66,6 +78,29 @@ export default function Checkout() {
     form.name.trim().length > 0 &&
     form.phone.trim().length > 0 &&
     form.address.trim().length > 0;
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return message.warning("Vui lòng nhập mã voucher");
+    setVoucherLoading(true);
+    try {
+      const res = await apiClient.post("/vouchers/validate", {
+        code: voucherCode.trim(),
+        subtotal: total,
+      });
+      setAppliedVoucher(res.data.data);
+      message.success(`Áp dụng thành công! Giảm ${res.data.data.discount.toLocaleString()}đ`);
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Mã voucher không hợp lệ");
+      setAppliedVoucher(null);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode("");
+  };
 
   const handlePlaceOrder = async () => {
     if (!form.name.trim()) return message.error("Vui lòng nhập họ tên");
@@ -92,6 +127,7 @@ export default function Checkout() {
           productId: item._id,
           quantity: item.cartQuantity,
         })),
+        voucherCode: appliedVoucher?.code || null,
       };
 
       const res = await apiClient.post("/orders/checkout", payload);
@@ -124,9 +160,40 @@ export default function Checkout() {
       });
     } catch (error: any) {
       console.error(error);
-      message.error(
-        error.response?.data?.message || "Đặt hàng thất bại, vui lòng thử lại"
-      );
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || "Đặt hàng thất bại, vui lòng thử lại";
+
+      if (status === 409) {
+        // Race condition — hàng vừa hết, sync lại giỏ và thông báo rõ
+        message.error({ content: msg, duration: 4 });
+
+        // Sync lại tồn kho trong giỏ
+        try {
+          const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+          const updated = await Promise.all(
+            cart.map(async (item: any) => {
+              try {
+                const res = await apiClient.get(`/products/${item._id}`);
+                const latest = res.data?.data;
+                if (!latest || latest.quantity === 0) return null; // hết hàng → xóa
+                return { ...item, quantity: latest.quantity, cartQuantity: Math.min(item.cartQuantity, latest.quantity) };
+              } catch { return item; }
+            })
+          );
+          const validCart = updated.filter(Boolean);
+          localStorage.setItem("cart", JSON.stringify(validCart));
+          window.dispatchEvent(new Event("cart-change"));
+
+          // Cập nhật lại selectedItems trong state để hiển thị đúng
+          const removedCount = cart.length - validCart.length;
+          if (removedCount > 0) {
+            message.warning(`${removedCount} sản phẩm đã hết hàng và bị xóa khỏi giỏ`);
+            navigate("/cart");
+          }
+        } catch { /* silent */ }
+      } else {
+        message.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -318,24 +385,83 @@ export default function Checkout() {
 
             <Divider className="my-4" />
 
+            {/* Voucher */}
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-1">
+                <TagOutlined className="text-[#6272B6]" /> Mã giảm giá
+              </p>
+              {appliedVoucher ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircleOutlined className="text-green-500" />
+                    <div>
+                      <span className="font-bold text-green-700">{appliedVoucher.code}</span>
+                      {appliedVoucher.description && (
+                        <p className="text-xs text-gray-500">{appliedVoucher.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-green-600 font-bold">
+                      -{appliedVoucher.discount.toLocaleString()}đ
+                    </span>
+                    <button onClick={handleRemoveVoucher} className="text-gray-400 hover:text-red-500 transition-colors">
+                      <CloseCircleOutlined />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nhập mã voucher..."
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    onPressEnter={handleApplyVoucher}
+                    className="rounded-xl h-10"
+                    prefix={<TagOutlined className="text-gray-400" />}
+                  />
+                  <Button
+                    onClick={handleApplyVoucher}
+                    loading={voucherLoading}
+                    className="rounded-xl h-10 px-5 bg-[#6272B6] text-white border-0 hover:bg-[#4a569d]"
+                  >
+                    Áp dụng
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <Divider className="my-4" />
+
             {/* Totals */}
             <div className="space-y-2 mb-6">
               <div className="flex justify-between text-gray-500 text-sm">
                 <span>Tạm tính</span>
                 <span>{total.toLocaleString()}đ</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-600 flex items-center gap-1">
+                    <TagOutlined /> Giảm giá ({appliedVoucher?.code})
+                  </span>
+                  <span className="text-green-600 font-semibold">-{discount.toLocaleString()}đ</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-500 text-sm">
                 <span>Phí vận chuyển</span>
                 <span className="text-green-500 font-semibold">Miễn phí</span>
               </div>
               <Divider className="my-2" />
               <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-700">
-                  Tổng thanh toán
-                </span>
-                <span className="text-3xl font-black text-[#6272B6]">
-                  {total.toLocaleString()}đ
-                </span>
+                <span className="text-lg font-bold text-gray-700">Tổng thanh toán</span>
+                <div className="text-right">
+                  {discount > 0 && (
+                    <p className="text-sm text-gray-400 line-through">{total.toLocaleString()}đ</p>
+                  )}
+                  <span className="text-3xl font-black text-[#6272B6]">
+                    {finalTotal.toLocaleString()}đ
+                  </span>
+                </div>
               </div>
             </div>
 
