@@ -55,6 +55,7 @@ import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
 import Supporters from "../pages/Admin/Supporters";
 
+import PaymentResult from "../pages/PaymentResult";
 import VaccinationSchedule from "../pages/VaccinationSchedule";
 
 export default function AppRoutes() {
