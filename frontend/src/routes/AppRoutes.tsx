@@ -47,6 +47,7 @@ import ProductPage from "../pages/Admin/product";
 import OrderPage from "../pages/Admin/order";
 import CustomerPage from "../pages/Admin/CustomerPage"; // thêm dòng này
 import Statistics from "../pages/Admin/Statistics";
+import VoucherPage from "../pages/Admin/VoucherPage";
 
 import AdminRoute from "../routes/AdminRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
@@ -172,6 +173,12 @@ export default function AppRoutes() {
           <Route
             path="statistics"
             element={<Statistics />}
+          />
+
+          {/* VOUCHER */}
+          <Route
+            path="vouchers"
+            element={<VoucherPage />}
           />
 
           {/* THÔNG TIN KHÁCH HÀNG */}
