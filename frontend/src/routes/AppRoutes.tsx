@@ -55,6 +55,8 @@ import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
 import Supporters from "../pages/Admin/Supporters";
 
+import PaymentResult from "../pages/PaymentResult";
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -89,6 +91,10 @@ export default function AppRoutes() {
         <Route
           path="/orders/success"
           element={<OrderSuccess />}
+        />
+        <Route
+          path="/orders/payment-result"
+          element={<PaymentResult />}
         />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/account" element={<AccountPage />} />

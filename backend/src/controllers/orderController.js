@@ -304,7 +304,7 @@ exports.vnpayReturn = async (req, res) => {
     console.log('[VNPay Return] txnRef:', vnpParams['vnp_TxnRef']);
 
     if (secureHash !== signed) {
-      return res.redirect(`${frontendBase}/orders/success?status=fail&message=invalid_signature`);
+      return res.redirect(`${frontendBase}/orders/payment-result?status=failed&message=invalid_signature`);
     }
 
     const responseCode = vnpParams['vnp_ResponseCode'];
@@ -312,7 +312,7 @@ exports.vnpayReturn = async (req, res) => {
     const order = await Order.findOne({ vnpayTxnRef: txnRef });
 
     if (!order) {
-      return res.redirect(`${frontendBase}/orders/success?status=fail&message=order_not_found`);
+      return res.redirect(`${frontendBase}/orders/payment-result?status=failed&message=order_not_found`);
     }
 
     const orderId = order._id;
@@ -332,8 +332,10 @@ exports.vnpayReturn = async (req, res) => {
           }
         );
       }
-      return res.redirect(`${frontendBase}/orders/success?status=success&orderId=${orderId}`);
+      return res.redirect(`${frontendBase}/orders/payment-result?status=success&orderId=${orderId}`);
     } else {
+      // ===== XỬ LÝ HỦY THANH TOÁN =====
+      // Không xóa đơn hàng, chỉ cập nhật trạng thái thành "cancelled"
       if (order.status === 'pending') {
         // Hoàn kho
         for (const item of order.items) {
@@ -342,15 +344,16 @@ exports.vnpayReturn = async (req, res) => {
         // Voucher chưa được tăng (VNPay) → không cần hoàn
         await Order.findByIdAndUpdate(orderId, {
           status: 'cancelled',
-          $push: { statusHistory: { status: 'cancelled', note: `VNPay thất bại - mã lỗi ${responseCode}` } },
+          $push: { statusHistory: { status: 'cancelled', note: `Thanh toán VNPay bị hủy - mã lỗi ${responseCode}` } },
         });
       }
-      return res.redirect(`${frontendBase}/orders/success?status=fail&orderId=${orderId}&code=${responseCode}`);
+      // Redirect về trang thất bại với orderId để FE có thể lấy thông tin đơn hàng
+      return res.redirect(`${frontendBase}/orders/payment-result?status=failed&orderId=${orderId}&code=${responseCode}`);
     }
   } catch (err) {
     console.error('VNPAY RETURN ERROR:', err);
     const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(`${frontendBase}/orders/success?status=fail&message=server_error`);
+    return res.redirect(`${frontendBase}/orders/payment-result?status=failed&message=server_error`);
   }
 };
 
