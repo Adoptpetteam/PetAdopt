@@ -30,6 +30,7 @@ const adminRoutes = require('./src/routes/admin.routes');
 const productRoutes = require('./src/routes/product.routes');
 const orderRoutes = require('./src/routes/order.routes');
 const statisticsRoutes = require('./statistics.routes');
+const voucherRoutes = require('./src/routes/voucher.routes');
 
 const app = express();
 
@@ -86,6 +87,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 
 app.use('/api/statistics', statisticsRoutes);
+
+app.use('/api/vouchers', voucherRoutes);
 
 // ===============================
 // HEALTH CHECK
