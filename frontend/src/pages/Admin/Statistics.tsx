@@ -65,9 +65,16 @@ export default function Statistics() {
   const [inventory, setInventory] = useState<InventoryResponse["data"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"revenue" | "inventory">("revenue");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchAll();
+  }, [period, dateRange]);
+
+  // Auto-refresh mỗi 30 giây
+  useEffect(() => {
+    const timer = setInterval(() => fetchAll(), 30000);
+    return () => clearInterval(timer);
   }, [period, dateRange]);
 
   async function fetchAll() {
@@ -83,6 +90,7 @@ export default function Statistics() {
       setRevenueData(rv.data);
       setTopProducts(tp.data);
       setInventory(inv.data);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error("Statistics fetch error:", err);
     } finally {
@@ -111,7 +119,24 @@ export default function Statistics() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-[#6272B6]">Thống kê</h1>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-3xl font-bold text-[#6272B6]">Thống kê</h1>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <span className="text-xs text-gray-400">
+              Cập nhật lúc: {lastUpdated.toLocaleTimeString("vi-VN")}
+            </span>
+          )}
+          <button
+            onClick={fetchAll}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-[#6272B6] hover:text-[#6272B6] transition-all disabled:opacity-50"
+          >
+            <span className={loading ? "animate-spin" : ""}>🔄</span>
+            Làm mới
+          </button>
+        </div>
+      </div>
 
       {/* ── Bộ lọc thời gian ── */}
       <div className="bg-white rounded-xl shadow p-4 flex flex-wrap items-center gap-4">

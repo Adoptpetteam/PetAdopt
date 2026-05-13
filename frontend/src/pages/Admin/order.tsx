@@ -18,7 +18,7 @@ interface Order {
   _id: string;
   createdAt: string;
   updatedAt: string;
-  status: "pending" | "paid" | "shipping" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "paid" | "shipping" | "completed" | "cancelled";
   paymentMethod: "cod" | "vnpay";
   customer: { name: string; phone: string; address: string };
   items: OrderItem[];
@@ -27,11 +27,12 @@ interface Order {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: "Chờ xử lý", color: "orange", icon: <ClockCircleOutlined /> },
-  paid: { label: "Đã thanh toán", color: "blue", icon: <CheckCircleOutlined /> },
-  shipping: { label: "Đang giao hàng", color: "purple", icon: <TruckOutlined /> },
-  completed: { label: "Hoàn thành", color: "green", icon: <GiftOutlined /> },
-  cancelled: { label: "Đã hủy", color: "red", icon: <CloseCircleOutlined /> },
+  pending:   { label: "Chờ xử lý",     color: "orange", icon: <ClockCircleOutlined /> },
+  confirmed: { label: "Đã xác nhận",   color: "cyan",   icon: <CheckCircleOutlined /> },
+  paid:      { label: "Đã thanh toán", color: "blue",   icon: <CheckCircleOutlined /> },
+  shipping:  { label: "Đang giao hàng",color: "purple", icon: <TruckOutlined /> },
+  completed: { label: "Hoàn thành",    color: "green",  icon: <GiftOutlined /> },
+  cancelled: { label: "Đã hủy",        color: "red",    icon: <CloseCircleOutlined /> },
 };
 
 const paymentConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -102,11 +103,12 @@ const OrderPage = () => {
     const total = filteredData.length;
     const revenue = filteredData.filter(o => o.status === "completed" || o.status === "paid").reduce((sum, o) => sum + o.totals.total, 0);
     const pending = filteredData.filter(o => o.status === "pending").length;
+    const confirmed = filteredData.filter(o => o.status === "confirmed").length;
     const paid = filteredData.filter(o => o.status === "paid").length;
     const shipping = filteredData.filter(o => o.status === "shipping").length;
     const completed = filteredData.filter(o => o.status === "completed").length;
     const cancelled = filteredData.filter(o => o.status === "cancelled").length;
-    return { total, revenue, pending, paid, shipping, completed, cancelled };
+    return { total, revenue, pending, confirmed, paid, shipping, completed, cancelled };
   }, [filteredData]);
 
   const columns: ColumnsType<Order> = [
@@ -176,8 +178,9 @@ const OrderPage = () => {
         return (
           <Space size="small">
             <Tag icon={cfg.icon} color={cfg.color}>{cfg.label}</Tag>
-            <Select value={status} size="small" style={{ width: 150 }} onChange={(value) => handleChangeStatus(value, record)}>
+            <Select value={status} size="small" style={{ width: 160 }} onChange={(value) => handleChangeStatus(value, record)}>
               <Select.Option value="pending">Chờ xử lý</Select.Option>
+              <Select.Option value="confirmed">Đã xác nhận (COD)</Select.Option>
               <Select.Option value="paid">Đã thanh toán</Select.Option>
               <Select.Option value="shipping">Đang giao hàng</Select.Option>
               <Select.Option value="completed">Hoàn thành</Select.Option>
@@ -222,7 +225,7 @@ const OrderPage = () => {
             <Statistic title="Tổng đơn" value={stats.total} prefix={<ShoppingOutlined />} valueStyle={{ color: "#3f8600" }} />
           </Card>
         </Col>
-        <Col span={5}>
+        <Col span={4}>
           <Card>
             <Statistic title="Doanh thu" value={stats.revenue} suffix="đ" prefix={<DollarOutlined />} valueStyle={{ color: "#6272B6" }} />
           </Card>
@@ -232,12 +235,17 @@ const OrderPage = () => {
             <Statistic title="Chờ xử lý" value={stats.pending} prefix={<ClockCircleOutlined />} valueStyle={{ color: "#faad14" }} />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
           <Card>
-            <Statistic title="Đã thanh toán" value={stats.paid} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#1890ff" }} />
+            <Statistic title="Đã xác nhận" value={stats.confirmed} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#13c2c2" }} />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
+          <Card>
+            <Statistic title="Đã TT" value={stats.paid} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#1890ff" }} />
+          </Card>
+        </Col>
+        <Col span={3}>
           <Card>
             <Statistic title="Đang giao" value={stats.shipping} prefix={<TruckOutlined />} valueStyle={{ color: "#722ed1" }} />
           </Card>
@@ -255,7 +263,8 @@ const OrderPage = () => {
           <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 180 }}>
             <Select.Option value="all">Tất cả trạng thái</Select.Option>
             <Select.Option value="pending">Chờ xử lý</Select.Option>
-            <Select.Option value="paid">Đã thanh toán</Select.Option>
+            <Select.Option value="confirmed">Đã xác nhận (COD)</Select.Option>
+            <Select.Option value="paid">Đã thanh toán (VNPay)</Select.Option>
             <Select.Option value="shipping">Đang giao hàng</Select.Option>
             <Select.Option value="completed">Hoàn thành</Select.Option>
             <Select.Option value="cancelled">Đã hủy</Select.Option>
@@ -313,6 +322,7 @@ const OrderPage = () => {
             <Space>
               <Select value={detailOrder.status} onChange={(value) => handleChangeStatus(value, detailOrder)} style={{ width: 200 }}>
                 <Select.Option value="pending">Chờ xử lý</Select.Option>
+                <Select.Option value="confirmed">Đã xác nhận (COD)</Select.Option>
                 <Select.Option value="paid">Đã thanh toán</Select.Option>
                 <Select.Option value="shipping">Đang giao hàng</Select.Option>
                 <Select.Option value="completed">Hoàn thành</Select.Option>

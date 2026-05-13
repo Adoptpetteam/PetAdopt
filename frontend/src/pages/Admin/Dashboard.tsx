@@ -39,29 +39,31 @@ export default function Dashboard() {
       {loading ? (
         <div className="text-gray-400 py-10">Đang tải...</div>
       ) : (
-        <div className="grid grid-cols-3 gap-6">
+        <>
+          <div className="grid grid-cols-3 gap-6">
 
-          <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
-            <h2 className="text-gray-500 text-sm uppercase tracking-wide">Tổng đơn nhận nuôi</h2>
-            <p className="text-3xl font-bold text-[#6272B6] mt-2">{stats.total}</p>
+            <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+              <h2 className="text-gray-500 text-sm uppercase tracking-wide">Tổng đơn nhận nuôi</h2>
+              <p className="text-3xl font-bold text-[#6272B6] mt-2">{stats.total}</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+              <h2 className="text-gray-500 text-sm uppercase tracking-wide">Chờ duyệt</h2>
+              <p className="text-3xl font-bold text-yellow-500 mt-2">{stats.pending}</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+              <h2 className="text-gray-500 text-sm uppercase tracking-wide">Đã duyệt</h2>
+              <p className="text-3xl font-bold text-green-500 mt-2">{stats.approved}</p>
+            </div>
+
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
-            <h2 className="text-gray-500 text-sm uppercase tracking-wide">Chờ duyệt</h2>
-            <p className="text-3xl font-bold text-yellow-500 mt-2">{stats.pending}</p>
+          {/* Thống kê doanh thu 30 ngày */}
+          <div className="mt-6">
+            <StatisticsWidget />
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
-            <h2 className="text-gray-500 text-sm uppercase tracking-wide">Đã duyệt</h2>
-            <p className="text-3xl font-bold text-green-500 mt-2">{stats.approved}</p>
-          </div>
-
-        </div>
-
-        {/* Thống kê doanh thu 30 ngày */}
-        <div className="mt-6">
-          <StatisticsWidget />
-        </div>
+        </>
       )}
     </div>
   )
