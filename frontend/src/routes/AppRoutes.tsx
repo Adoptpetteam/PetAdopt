@@ -55,7 +55,7 @@ import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
 import Supporters from "../pages/Admin/Supporters";
 
-import PaymentResult from "../pages/PaymentResult";
+import VaccinationSchedule from "../pages/VaccinationSchedule";
 
 export default function AppRoutes() {
   return (
@@ -103,11 +103,7 @@ export default function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           <Route
             path="/vaccination-schedule"
-            element={
-              <div className="py-20 text-center">
-                Tính năng đang phát triển
-              </div>
-            }
+            element={<VaccinationSchedule />}
           />
         </Route>
       </Route>

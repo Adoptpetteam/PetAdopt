@@ -14,6 +14,7 @@ const cors = require('cors');
 // DATABASE
 // ===============================
 const connectDB = require('./src/config/database');
+const { startVaccinationReminderCron } = require('./src/scripts/sendVaccinationReminders');
 
 // ===============================
 // ROUTES
@@ -31,6 +32,7 @@ const productRoutes = require('./src/routes/product.routes');
 const orderRoutes = require('./src/routes/order.routes');
 const statisticsRoutes = require('./statistics.routes');
 const voucherRoutes = require('./src/routes/voucher.routes');
+const vaccinationRoutes = require('./src/routes/vaccination.routes');
 
 const app = express();
 
@@ -90,6 +92,8 @@ app.use('/api/statistics', statisticsRoutes);
 
 app.use('/api/vouchers', voucherRoutes);
 
+app.use('/api/vaccinations', vaccinationRoutes);
+
 // ===============================
 // HEALTH CHECK
 // ===============================
@@ -123,4 +127,9 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  
+  // Khởi động cron job cho nhắc nhở tiêm phòng
+  if (process.env.NODE_ENV !== 'test') {
+    startVaccinationReminderCron();
+  }
 });
