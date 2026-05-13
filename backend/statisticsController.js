@@ -2,20 +2,25 @@ const Order = require('./src/models/Order');
 const Product = require('./src/models/Product');
 const mongoose = require('mongoose');
 
+// Helper: parse endDate đến cuối ngày (23:59:59.999) để không bỏ sót đơn trong ngày
+function parseEndDate(dateStr) {
+  const d = new Date(dateStr);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
 // ===============================
 // GET /api/statistics/overview
-// Tổng quan thống kê đơn hàng
 // ===============================
 exports.getOrderOverview = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
-    // Build filter
     const filter = {};
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (endDate) filter.createdAt.$lte = parseEndDate(endDate);
     }
 
     // Tổng số đơn hàng
@@ -33,10 +38,10 @@ exports.getOrderOverview = async (req, res) => {
       }
     ]);
 
-    // Tổng doanh thu (chỉ tính đơn đã thanh toán)
-    const paidFilter = { ...filter, status: 'paid' };
+    // Tổng doanh thu (đơn đã thanh toán online hoặc đã hoàn thành)
+    const revenueFilter = { ...filter, status: { $in: ['paid', 'completed'] } };
     const revenueResult = await Order.aggregate([
-      { $match: paidFilter },
+      { $match: revenueFilter },
       {
         $group: {
           _id: null,
@@ -51,7 +56,7 @@ exports.getOrderOverview = async (req, res) => {
 
     // Thống kê theo phương thức thanh toán
     const paymentMethods = await Order.aggregate([
-      { $match: paidFilter },
+      { $match: revenueFilter },
       {
         $group: {
           _id: '$paymentMethod',
@@ -97,12 +102,11 @@ exports.getRevenueByTime = async (req, res) => {
   try {
     const { period = 'day', startDate, endDate } = req.query;
 
-    // Build filter
-    const filter = { status: 'paid' };
+    const filter = { status: { $in: ['paid', 'completed'] } };
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (endDate) filter.createdAt.$lte = parseEndDate(endDate);
     }
 
     // Xác định format group theo period
@@ -179,12 +183,11 @@ exports.getTopProducts = async (req, res) => {
   try {
     const { limit = 10, startDate, endDate } = req.query;
 
-    // Build filter
-    const filter = { status: 'paid' };
+    const filter = { status: { $in: ['paid', 'completed'] } };
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (endDate) filter.createdAt.$lte = parseEndDate(endDate);
     }
 
     const topProducts = await Order.aggregate([
@@ -222,12 +225,11 @@ exports.getCustomerStats = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    // Build filter
-    const filter = { status: 'paid' };
+    const filter = { status: { $in: ['paid', 'completed'] } };
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (endDate) filter.createdAt.$lte = parseEndDate(endDate);
     }
 
     // Top khách hàng theo số đơn hàng
@@ -362,10 +364,10 @@ exports.getComparison = async (req, res) => {
     // Helper function để lấy stats cho một khoảng thời gian
     const getStats = async (startDate, endDate) => {
       const filter = {
-        status: 'paid',
+        status: { $in: ['paid', 'completed'] }, // paid = VNPay, completed = COD đã giao
         createdAt: {
           $gte: new Date(startDate),
-          $lte: new Date(endDate)
+          $lte: parseEndDate(endDate)
         }
       };
 
