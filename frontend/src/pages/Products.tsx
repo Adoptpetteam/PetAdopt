@@ -387,13 +387,13 @@ export default function Products() {
           <div className="text-center py-24 bg-white rounded-[3rem] shadow-sm border border-dashed border-gray-200">
             <div className="text-6xl mb-6">🔍</div>
             <h3 className="text-gray-700 font-bold text-xl mb-2">Không tìm thấy sản phẩm phù hợp</h3>
-            <p className="text-gray-400 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn</p>
+            <p className="text-gray-400 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn 🤔</p>
             <Button 
               onClick={handleResetFilters} 
               type="primary" 
               className="bg-[#6272B6] hover:bg-[#505f9c] border-none rounded-xl px-8 h-12 text-base"
             >
-              Reset bộ lọc
+              🔄 Reset bộ lọc
             </Button>
           </div>
         )}
