@@ -32,24 +32,39 @@ function getClientIp(req) {
         '127.0.0.1';
 }
 
+function sortObjectKeys(obj) {
+    // Chỉ sort key, KHÔNG encode value — dùng khi verify (value đã là raw string)
+    const sorted = {};
+    Object.keys(obj).sort().forEach(key => {
+        sorted[key] = obj[key];
+    });
+    return sorted;
+}
+
 function verifyVNPaySignature(vnp_Params, secretKey) {
     const secureHash = vnp_Params['vnp_SecureHash'];
     delete vnp_Params['vnp_SecureHash'];
     delete vnp_Params['vnp_SecureHashType'];
 
-    const sorted = sortObject(vnp_Params);
+    const sorted = sortObjectKeys(vnp_Params);
+    // Encode giống cách tạo URL: encodeURIComponent + thay %20 bằng +
     const signData = Object.entries(sorted)
-        .map(([k, v]) => `${k}=${v}`)
+        .map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%20/g, '+')}`)
         .join('&');
 
     const hmac = crypto.createHmac('sha512', secretKey);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
+    console.log('[Donate Verify] secureHash:', secureHash);
+    console.log('[Donate Verify] signed:    ', signed);
+    console.log('[Donate Verify] match:', secureHash === signed);
+
     return secureHash === signed;
 }
 
 // ====== POST /api/donate/create-payment ======
-exports.createPayment = (req, res) => {
+exports.createPayment = async (req, res) => {
+    try {
     process.env.TZ = 'Asia/Ho_Chi_Minh';
 
     const { amount, email, name } = req.body;
@@ -61,7 +76,8 @@ exports.createPayment = (req, res) => {
 
     const date = new Date();
     const createDate = moment(date).format('YYYYMMDDHHmmss');
-    const orderId = `${moment(date).format('YYMMDD')}${moment(date).format('HHmmss')}`;
+    // Thêm milliseconds để tránh duplicate orderId nếu 2 request cùng giây
+    const orderId = `${moment(date).format('YYMMDD')}${moment(date).format('HHmmssSSS')}`;
     const ipAddr = getClientIp(req);
 
     // Thời hạn thanh toán: 15 phút
@@ -76,7 +92,12 @@ exports.createPayment = (req, res) => {
     const vnpUrl = process.env.VNP_URL;
     const returnUrl = process.env.VNP_RETURN_URL;
 
-    // Lưu đơn chờ vào memory + MongoDB
+    if (!vnp_TmnCode || !vnp_HashSecret || !vnpUrl || !returnUrl) {
+        console.error('[Donate] Missing VNPay config');
+        return res.status(500).json({ message: 'Cấu hình thanh toán chưa được thiết lập.' });
+    }
+
+    // Lưu đơn chờ vào memory
     pendingOrders.set(orderId, {
         amount: Number(amount),
         email: email || null,
@@ -85,7 +106,7 @@ exports.createPayment = (req, res) => {
         createdAt: date,
     });
 
-    // Lưu vào DB với status pending
+    // Lưu vào DB (không block response nếu lỗi)
     Donation.create({
         orderId,
         amount: Number(amount),
@@ -103,7 +124,7 @@ exports.createPayment = (req, res) => {
         vnp_TxnRef: orderId,
         vnp_OrderInfo: orderInfoNoAccent,
         vnp_OrderType: 'billpayment',
-        vnp_Amount: String(Number(amount) * 100), // VNPay nhân 100
+        vnp_Amount: String(Number(amount) * 100),
         vnp_ReturnUrl: returnUrl,
         vnp_IpAddr: ipAddr,
         vnp_CreateDate: createDate,
@@ -124,11 +145,15 @@ exports.createPayment = (req, res) => {
 
     console.log('[Donate] TmnCode:', vnp_TmnCode);
     console.log('[Donate] HashSecret exists:', !!vnp_HashSecret);
-    console.log('[Donate] VNP URL:', vnpUrl);
-    console.log('[Donate] Return URL:', returnUrl);
-    console.log('[Donate] Payment URL:', paymentUrl.substring(0, 200));
+    console.log('[Donate] orderId:', orderId);
+    console.log('[Donate] Payment URL (first 200):', paymentUrl.substring(0, 200));
 
-    res.json({ paymentUrl, orderId });
+    return res.json({ paymentUrl, orderId });
+
+    } catch (err) {
+        console.error('[Donate] createPayment error:', err);
+        return res.status(500).json({ message: 'Lỗi tạo thanh toán: ' + err.message });
+    }
 };
 
 // ====== GET /api/donate/vnpay-return ======
