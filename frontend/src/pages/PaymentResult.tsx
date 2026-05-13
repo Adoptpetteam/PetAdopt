@@ -73,18 +73,18 @@ const PaymentResult = () => {
 
   const getVNPayErrorMessage = (code: string) => {
     const errorMessages: Record<string, string> = {
-      "24": "Giao dịch bị hủy bởi người dùng",
-      "09": "Thẻ/Tài khoản chưa đăng ký dịch vụ InternetBanking",
-      "10": "Thông tin thẻ/tài khoản không đúng",
-      "11": "Thẻ/Tài khoản đã hết hạn",
-      "12": "Thẻ/Tài khoản bị khóa",
-      "13": "Sai mật khẩu xác thực giao dịch",
-      "51": "Tài khoản không đủ số dư",
-      "65": "Tài khoản đã vượt quá hạn mức giao dịch trong ngày",
-      "75": "Ngân hàng thanh toán đang bảo trì",
-      "79": "Giao dịch vượt quá số tiền cho phép",
+      "24": "🚫 Giao dịch bị hủy bởi người dùng",
+      "09": "🏦 Thẻ/Tài khoản chưa đăng ký dịch vụ InternetBanking",
+      "10": "❌ Thông tin thẻ/tài khoản không đúng",
+      "11": "⏰ Thẻ/Tài khoản đã hết hạn",
+      "12": "🔒 Thẻ/Tài khoản bị khóa",
+      "13": "🔑 Sai mật khẩu xác thực giao dịch",
+      "51": "💰 Tài khoản không đủ số dư",
+      "65": "📊 Tài khoản đã vượt quá hạn mức giao dịch trong ngày",
+      "75": "🔧 Ngân hàng thanh toán đang bảo trì",
+      "79": "💸 Giao dịch vượt quá số tiền cho phép",
     };
-    return errorMessages[code] || `Lỗi thanh toán (Mã: ${code})`;
+    return errorMessages[code] || `❓ Lỗi thanh toán (Mã: ${code})`;
   };
 
   if (loading) {
