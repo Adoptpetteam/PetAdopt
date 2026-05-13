@@ -3,6 +3,7 @@ import { message, Skeleton, Input, Select, Slider, Card, Button, Tabs, Row, Col 
 import { SearchOutlined, ReloadOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { apiClient } from "../api/http"; 
 import ProductCard from "../components/ProductCard";
+import { CATEGORY_ICONS, getCategoryIcon } from "../constants/categoryIcons";
 
 interface Product {
   _id: string;
@@ -22,16 +23,6 @@ interface Category {
   icon: string;
   color: string;
 }
-
-const categoryIcons: Record<string, string> = {
-  "Thức ăn & Dinh dưỡng": "🍖",
-  "Chăm sóc sức khỏe & Y tế": "🏥", 
-  "Vệ sinh & Làm sạch": "🧽",
-  "Chăm sóc sắc đẹp": "✨",
-  "Đồ dùng sinh hoạt & Chỗ ở": "🏠",
-  "Phụ kiện đi dạo & Vận chuyển": "🚶",
-  "Đồ chơi & Huấn luyện": "🎾"
-};
 
 export default function Products() {
   const [data, setData] = useState<Product[]>([]);
@@ -130,7 +121,7 @@ export default function Products() {
       key: cat,
       label: (
         <span className="flex items-center gap-2">
-          <span>{categoryIcons[cat] || "📦"}</span>
+          <span>{getCategoryIcon(cat)}</span>
           {cat} ({productsByCategory[cat]?.length || 0})
         </span>
       ),
@@ -171,7 +162,7 @@ export default function Products() {
                         borderTop: `4px solid ${categories.find(c => c.name === cat)?.color || "#6272B6"}` 
                       }}
                     >
-                      <div className="text-4xl mb-3">{categoryIcons[cat] || "📦"}</div>
+                      <div className="text-4xl mb-3">{getCategoryIcon(cat)}</div>
                       <div className="font-bold text-gray-800 text-sm mb-1">{cat}</div>
                       <div className="text-xs text-gray-500">{count} sản phẩm</div>
                     </Card>
@@ -217,7 +208,7 @@ export default function Products() {
                 <Select.Option value="all">Tất cả danh mục</Select.Option>
                 {availableCategories.map((cat) => (
                   <Select.Option key={cat} value={cat}>
-                    {categoryIcons[cat]} {cat}
+                    {getCategoryIcon(cat)} {cat}
                   </Select.Option>
                 ))}
               </Select>
@@ -292,7 +283,7 @@ export default function Products() {
                 <ProductCard 
                   key={p._id} 
                   product={p} 
-                  categoryIcon={categoryIcons[p.category || ""]} 
+                  categoryIcon={getCategoryIcon(p.category)} 
                 />
               ))}
         </div>
