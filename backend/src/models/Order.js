@@ -43,7 +43,7 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['pending', 'paid', 'shipping', 'completed', 'cancelled'],
+      enum: ['pending', 'confirmed', 'paid', 'shipping', 'completed', 'cancelled'],
       default: 'pending',
     },
 
@@ -104,12 +104,23 @@ const orderSchema = new mongoose.Schema(
         default: 0,
       },
 
+      discount: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+
       total: {
         type: Number,
         required: true,
         min: 0,
         default: 0,
       },
+    },
+
+    voucher: {
+      code: { type: String, default: null },
+      discount: { type: Number, default: 0 },
     },
   },
   {

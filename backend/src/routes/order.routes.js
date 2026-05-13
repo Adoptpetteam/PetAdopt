@@ -9,6 +9,7 @@ const orderController = require('../controllers/orderController');
 router.post('/checkout', authenticate, orderController.checkoutOrder);
 router.get('/me', authenticate, orderController.listMyOrders);
 router.get('/me/:id', authenticate, orderController.getMyOrderById);
+router.put('/me/:id/cancel', authenticate, orderController.cancelMyOrder);
 
 // VNPay return (GET - VNPay redirect về)
 router.get('/vnpay-return', orderController.vnpayReturn);
