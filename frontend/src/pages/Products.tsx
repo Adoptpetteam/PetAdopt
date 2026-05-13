@@ -174,8 +174,8 @@ export default function Products() {
         )}
 
         {/* ================= THANH TÌM KIẾM & BỘ LỌC ================= */}
-        <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-gray-100 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+        <div className="bg-white rounded-[2rem] p-4 md:p-6 lg:p-8 shadow-sm border border-gray-100 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-end">
             
             {/* Ô tìm kiếm */}
             <div className="md:col-span-4">
@@ -265,8 +265,8 @@ export default function Products() {
           />
         </div>
 
-        {/* Danh sách sản phẩm */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Danh sách sản phẩm - Responsive grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
           {loading
             ? // Hiển thị Skeleton khi đang load
               Array(12).fill(0).map((_, i) => (
