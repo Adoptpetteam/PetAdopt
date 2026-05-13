@@ -614,7 +614,7 @@ const VaccinationSchedule = () => {
         </Modal>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .vaccination-tabs .ant-tabs-tab {
           border-radius: 8px !important;
           margin-right: 8px !important;

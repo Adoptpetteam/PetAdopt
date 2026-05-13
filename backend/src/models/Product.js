@@ -8,6 +8,7 @@ const productSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 0, default: 0 },
     description: { type: String, trim: true },
     category: { type: String, trim: true },
+    brand: { type: String, trim: true },
   },
   { timestamps: true }
 );

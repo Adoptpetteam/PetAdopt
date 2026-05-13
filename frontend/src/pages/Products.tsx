@@ -203,7 +203,7 @@ export default function Products() {
                 onChange={(value) => setSelectedCategory(value)}
                 size="large"
                 className="w-full rounded-xl"
-                popupClassName="rounded-xl"
+                classNames={{ popup: { root: "rounded-xl" } }}
               >
                 <Select.Option value="all">Tất cả danh mục</Select.Option>
                 {availableCategories.map((cat) => (
@@ -305,7 +305,7 @@ export default function Products() {
         )}
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .category-tabs .ant-tabs-tab {
           border-radius: 12px !important;
           margin-right: 8px !important;

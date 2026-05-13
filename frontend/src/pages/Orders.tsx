@@ -340,7 +340,7 @@ export default function Orders() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Spin size="large" tip="Đang tải đơn hàng..." />
+        <Spin size="large" description="Đang tải đơn hàng..." />
       </div>
     );
   }

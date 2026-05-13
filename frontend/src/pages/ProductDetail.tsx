@@ -120,7 +120,7 @@ export default function ProductDetail() {
 
   if (loading) return (
     <div className="flex justify-center items-center h-screen bg-gray-50">
-      <Spin size="large" tip="Đang tải siêu phẩm..." />
+      <Spin size="large" description="Đang tải siêu phẩm..." />
     </div>
   );
 
@@ -130,11 +130,20 @@ export default function ProductDetail() {
     <div className="bg-[#F8F9FB] min-h-screen pb-20">
       <div className="max-w-[1200px] mx-auto pt-10 px-6">
         {/* Breadcrumb cho chuyên nghiệp */}
-        <Breadcrumb className="mb-8 text-gray-500">
-          <Breadcrumb.Item className="cursor-pointer" onClick={() => navigate("/")}>Trang chủ</Breadcrumb.Item>
-          <Breadcrumb.Item className="cursor-pointer" onClick={() => navigate("/products")}>Sản phẩm</Breadcrumb.Item>
-          <Breadcrumb.Item>{product.name}</Breadcrumb.Item>
-        </Breadcrumb>
+        <Breadcrumb 
+          className="mb-8 text-gray-500"
+          items={[
+            {
+              title: <span className="cursor-pointer" onClick={() => navigate("/")}>Trang chủ</span>
+            },
+            {
+              title: <span className="cursor-pointer" onClick={() => navigate("/products")}>Sản phẩm</span>
+            },
+            {
+              title: product.name
+            }
+          ]}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           

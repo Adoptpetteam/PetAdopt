@@ -11,6 +11,8 @@ import {
   Popconfirm,
   Typography,
   Image,
+  Select,
+  Tag,
 } from "antd";
 import { apiClient } from "../../api/http";
 import type { ColumnsType } from "antd/es/table";
@@ -25,10 +27,18 @@ interface ProductRow {
   quantity: number;
   description?: string;
   category?: string;
+  brand?: string;
+}
+
+interface Category {
+  _id: string;
+  name: string;
+  description?: string;
 }
 
 const ProductPage = () => {
   const [data, setData] = useState<ProductRow[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -41,6 +51,17 @@ const ProductPage = () => {
     const token = localStorage.getItem("admin_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
+
+  // 👉 Tải danh sách categories từ API
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await apiClient.get("/category");
+      const result = res.data.data || res.data;
+      setCategories(Array.isArray(result) ? result : []);
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Không thể tải danh sách danh mục");
+    }
+  }, []);
 
   // 👉 Tải danh sách sản phẩm từ API
   const loadProducts = useCallback(async () => {
@@ -62,7 +83,8 @@ const ProductPage = () => {
 
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
+    loadCategories();
+  }, [loadProducts, loadCategories]);
 
   // 👉 Mở modal (Thêm mới hoặc Chỉnh sửa)
   const handleOpenModal = (product: ProductRow | null = null) => {
@@ -147,6 +169,26 @@ const ProductPage = () => {
           {new Intl.NumberFormat("vi-VN").format(price || 0)} đ
         </span>
       ),
+    },
+    {
+      title: "Danh mục",
+      dataIndex: "category",
+      key: "category",
+      width: 150,
+      render: (categoryName) => {
+        return categoryName ? (
+          <Tag color="blue">{categoryName}</Tag>
+        ) : (
+          <Tag color="default">Chưa phân loại</Tag>
+        );
+      },
+    },
+    {
+      title: "Thương hiệu",
+      dataIndex: "brand",
+      key: "brand",
+      width: 120,
+      render: (brand) => brand || <span style={{ color: '#999' }}>Chưa có</span>,
     },
     {
       title: "Số lượng",
@@ -239,8 +281,36 @@ const ProductPage = () => {
             </Form.Item>
           </div>
 
+          <div style={{ display: "flex", gap: "16px" }}>
+            <Form.Item 
+              name="category" 
+              label="Danh mục" 
+              rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]} 
+              style={{ flex: 1 }}
+            >
+              <Select 
+                placeholder="Chọn danh mục sản phẩm"
+                loading={categories.length === 0}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {categories.map(cat => (
+                  <Select.Option key={cat._id} value={cat.name} label={cat.name}>
+                    {cat.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="brand" label="Thương hiệu" style={{ flex: 1 }}>
+              <Input placeholder="Nhập tên thương hiệu" />
+            </Form.Item>
+          </div>
+
           <Form.Item name="description" label="Mô tả">
-            <Input.TextArea rows={3} />
+            <Input.TextArea rows={3} placeholder="Mô tả chi tiết về sản phẩm" />
           </Form.Item>
         </Form>
       </Modal>

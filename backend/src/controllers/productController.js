@@ -51,7 +51,7 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, image, quantity, description, category } = req.body;
+    const { name, price, image, quantity, description, category, brand } = req.body;
     if (!name || price === undefined || !image || quantity === undefined) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
@@ -63,6 +63,7 @@ exports.createProduct = async (req, res) => {
       quantity,
       description,
       category,
+      brand,
     });
 
     res.status(201).json({ success: true, message: 'Product created', data: product });

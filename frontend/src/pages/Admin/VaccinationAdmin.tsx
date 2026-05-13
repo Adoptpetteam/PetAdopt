@@ -640,7 +640,7 @@ const VaccinationAdmin = () => {
         )}
       </Modal>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .vaccination-admin-tabs .ant-tabs-tab {
           border-radius: 8px !important;
           margin-right: 8px !important;

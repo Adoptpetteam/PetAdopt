@@ -54,7 +54,7 @@ export default function OrderSuccess() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Spin size="large" tip="Đang xử lý kết quả thanh toán..." />
+        <Spin size="large" description="Đang xử lý kết quả thanh toán..." />
       </div>
     );
   }
