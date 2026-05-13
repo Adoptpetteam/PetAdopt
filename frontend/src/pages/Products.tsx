@@ -163,10 +163,10 @@ export default function Products() {
         {/* Tiêu đề */}
         <div className="flex flex-col items-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
-            Cửa Hàng <span className="text-[#6272B6]">Thú Cưng</span>
+            Cửa Hàng <span className="text-[#6272B6]">Thú Cưng</span> 🐾
           </h1>
           <div className="h-1 w-20 bg-[#6272B6] rounded-full"></div>
-          <p className="text-gray-500 mt-4">Mọi thứ thú cưng cần cho cuộc sống hạnh phúc</p>
+          <p className="text-gray-500 mt-4">Mọi thứ thú cưng cần cho cuộc sống hạnh phúc ❤️</p>
         </div>
 
         {/* Categories showcase */}
