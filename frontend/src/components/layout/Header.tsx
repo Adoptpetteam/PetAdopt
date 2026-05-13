@@ -243,6 +243,9 @@ export default function Header() {
         <Link to="/news" className={navItemClass("/news")}>Tin tức</Link>
         <Link to="/products" className={navItemClass("/products")}>Sản phẩm</Link>
         <Link to="/orders" className={navItemClass("/orders")}>Đơn hàng</Link>
+        {user && (
+          <Link to="/vaccination-schedule" className={navItemClass("/vaccination-schedule")}>Lịch tiêm phòng</Link>
+        )}
         <Link to="/contact" className={navItemClass("/contact")}>Liên hệ</Link>
       </nav>
 

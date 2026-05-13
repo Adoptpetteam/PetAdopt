@@ -48,6 +48,7 @@ import OrderPage from "../pages/Admin/order";
 import CustomerPage from "../pages/Admin/CustomerPage"; // thêm dòng này
 import Statistics from "../pages/Admin/Statistics";
 import VoucherPage from "../pages/Admin/VoucherPage";
+import VaccinationAdmin from "../pages/Admin/VaccinationAdmin";
 
 import AdminRoute from "../routes/AdminRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
@@ -182,6 +183,12 @@ export default function AppRoutes() {
           <Route
             path="vouchers"
             element={<VoucherPage />}
+          />
+
+          {/* VACCINATION SCHEDULE */}
+          <Route
+            path="vaccinations"
+            element={<VaccinationAdmin />}
           />
 
           {/* THÔNG TIN KHÁCH HÀNG */}

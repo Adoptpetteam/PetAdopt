@@ -34,6 +34,7 @@ export default function AdminLayout() {
           <Link to="/admin/order" className={linkClass}>Đơn hàng</Link>
           <Link to="/admin/statistics" className={linkClass}>Thống kê</Link>
           <Link to="/admin/vouchers" className={linkClass}>Voucher</Link>
+          <Link to="/admin/vaccinations" className={linkClass}>Lịch tiêm phòng</Link>
           {/* <Link to="/admin/contacts">Liên hệ</Link> */}
           <Link to="/admin/supporters" className={linkClass}>
             Người ủng hộ
