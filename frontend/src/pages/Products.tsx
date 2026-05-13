@@ -294,9 +294,13 @@ export default function Products() {
           {loading
             ? // Hiển thị Skeleton khi đang load
               Array(12).fill(0).map((_, i) => (
-                <div key={i} className="bg-white p-4 rounded-3xl">
+                <div key={i} className="bg-white p-4 rounded-3xl shadow-sm">
                   <Skeleton.Image active className="w-full !h-48 !w-full rounded-2xl mb-4" />
-                  <Skeleton active paragraph={{ rows: 3 }} />
+                  <Skeleton active paragraph={{ rows: 3 }} title={{ width: '80%' }} />
+                  <div className="flex justify-between items-center mt-4">
+                    <Skeleton.Button active size="small" />
+                    <Skeleton.Button active size="small" shape="circle" />
+                  </div>
                 </div>
               ))
             : displayProducts.map((p) => (
