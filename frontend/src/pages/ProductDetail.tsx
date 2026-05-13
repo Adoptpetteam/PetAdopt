@@ -48,40 +48,74 @@ export default function ProductDetail() {
     if (id) fetchProduct();
   }, [id]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existingItemIndex = cart.findIndex((item: any) => item._id === product._id);
-
-    if (existingItemIndex > -1) {
-      cart[existingItemIndex].cartQuantity += buyQty;
-    } else {
-      cart.push({ ...product, cartQuantity: buyQty });
+    try {
+      // Fetch tồn kho mới nhất từ DB
+      const res = await apiClient.get(`/products/${product._id}`);
+      const latest: Product = res.data?.data;
+      if (!latest || latest.quantity <= 0) {
+        setProduct(prev => prev ? { ...prev, quantity: 0 } : prev);
+        return message.warning("Sản phẩm vừa hết hàng");
+      }
+      // Kiểm tra tổng số đã có trong giỏ + số muốn thêm
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const existingItem = cart.find((item: any) => item._id === product._id);
+      const currentInCart = existingItem ? existingItem.cartQuantity : 0;
+      if (currentInCart + buyQty > latest.quantity) {
+        const canAdd = latest.quantity - currentInCart;
+        if (canAdd <= 0) return message.warning(`Bạn đã có ${currentInCart} trong giỏ, không thể thêm (kho còn ${latest.quantity})`);
+        return message.warning(`Chỉ có thể thêm tối đa ${canAdd} sản phẩm nữa (kho còn ${latest.quantity})`);
+      }
+      const existingItemIndex = cart.findIndex((item: any) => item._id === product._id);
+      if (existingItemIndex > -1) {
+        cart[existingItemIndex].cartQuantity += buyQty;
+        cart[existingItemIndex].quantity = latest.quantity;
+      } else {
+        cart.push({ ...latest, cartQuantity: buyQty });
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      window.dispatchEvent(new Event("cart-change"));
+      // Cập nhật UI với tồn kho mới nhất
+      setProduct(latest);
+      message.open({
+        type: 'success',
+        content: `Đã thêm ${buyQty} ${product.name} vào giỏ hàng!`,
+        icon: <ShoppingCartOutlined style={{ color: '#6272B6' }} />,
+      });
+    } catch {
+      message.error("Không thể kiểm tra tồn kho, thử lại sau");
     }
-
-    localStorage.setItem("cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("cart-change"));
-    message.open({
-      type: 'success',
-      content: `Đã thêm ${buyQty} ${product.name} vào giỏ hàng!`,
-      icon: <ShoppingCartOutlined style={{ color: '#6272B6' }} />,
-    });
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!product) return;
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existingItemIndex = cart.findIndex((item: any) => item._id === product._id);
-    if (existingItemIndex > -1) {
-      cart[existingItemIndex].cartQuantity += buyQty;
-    } else {
-      cart.push({ ...product, cartQuantity: buyQty });
+    try {
+      const res = await apiClient.get(`/products/${product._id}`);
+      const latest: Product = res.data?.data;
+      if (!latest || latest.quantity <= 0) {
+        setProduct(prev => prev ? { ...prev, quantity: 0 } : prev);
+        return message.warning("Sản phẩm vừa hết hàng");
+      }
+      if (buyQty > latest.quantity) {
+        return message.warning(`Chỉ còn ${latest.quantity} sản phẩm trong kho`);
+      }
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const existingItemIndex = cart.findIndex((item: any) => item._id === product._id);
+      if (existingItemIndex > -1) {
+        cart[existingItemIndex].cartQuantity += buyQty;
+        cart[existingItemIndex].quantity = latest.quantity;
+      } else {
+        cart.push({ ...latest, cartQuantity: buyQty });
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      window.dispatchEvent(new Event("cart-change"));
+      navigate("/checkout", {
+        state: { selectedItems: [{ ...latest, cartQuantity: buyQty }] },
+      });
+    } catch {
+      message.error("Không thể kiểm tra tồn kho, thử lại sau");
     }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("cart-change"));
-    navigate("/checkout", {
-      state: { selectedItems: [{ ...product, cartQuantity: buyQty }] },
-    });
   };
 
   if (loading) return (

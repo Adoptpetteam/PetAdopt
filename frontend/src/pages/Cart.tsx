@@ -10,7 +10,9 @@ import {
   CreditCardOutlined,
   MinusOutlined,
   PlusOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
+import { apiClient } from "../api/http";
 
 interface CartItem {
   _id: string;
@@ -24,6 +26,7 @@ interface CartItem {
 export default function Cart() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [syncing, setSyncing] = useState(false);
   const navigate = useNavigate();
 
   const fetchCart = () => {
@@ -31,8 +34,48 @@ export default function Cart() {
     setCart(savedCart);
   };
 
+  // Sync tồn kho thực tế từ DB khi mở giỏ
+  const syncStock = async (currentCart: CartItem[]) => {
+    if (currentCart.length === 0) return;
+    setSyncing(true);
+    try {
+      const results = await Promise.all(
+        currentCart.map(item => apiClient.get(`/products/${item._id}`).catch(() => null))
+      );
+      let hasChange = false;
+      const updated = currentCart.map((item, i) => {
+        const latest = results[i]?.data?.data;
+        if (!latest) return item; // API lỗi → giữ nguyên
+        if (latest.quantity !== item.quantity) hasChange = true;
+        // Nếu cartQuantity vượt tồn kho mới → cap lại
+        const newCartQty = Math.min(item.cartQuantity, latest.quantity);
+        if (newCartQty !== item.cartQuantity) hasChange = true;
+        return { ...item, quantity: latest.quantity, cartQuantity: newCartQty };
+      });
+      // Xóa sản phẩm hết hàng khỏi giỏ và thông báo
+      const outOfStock = updated.filter(i => i.quantity === 0);
+      const validCart = updated.filter(i => i.quantity > 0);
+      if (outOfStock.length > 0) {
+        message.warning(`${outOfStock.map(i => i.name).join(", ")} đã hết hàng và bị xóa khỏi giỏ`);
+        hasChange = true;
+      }
+      if (hasChange) {
+        localStorage.setItem("cart", JSON.stringify(validCart));
+        setCart(validCart);
+        window.dispatchEvent(new Event("cart-change"));
+        if (outOfStock.length === 0) message.info("Đã cập nhật tồn kho mới nhất");
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
-    fetchCart();
+    const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    setCart(savedCart);
+    syncStock(savedCart);
   }, []);
 
   // Lưu cart và dispatch event để Header cập nhật badge
@@ -115,6 +158,17 @@ export default function Cart() {
             <span className="bg-[#6272B6] text-white text-sm font-bold px-3 py-1 rounded-full">
               {cart.length}
             </span>
+          )}
+          {cart.length > 0 && (
+            <Button
+              icon={<SyncOutlined spin={syncing} />}
+              size="small"
+              onClick={() => syncStock(cart)}
+              loading={syncing}
+              className="ml-auto rounded-full text-gray-500"
+            >
+              Cập nhật tồn kho
+            </Button>
           )}
         </div>
 

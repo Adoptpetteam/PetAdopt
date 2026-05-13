@@ -23,18 +23,35 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
 
-  const handleAddToCart = (p: Product) => {
+  const handleAddToCart = async (p: Product) => {
     if (p.quantity <= 0) return message.warning("Sản phẩm đã hết hàng");
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const idx = cart.findIndex((item: any) => item._id === p._id);
-    if (idx > -1) {
-      cart[idx].cartQuantity += 1;
-    } else {
-      cart.push({ ...p, cartQuantity: 1 });
+    try {
+      // Fetch tồn kho thực tế từ DB trước khi thêm
+      const res = await apiClient.get(`/products/${p._id}`);
+      const latest: Product = res.data?.data;
+      if (!latest || latest.quantity <= 0) {
+        // Cập nhật lại UI
+        setData(prev => prev.map(item => item._id === p._id ? { ...item, quantity: 0 } : item));
+        return message.warning(`"${p.name}" vừa hết hàng`);
+      }
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const idx = cart.findIndex((item: any) => item._id === p._id);
+      const currentInCart = idx > -1 ? cart[idx].cartQuantity : 0;
+      if (currentInCart + 1 > latest.quantity) {
+        return message.warning(`Chỉ còn ${latest.quantity} sản phẩm trong kho`);
+      }
+      if (idx > -1) {
+        cart[idx].cartQuantity += 1;
+        cart[idx].quantity = latest.quantity; // cập nhật tồn kho mới nhất
+      } else {
+        cart.push({ ...latest, cartQuantity: 1 });
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      window.dispatchEvent(new Event("cart-change"));
+      message.success(`Đã thêm "${p.name}" vào giỏ hàng`);
+    } catch {
+      message.error("Không thể kiểm tra tồn kho, thử lại sau");
     }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("cart-change"));
-    message.success(`Đã thêm "${p.name}" vào giỏ hàng`);
   };
 
   const loadProducts = async () => {
@@ -58,6 +75,13 @@ export default function Products() {
 
   useEffect(() => {
     loadProducts();
+
+    // Refetch khi user quay lại tab để tồn kho luôn mới nhất
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") loadProducts();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   // --- Lấy danh sách các danh mục duy nhất từ dữ liệu thực tế để hiển thị trong bộ lọc ---
