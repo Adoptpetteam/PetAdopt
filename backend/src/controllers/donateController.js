@@ -1,9 +1,9 @@
 const crypto = require('crypto');
 const moment = require('moment');
 const { sendDonationThankYou } = require('../utils/donateService');
+const Donation = require('../models/Donation');
 
-// ====== In-memory store (thay bằng MongoDB nếu cần) ======
-// Key: orderId, Value: { amount, email, name, createdAt }
+// ====== In-memory store ======
 const pendingOrders = new Map();
 
 // ====== Helpers ======
@@ -76,7 +76,7 @@ exports.createPayment = (req, res) => {
     const vnpUrl = process.env.VNP_URL;
     const returnUrl = process.env.VNP_RETURN_URL;
 
-    // Lưu đơn chờ để verify IPN (chứa cả email + name để gửi mail cảm ơn)
+    // Lưu đơn chờ vào memory + MongoDB
     pendingOrders.set(orderId, {
         amount: Number(amount),
         email: email || null,
@@ -84,6 +84,15 @@ exports.createPayment = (req, res) => {
         orderInfo: orderDescription,
         createdAt: date,
     });
+
+    // Lưu vào DB với status pending
+    Donation.create({
+        orderId,
+        amount: Number(amount),
+        name: name || '',
+        email: email || '',
+        status: 'pending',
+    }).catch(err => console.error('[Donate] Save pending donation failed:', err.message));
 
     const vnp_Params = {
         vnp_Version: '2.1.0',
@@ -137,11 +146,16 @@ exports.vnpayReturn = async (req, res) => {
     if (isValidSignature && rspCode === '00') {
         // Thanh toán thành công
         console.log(`[Donate] Success: Order ${orderId}, Amount ${amount}`);
-        // Lấy thông tin order để gửi mail cảm ơn
         const order = pendingOrders.get(orderId);
         if (order) {
             pendingOrders.delete(orderId);
-            // Gửi email cảm ơn (async, không block redirect)
+            // Cập nhật DB
+            Donation.findOneAndUpdate(
+                { orderId },
+                { status: 'success', paidAt: new Date() },
+                { new: true }
+            ).catch(err => console.error('[Donate] Update donation failed:', err.message));
+            // Gửi email cảm ơn
             if (order.email) {
                 sendDonationThankYou(order.email, order.name, order.amount)
                     .catch(err => console.error('[Donate] Send thank-you email failed:', err.message));
@@ -151,6 +165,11 @@ exports.vnpayReturn = async (req, res) => {
     } else {
         console.log(`[Donate] Failed: Order ${orderId}, Code ${rspCode}`);
         pendingOrders.delete(orderId);
+        // Cập nhật DB thất bại
+        Donation.findOneAndUpdate(
+            { orderId },
+            { status: 'failed' }
+        ).catch(() => {});
         res.redirect(`${base}/donate?status=failed&code=${rspCode}&ref=${orderId}`);
     }
 };
@@ -190,22 +209,71 @@ exports.vnpayIPN = async (req, res) => {
 
     // 4. Update payment status
     if (rspCode === '00') {
-        // ✅ Thành công — gửi email cảm ơn + lưu vào DB (đánh dấu đã thanh toán)
         console.log(`[Donate IPN] Payment SUCCESS: order=${orderId}, amount=${paidAmount}`);
         pendingOrders.delete(orderId);
-
-        // Gửi email cảm ơn (async, không block IPN response)
+        // Cập nhật DB
+        await Donation.findOneAndUpdate(
+            { orderId },
+            { status: 'success', paidAt: new Date() }
+        ).catch(err => console.error('[Donate IPN] Update donation failed:', err.message));
+        // Gửi email cảm ơn
         if (order.email) {
             sendDonationThankYou(order.email, order.name, order.amount)
                 .catch(err => console.error('[Donate IPN] Send thank-you email failed:', err.message));
         }
-
-        // TODO: Lưu Donation record vào MongoDB nếu cần
         return res.status(200).json({ RspCode: '00', Message: 'Success' });
     } else {
-        // ❌ Thất bại
         console.log(`[Donate IPN] Payment FAILED: order=${orderId}, code=${rspCode}`);
         pendingOrders.delete(orderId);
+        await Donation.findOneAndUpdate({ orderId }, { status: 'failed' }).catch(() => {});
         return res.status(200).json({ RspCode: '00', Message: 'Success' });
+    }
+};
+
+// ====== GET /api/donate/supporters ======
+// Lấy danh sách người ủng hộ thành công (public — cho marquee)
+exports.getSupporters = async (req, res) => {
+    try {
+        const { limit = 50 } = req.query;
+        const supporters = await Donation.find({ status: 'success' })
+            .sort({ paidAt: -1 })
+            .limit(Number(limit))
+            .select('name amount paidAt createdAt');
+        return res.status(200).json({ success: true, data: supporters });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ====== GET /api/donate/admin/list ======
+// Admin xem toàn bộ donations (kể cả pending/failed)
+exports.adminListDonations = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+        const skip = (Number(page) - 1) * Number(limit);
+        const total = await Donation.countDocuments(filter);
+        const donations = await Donation.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit));
+        return res.status(200).json({
+            success: true,
+            data: donations,
+            pagination: { page: Number(page), limit: Number(limit), total },
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ====== DELETE /api/donate/admin/:id ======
+exports.adminDeleteDonation = async (req, res) => {
+    try {
+        await Donation.findByIdAndDelete(req.params.id);
+        return res.status(200).json({ success: true, message: 'Đã xóa' });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
 };

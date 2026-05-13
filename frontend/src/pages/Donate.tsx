@@ -2,6 +2,14 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { message } from "antd"
 import { createVNPayPayment } from "../api/donateApi"
+import { apiClient } from "../api/http"
+
+interface Supporter {
+  _id: string;
+  name: string;
+  amount: number;
+  paidAt: string;
+}
 
 export default function Donate() {
   const [searchParams] = useSearchParams()
@@ -10,11 +18,11 @@ export default function Donate() {
   const [messageText, setMessageText] = useState("")
   const [amount, setAmount] = useState("")
   const [loading, setLoading] = useState(false)
+  const [supporters, setSupporters] = useState<Supporter[]>([])
 
   const status = searchParams.get("status")
   const code = searchParams.get("code")
 
-  // Tự điền email từ user đã đăng nhập (localStorage)
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user")
@@ -24,6 +32,13 @@ export default function Donate() {
       }
     } catch { /* ignore */ }
   }, [])
+
+  // Fetch danh sách người ủng hộ cho marquee
+  useEffect(() => {
+    apiClient.get("/donate/supporters", { params: { limit: 50 } })
+      .then(res => setSupporters(res.data.data || []))
+      .catch(() => {})
+  }, [status]) // refetch sau khi thanh toán thành công
 
   useEffect(() => {
     if (status === "success") {
@@ -55,8 +70,37 @@ export default function Donate() {
     }
   }
 
+  const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n)
+
   return (
     <div className="max-w-[600px] mx-auto py-20 px-6 text-center">
+
+      {/* MARQUEE người ủng hộ */}
+      {supporters.length > 0 && (
+        <div className="overflow-hidden bg-[#6272B6] text-white rounded-full py-2 mb-8">
+          <div
+            className="flex gap-12 whitespace-nowrap"
+            style={{
+              animation: "marquee 30s linear infinite",
+              display: "inline-flex",
+            }}
+          >
+            {/* Nhân đôi để loop mượt */}
+            {[...supporters, ...supporters].map((s, i) => (
+              <span key={i} className="text-sm font-medium">
+                ❤️ Cảm ơn bạn {s.name || "Ẩn danh"} đã ủng hộ {fmt(s.amount)}đ
+              </span>
+            ))}
+          </div>
+          <style>{`
+            @keyframes marquee {
+              0%   { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+          `}</style>
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold text-[#6272B6] mb-6">
         Ủng hộ chúng tôi ❤️
       </h1>
@@ -99,7 +143,7 @@ export default function Donate() {
         />
       </div>
 
-      {/* QR - static info */}
+      {/* QR */}
       <div className="bg-white p-6 rounded-2xl shadow mb-6">
         <p className="text-sm text-gray-600 mb-2">
           Hoặc quét mã QR để chuyển khoản thủ công
