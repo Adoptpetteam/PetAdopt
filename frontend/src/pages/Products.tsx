@@ -78,7 +78,7 @@ export default function Products() {
     return Array.from(new Set(list));
   }, [data]);
 
-  // --- Logic lọc dữ liệu ---
+  // --- Logic lọc dữ liệu với useMemo để tối ưu performance ---
   const filteredProducts = useMemo(() => {
     return data.filter((product) => {
       // 1. Lọc theo từ khóa tìm kiếm
