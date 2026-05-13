@@ -28,7 +28,7 @@ interface OrderData {
   _id: string;
   createdAt: string;
   updatedAt: string;
-  status: "pending" | "paid" | "shipping" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "paid" | "shipping" | "completed" | "cancelled";
   paymentMethod: "cod" | "vnpay";
   customer: { name: string; phone: string; address: string };
   items: OrderItem[];
@@ -36,11 +36,12 @@ interface OrderData {
 }
 
 const statusConfig = {
-  pending:   { color: "orange",  label: "Chờ xử lý",      icon: <ClockCircleOutlined />,  desc: "Đơn hàng đang chờ xác nhận" },
-  paid:      { color: "blue",    label: "Đã thanh toán",   icon: <CheckCircleOutlined />,  desc: "Đã thanh toán, đang chuẩn bị hàng" },
-  shipping:  { color: "purple",  label: "Đang giao hàng",  icon: <TruckOutlined />,        desc: "Đơn hàng đang trên đường giao đến bạn" },
-  completed: { color: "green",   label: "Hoàn thành",      icon: <GiftOutlined />,         desc: "Đơn hàng đã giao thành công" },
-  cancelled: { color: "red",     label: "Đã hủy",          icon: <CloseCircleOutlined />,  desc: "Đơn hàng đã bị hủy" },
+  pending:   { color: "orange",  label: "Chờ xử lý",         icon: <ClockCircleOutlined />,  desc: "Đơn hàng đang chờ xác nhận" },
+  confirmed: { color: "cyan",    label: "Đã xác nhận",        icon: <CheckCircleOutlined />,  desc: "Đơn COD đã xác nhận, thanh toán khi nhận hàng" },
+  paid:      { color: "blue",    label: "Đã thanh toán",      icon: <CheckCircleOutlined />,  desc: "Đã thanh toán, đang chuẩn bị hàng" },
+  shipping:  { color: "purple",  label: "Đang giao hàng",     icon: <TruckOutlined />,        desc: "Đơn hàng đang trên đường giao đến bạn" },
+  completed: { color: "green",   label: "Hoàn thành",         icon: <GiftOutlined />,         desc: "Đơn hàng đã giao thành công" },
+  cancelled: { color: "red",     label: "Đã hủy",             icon: <CloseCircleOutlined />,  desc: "Đơn hàng đã bị hủy" },
 };
 
 const paymentConfig = {
@@ -48,23 +49,40 @@ const paymentConfig = {
   vnpay: { label: "VNPay", icon: <BankOutlined />, color: "blue"   },
 };
 
-const STEPS = ["pending", "paid", "shipping", "completed"];
+// COD:   pending → confirmed → shipping → completed
+// VNPay: pending → paid      → shipping → completed
+const COD_STEPS   = ["pending", "confirmed", "shipping", "completed"];
+const VNPAY_STEPS = ["pending", "paid",      "shipping", "completed"];
 
-const getProgress = (status: string) => {
-  if (status === "cancelled") return { percent: 100, status: "exception" as const };
-  const idx = STEPS.indexOf(status);
-  return { percent: Math.round(((idx + 1) / STEPS.length) * 100), status: "active" as const };
+const getSteps = (order: OrderData) =>
+  order.paymentMethod === "cod" ? COD_STEPS : VNPAY_STEPS;
+
+const getProgress = (order: OrderData) => {
+  if (order.status === "cancelled") return { percent: 100, status: "exception" as const };
+  const steps = getSteps(order);
+  const idx = steps.indexOf(order.status);
+  const pct = idx < 0 ? 10 : Math.round(((idx + 1) / steps.length) * 100);
+  return { percent: pct, status: "active" as const };
 };
 
 const getTimelineItems = (order: OrderData) => {
-  const currentIdx = STEPS.indexOf(order.status);
+  const isCOD = order.paymentMethod === "cod";
+  const steps = isCOD
+    ? [
+        { key: "pending",   title: "Đặt hàng thành công",  desc: "Đơn hàng đã được tạo",                        time: order.createdAt },
+        { key: "confirmed", title: "Đã xác nhận",           desc: "Đơn COD đã xác nhận, thanh toán khi nhận",    time: order.updatedAt },
+        { key: "shipping",  title: "Đang giao hàng",        desc: "Đơn hàng đang được vận chuyển",               time: order.updatedAt },
+        { key: "completed", title: "Giao hàng thành công",  desc: "Đã giao và thu tiền COD thành công",          time: order.updatedAt },
+      ]
+    : [
+        { key: "pending",   title: "Đặt hàng thành công",  desc: "Đơn hàng đã được tạo",                        time: order.createdAt },
+        { key: "paid",      title: "Đã thanh toán VNPay",  desc: "Thanh toán online thành công",                time: order.updatedAt },
+        { key: "shipping",  title: "Đang giao hàng",        desc: "Đơn hàng đang được vận chuyển",               time: order.updatedAt },
+        { key: "completed", title: "Giao hàng thành công",  desc: "Đơn hàng đã được giao đến bạn",              time: order.updatedAt },
+      ];
 
-  const steps = [
-    { key: "pending",   title: "Đặt hàng thành công",   desc: "Đơn hàng đã được tạo",              time: order.createdAt },
-    { key: "paid",      title: "Đã thanh toán",          desc: "Thanh toán thành công",              time: order.updatedAt },
-    { key: "shipping",  title: "Đang giao hàng",         desc: "Đơn hàng đang được vận chuyển",      time: order.updatedAt },
-    { key: "completed", title: "Giao hàng thành công",   desc: "Đơn hàng đã được giao đến bạn",      time: order.updatedAt },
-  ];
+  const currentSteps = getSteps(order);
+  const currentIdx = currentSteps.indexOf(order.status);
 
   if (order.status === "cancelled") {
     return [
@@ -117,6 +135,7 @@ const getTimelineItems = (order: OrderData) => {
 const TAB_ITEMS = [
   { key: "all",       label: "Tất cả" },
   { key: "pending",   label: "Chờ xử lý" },
+  { key: "confirmed", label: "Đã xác nhận" },
   { key: "paid",      label: "Đã thanh toán" },
   { key: "shipping",  label: "Đang giao" },
   { key: "completed", label: "Hoàn thành" },
@@ -155,6 +174,27 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancelOrder = (orderId: string) => {
+    Modal.confirm({
+      title: "Xác nhận hủy đơn",
+      icon: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
+      content: "Bạn có chắc muốn hủy đơn hàng này? Hàng sẽ được hoàn lại kho.",
+      okText: "Hủy đơn",
+      okType: "danger",
+      cancelText: "Giữ lại",
+      onOk: async () => {
+        try {
+          await apiClient.put(`/orders/me/${orderId}/cancel`);
+          message.success("Đã hủy đơn hàng, hàng đã được hoàn kho");
+          loadOrders();
+          if (selected?._id === orderId) setSelected(null);
+        } catch (e: any) {
+          message.error(e?.response?.data?.message || "Không thể hủy đơn hàng");
+        }
+      },
+    });
   };
 
   const filtered = activeTab === "all" ? orders : orders.filter((o) => o.status === activeTab);
@@ -247,15 +287,15 @@ export default function Orders() {
     {
       title: "Trạng thái",
       dataIndex: "status",
-      render: (s: string) => {
+      render: (s: string, record: OrderData) => {
         const cfg = statusConfig[s as keyof typeof statusConfig];
         return (
           <div>
             <Tag icon={cfg?.icon} color={cfg?.color} className="mb-1">{cfg?.label}</Tag>
             {s !== "cancelled" && (
               <Progress
-                percent={getProgress(s).percent}
-                status={getProgress(s).status}
+                percent={getProgress(record).percent}
+                status={getProgress(record).status}
                 strokeColor="#6272B6"
                 showInfo={false}
                 size="small"
@@ -270,17 +310,30 @@ export default function Orders() {
     {
       title: "",
       render: (_, record) => (
-        <Button
-          type="primary"
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => setSelected(record)}
-          className="bg-[#6272B6] border-0 rounded-full"
-        >
-          Chi tiết
-        </Button>
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => setSelected(record)}
+            className="bg-[#6272B6] border-0 rounded-full"
+          >
+            Chi tiết
+          </Button>
+          {['pending', 'confirmed'].includes(record.status) && (
+            <Button
+              danger
+              size="small"
+              icon={<CloseCircleOutlined />}
+              onClick={() => handleCancelOrder(record._id)}
+              className="rounded-full"
+            >
+              Hủy
+            </Button>
+          )}
+        </Space>
       ),
-      width: 100,
+      width: 160,
     },
   ];
 
@@ -366,14 +419,17 @@ export default function Orders() {
             {selected.status !== "cancelled" && (
               <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                 <Progress
-                  percent={getProgress(selected.status).percent}
-                  status={getProgress(selected.status).status}
+                  percent={getProgress(selected).percent}
+                  status={getProgress(selected).status}
                   strokeColor={{ "0%": "#6272B6", "100%": "#a78bfa" }}
                   className="mb-2"
                 />
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>🛒 Đặt hàng</span>
-                  <span>💳 Thanh toán</span>
+                  {selected.paymentMethod === "cod"
+                    ? <span>✅ Xác nhận</span>
+                    : <span>💳 Thanh toán</span>
+                  }
                   <span>🚚 Vận chuyển</span>
                   <span>✅ Hoàn thành</span>
                 </div>
@@ -464,7 +520,17 @@ export default function Orders() {
               <Text strong className="text-2xl text-[#6272B6]">{selected.totals.total.toLocaleString()}đ</Text>
             </div>
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end gap-3">
+              {['pending', 'confirmed'].includes(selected.status) && (
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => handleCancelOrder(selected._id)}
+                  className="rounded-full px-6"
+                >
+                  Hủy đơn hàng
+                </Button>
+              )}
               <Button onClick={() => setSelected(null)} className="rounded-full px-8">Đóng</Button>
             </div>
           </div>
