@@ -58,6 +58,7 @@ import Supporters from "../pages/Admin/Supporters";
 
 import PaymentResult from "../pages/PaymentResult";
 import VaccinationSchedule from "../pages/VaccinationSchedule";
+import MyAdoptions from "../pages/MyAdoptions";
 
 export default function AppRoutes() {
   return (
@@ -106,6 +107,10 @@ export default function AppRoutes() {
           <Route
             path="/vaccination-schedule"
             element={<VaccinationSchedule />}
+          />
+          <Route
+            path="/my-adoptions"
+            element={<MyAdoptions />}
           />
         </Route>
       </Route>

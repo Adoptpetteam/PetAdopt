@@ -5,21 +5,27 @@ const { authenticate } = require('../middleware/authMiddleware');
 const { isAdmin } = require('../middleware/adminMiddleware');
 
 const categorySchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
   description: { type: String },
   image: { type: String },
+  type: { type: String, enum: ['pet', 'product'], default: 'pet' }, // Phân biệt loại danh mục
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
+
+// Index unique cho name + type
+categorySchema.index({ name: 1, type: 1 }, { unique: true });
 
 const Category = mongoose.models.Category || mongoose.model('Category', categorySchema);
 
 // GET /api/category - Lấy danh sách (public)
 router.get('/', async (req, res, next) => {
   try {
-    const categories = await Category.find().sort({ createdAt: -1 });
+    const { type } = req.query; // Lọc theo type: 'pet' hoặc 'product'
+    const filter = type ? { type } : {};
+    const categories = await Category.find(filter).sort({ createdAt: -1 });
     res.json({
       success: true,
-      data: categories.map(c => ({ id: c._id, _id: c._id, name: c.name, description: c.description, image: c.image })),
+      data: categories.map(c => ({ id: c._id, _id: c._id, name: c.name, description: c.description, image: c.image, type: c.type })),
     });
   } catch (error) {
     next(error);
@@ -42,11 +48,11 @@ router.get('/:id', async (req, res, next) => {
 // POST /api/category - Tạo (admin)
 router.post('/', authenticate, isAdmin, async (req, res, next) => {
   try {
-    const { name, description, image } = req.body;
+    const { name, description, image, type } = req.body;
     if (!name) {
       return res.status(400).json({ success: false, message: 'Tên danh mục là bắt buộc' });
     }
-    const category = await Category.create({ name, description, image });
+    const category = await Category.create({ name, description, image, type: type || 'pet' });
     res.status(201).json({ success: true, message: 'Tạo danh mục thành công!', data: category });
   } catch (error) {
     next(error);

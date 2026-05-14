@@ -19,13 +19,13 @@ router.post('/', authenticate, createAdoptionRequest);
 
 // Protected routes
 // GET /api/adoption/my-requests - Đơn của user hiện tại
-router.get('/my-requests', getMyAdoptionRequests);
+router.get('/my-requests', authenticate, getMyAdoptionRequests);
 
 // GET /api/adoption/:id - Chi tiết đơn
-router.get('/:id', getAdoptionRequestById);
+router.get('/:id', authenticate, getAdoptionRequestById);
 
 // PUT /api/adoption/:id/cancel - Hủy đơn (user)
-router.put('/:id/cancel', cancelAdoptionRequest);
+router.put('/:id/cancel', authenticate, cancelAdoptionRequest);
 
 // Admin routes
 // GET /api/adoption - Danh sách tất cả đơn (admin)

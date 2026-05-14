@@ -1,11 +1,53 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { message } from "antd";
+import { 
+  DashboardOutlined, 
+  HeartOutlined, 
+  TeamOutlined, 
+  FileTextOutlined,
+  UserOutlined,
+  AppstoreOutlined,
+  BugOutlined,
+  ShoppingOutlined,
+  ShoppingCartOutlined,
+  BarChartOutlined,
+  GiftOutlined,
+  MedicineBoxOutlined,
+  DollarOutlined,
+  LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined
+} from "@ant-design/icons";
+import { useState } from "react";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
 
-  const linkClass =
-  "px-4 py-2 rounded-lg hover:bg-white hover:text-[#6272B6] hover:translate-x-1 transition-all duration-200";
+  const menuItems = [
+    { path: "/admin", icon: <DashboardOutlined />, label: "Dashboard", color: "#6366f1" },
+    { path: "/admin/adoptions", icon: <HeartOutlined />, label: "Nhận nuôi", color: "#ec4899" },
+    { path: "/admin/volunteers", icon: <TeamOutlined />, label: "Tình nguyện", color: "#10b981" },
+    { path: "/admin/post", icon: <FileTextOutlined />, label: "Bài viết", color: "#f59e0b" },
+    { path: "/admin/user", icon: <UserOutlined />, label: "Người dùng", color: "#8b5cf6" },
+    { path: "/admin/category", icon: <AppstoreOutlined />, label: "Danh mục", color: "#06b6d4" },
+    { path: "/admin/pets", icon: <BugOutlined />, label: "Thú cưng", color: "#f97316" },
+    { path: "/admin/product", icon: <ShoppingOutlined />, label: "Sản phẩm", color: "#84cc16" },
+    { path: "/admin/order", icon: <ShoppingCartOutlined />, label: "Đơn hàng", color: "#ef4444" },
+    { path: "/admin/statistics", icon: <BarChartOutlined />, label: "Thống kê", color: "#6366f1" },
+    { path: "/admin/vouchers", icon: <GiftOutlined />, label: "Voucher", color: "#f59e0b" },
+    { path: "/admin/vaccinations", icon: <MedicineBoxOutlined />, label: "Lịch tiêm", color: "#10b981" },
+    { path: "/admin/supporters", icon: <DollarOutlined />, label: "Ủng hộ", color: "#ec4899" },
+    { path: "/admin/adopted-pets", icon: <HeartOutlined />, label: "Đã nhận nuôi", color: "#8b5cf6" },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === "/admin") {
+      return location.pathname === "/admin";
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
@@ -15,45 +57,118 @@ export default function AdminLayout() {
     message.success("Đã đăng xuất hoàn toàn");
     navigate("/admin/login");
   };
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gray-50">
+      {/* SIDEBAR với gradient và glass effect */}
+      <div className={`${collapsed ? 'w-20' : 'w-72'} transition-all duration-300 relative`}>
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#6272B6] via-purple-600 to-indigo-700"></div>
+        <div className="absolute inset-0 bg-black/10"></div>
+        
+        {/* Sidebar content */}
+        <div className="relative h-full text-white p-6 overflow-hidden">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+          
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            {!collapsed && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                  <BugOutlined className="text-xl text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">T1 Pet Admin</h2>
+                  <p className="text-white/70 text-xs">Quản trị hệ thống</p>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
+            >
+              {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            </button>
+          </div>
 
-      {/* SIDEBAR */}
-      <div className="w-64 bg-[#6272B6] text-white p-6 space-y-4">
-        <h2 className="text-2xl font-bold mb-6">Admin</h2>
-
-        <nav className="flex flex-col gap-3">
-          <Link to="/admin" className={linkClass}>Quản lý</Link>
-          <Link to="/admin/adoptions" className={linkClass}>Nhận nuôi</Link>
-          <Link to="/admin/volunteers" className={linkClass}>Tình nguyện</Link>
-          <Link to="/admin/post" className={linkClass}>Bài viết</Link>
-          <Link to="/admin/user" className={linkClass}>Người dùng</Link>
-          <Link to="/admin/category" className={linkClass}>Danh mục</Link>
-          <Link to="/admin/pets" className={linkClass}>Thú cưng</Link>
-          <Link to="/admin/product" className={linkClass}>Sản phẩm</Link>
-          <Link to="/admin/order" className={linkClass}>Đơn hàng</Link>
-          <Link to="/admin/statistics" className={linkClass}>Thống kê</Link>
-          <Link to="/admin/vouchers" className={linkClass}>Voucher</Link>
-          <Link to="/admin/vaccinations" className={linkClass}>Lịch tiêm phòng</Link>
-          {/* <Link to="/admin/contacts">Liên hệ</Link> */}
-          <Link to="/admin/supporters" className={linkClass}>
-            Người ủng hộ
-          </Link>
-          <Link to="/admin/adopted-pets" className={linkClass}>Thú đã nhận nuôi</Link>
-          <button 
-            onClick={handleLogout}
-            className="text-left text-red-300 hover:text-red-400 mt-4 font-bold"
-          >
-            Đăng xuất
-          </button>
-        </nav>
+          {/* Navigation */}
+          <nav className="space-y-2">
+            {menuItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden ${
+                  isActive(item.path)
+                    ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm'
+                    : 'hover:bg-white/10 text-white/80 hover:text-white'
+                }`}
+              >
+                {/* Active indicator */}
+                {isActive(item.path) && (
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                )}
+                
+                {/* Icon with color */}
+                <div 
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all duration-300 ${
+                    isActive(item.path) ? 'scale-110' : 'group-hover:scale-105'
+                  }`}
+                  style={{ 
+                    backgroundColor: isActive(item.path) ? item.color : 'rgba(255,255,255,0.1)',
+                  }}
+                >
+                  {item.icon}
+                </div>
+                
+                {/* Label */}
+                {!collapsed && (
+                  <span className="font-medium group-hover:translate-x-1 transition-transform duration-300">
+                    {item.label}
+                  </span>
+                )}
+                
+                {/* Hover effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+              </Link>
+            ))}
+            
+            {/* Logout button */}
+            <button 
+              onClick={handleLogout}
+              className="group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 text-red-300 hover:text-red-200 hover:bg-red-500/20 w-full mt-6"
+            >
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/20 group-hover:bg-red-500/30 transition-colors">
+                <LogoutOutlined />
+              </div>
+              {!collapsed && (
+                <span className="font-medium group-hover:translate-x-1 transition-transform duration-300">
+                  Đăng xuất
+                </span>
+              )}
+            </button>
+          </nav>
+        </div>
       </div>
 
-      {/* CONTENT */}
-      <div className="flex-1 bg-gray-100 p-8">
-        <Outlet />
+      {/* CONTENT với gradient background */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30"></div>
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25% 25%, rgba(98, 114, 182, 0.05) 0%, transparent 50%),
+                           radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 50%)`
+        }}></div>
+        
+        {/* Content */}
+        <div className="relative p-8 min-h-screen">
+          <Outlet />
+        </div>
       </div>
-
     </div>
   );
 }

@@ -114,6 +114,35 @@ const adoptionRequestSchema = new mongoose.Schema({
   processedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+
+  // Thêm trường theo dõi trạng thái
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected', 'cancelled']
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    note: String,
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  }],
+
+  // Thêm trường đánh giá
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  
+  feedback: {
+    type: String,
+    maxlength: 1000
   }
   
 }, {

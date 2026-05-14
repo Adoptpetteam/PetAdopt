@@ -113,10 +113,42 @@ const createAdoptionRequest = async (req, res) => {
       hasOtherPets: hasOtherPets || false,
       otherPetsDetails,
       monthlyIncome,
-      commitment: true
+      commitment: true,
+      statusHistory: [{
+        status: 'pending',
+        timestamp: new Date(),
+        note: 'Đơn nhận nuôi được tạo'
+      }]
     });
 
     await adoptionRequest.save();
+
+    // Gửi email xác nhận cho user
+    if (req.user?.email) {
+      try {
+        const petInfo = await Pet.findById(pet);
+        const subject = 'Xác nhận đơn nhận nuôi đã được gửi';
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #6272B6;">Cảm ơn bạn đã gửi đơn nhận nuôi!</h2>
+            <p>Chào ${fullName},</p>
+            <p>Đơn nhận nuôi thú cưng <strong>${petInfo?.name || 'của bạn'}</strong> đã được gửi thành công.</p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #6272B6; margin-top: 0;">Thông tin đơn nhận nuôi:</h3>
+              <p><strong>Mã đơn:</strong> #${adoptionRequest._id.toString().slice(-8).toUpperCase()}</p>
+              <p><strong>Thú cưng:</strong> ${petInfo?.name || 'N/A'}</p>
+              <p><strong>Ngày gửi:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
+              <p><strong>Trạng thái:</strong> Đang chờ xử lý</p>
+            </div>
+            <p>Chúng tôi sẽ xem xét đơn của bạn và liên hệ trong vòng 2-3 ngày làm việc.</p>
+            <p>Trân trọng,<br/>Đội ngũ PetAdopt</p>
+          </div>
+        `;
+        await sendEmail(req.user.email, subject, html);
+      } catch (emailError) {
+        console.error('Lỗi gửi email xác nhận:', emailError);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -217,17 +249,9 @@ const approveAdoptionRequest = async (req, res) => {
     const { id } = req.params;
     const { adminNote } = req.body || {};
 
-    console.log('Approving adoption request:', id);
-
     const request = await AdoptionRequest.findById(id)
       .populate('pet', 'name status')
       .populate('user', 'name email');
-
-    console.log('Request found:', !!request);
-    if (request) {
-      console.log('Request pet:', request.pet);
-      console.log('Request status:', request.status);
-    }
 
     if (!request) {
       return res.status(404).json({
@@ -248,34 +272,59 @@ const approveAdoptionRequest = async (req, res) => {
     request.adminNote = adminNote || '';
     request.processedAt = new Date();
     request.processedBy = req.user?.id || null;
+    
+    // Thêm vào lịch sử trạng thái
+    request.statusHistory.push({
+      status: 'approved',
+      timestamp: new Date(),
+      note: adminNote || 'Đơn nhận nuôi được duyệt',
+      processedBy: req.user?.id
+    });
+    
     await request.save();
 
     // Cập nhật trạng thái pet thành adopted
     if (request.pet) {
-      console.log('Updating pet status for pet:', request.pet._id);
       await Pet.findByIdAndUpdate(request.pet._id, {
         status: 'adopted'
       });
-      console.log('Pet status updated successfully');
-    } else {
-      console.log('No pet associated with this request');
     }
 
-    // Gửi email mời phỏng vấn cho user
+    // Gửi email thông báo duyệt
     if (request.user?.email) {
       try {
-        const subject = 'Yêu cầu nhận nuôi của bạn đã được chấp thuận';
+        const subject = '🎉 Đơn nhận nuôi của bạn đã được chấp thuận!';
         const html = `
-          <p>Chào ${request.user.name || request.fullName || 'bạn'},</p>
-          <p>Đơn nhận nuôi thú cưng <strong>${request.pet?.name || 'của bạn'}</strong> đã được <strong>chấp thuận</strong> bởi admin.</p>
-          <p>Chúng tôi xin mời bạn đến phỏng vấn để hoàn tất quy trình nhận nuôi.</p>
-          <p><strong>Ghi chú của admin:</strong> ${adminNote || 'Không có ghi chú.'}</p>
-          <p>Xin vui lòng kiểm tra email này và phản hồi sớm nhất có thể để chúng tôi sắp xếp buổi gặp.</p>
-          <p>Trân trọng,<br/>PetAdopt Team</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #6272B6, #8b5cf6); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0;">🎉 Chúc mừng!</h1>
+              <p style="color: white; margin: 10px 0 0 0;">Đơn nhận nuôi của bạn đã được chấp thuận</p>
+            </div>
+            <div style="padding: 30px; background: white; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <p>Chào <strong>${request.user.name || request.fullName}</strong>,</p>
+              <p>Chúng tôi rất vui thông báo rằng đơn nhận nuôi thú cưng <strong>${request.pet?.name}</strong> của bạn đã được <span style="color: #10b981; font-weight: bold;">CHẤP THUẬN</span>!</p>
+              
+              <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6272B6;">
+                <h3 style="color: #6272B6; margin-top: 0;">📋 Thông tin đơn nhận nuôi</h3>
+                <p><strong>Mã đơn:</strong> #${request._id.toString().slice(-8).toUpperCase()}</p>
+                <p><strong>Thú cưng:</strong> ${request.pet?.name}</p>
+                <p><strong>Ngày duyệt:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
+                ${adminNote ? `<p><strong>Ghi chú:</strong> ${adminNote}</p>` : ''}
+              </div>
+
+              <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4 style="color: #d97706; margin-top: 0;">📞 Bước tiếp theo</h4>
+                <p style="margin: 0;">Chúng tôi sẽ liên hệ với bạn trong vòng 24h để sắp xếp buổi gặp mặt và hoàn tất thủ tục nhận nuôi.</p>
+              </div>
+
+              <p>Cảm ơn bạn đã tin tưởng và lựa chọn nhận nuôi thú cưng từ chúng tôi!</p>
+              <p style="margin-bottom: 0;">Trân trọng,<br/><strong>Đội ngũ PetAdopt</strong></p>
+            </div>
+          </div>
         `;
         await sendEmail(request.user.email, subject, html);
       } catch (emailError) {
-        console.error('Lỗi gửi email duyệt đơn nhận nuôi:', emailError.message || emailError);
+        console.error('Lỗi gửi email duyệt đơn:', emailError);
       }
     }
 
@@ -287,7 +336,6 @@ const approveAdoptionRequest = async (req, res) => {
 
   } catch (error) {
     console.error('Error approving adoption request:', error);
-    console.error(error.stack);
     res.status(500).json({
       success: false,
       message: 'Lỗi server khi duyệt đơn'
@@ -438,7 +486,7 @@ const cancelAdoptionRequest = async (req, res) => {
 // @access  Private
 const getMyAdoptionRequests = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
@@ -448,7 +496,8 @@ const getMyAdoptionRequests = async (req, res) => {
     }
 
     const requests = await AdoptionRequest.find({ user: userId })
-      .populate('pet', 'name images species')
+      .populate('pet', 'name images species age gender')
+      .populate('processedBy', 'name')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -465,6 +514,150 @@ const getMyAdoptionRequests = async (req, res) => {
   }
 };
 
+// @desc    Thống kê đơn nhận nuôi (Admin)
+// @route   GET /api/adoption/statistics
+// @access  Private (Admin)
+const getAdoptionStatistics = async (req, res) => {
+  try {
+    const totalRequests = await AdoptionRequest.countDocuments();
+    const pendingRequests = await AdoptionRequest.countDocuments({ status: 'pending' });
+    const approvedRequests = await AdoptionRequest.countDocuments({ status: 'approved' });
+    const rejectedRequests = await AdoptionRequest.countDocuments({ status: 'rejected' });
+    const cancelledRequests = await AdoptionRequest.countDocuments({ status: 'cancelled' });
+
+    // Thống kê theo tháng (6 tháng gần nhất)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyStats = await AdoptionRequest.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          total: { $sum: 1 },
+          approved: {
+            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] }
+          }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ]);
+
+    // Top pets được nhận nuôi nhiều nhất
+    const topPets = await AdoptionRequest.aggregate([
+      {
+        $match: { status: 'approved' }
+      },
+      {
+        $group: {
+          _id: '$pet',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'pets',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'petInfo'
+        }
+      },
+      {
+        $unwind: '$petInfo'
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          total: totalRequests,
+          pending: pendingRequests,
+          approved: approvedRequests,
+          rejected: rejectedRequests,
+          cancelled: cancelledRequests,
+          approvalRate: totalRequests > 0 ? Math.round((approvedRequests / totalRequests) * 100) : 0
+        },
+        monthlyStats,
+        topPets
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting adoption statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi lấy thống kê'
+    });
+  }
+};
+
+// @desc    Đánh giá đơn nhận nuôi (User)
+// @route   PUT /api/adoption/:id/rate
+// @access  Private
+const rateAdoptionRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, feedback } = req.body;
+    const userId = req.user?.userId || req.user?.id;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Đánh giá phải từ 1 đến 5 sao'
+      });
+    }
+
+    const request = await AdoptionRequest.findOne({
+      _id: id,
+      user: userId,
+      status: 'approved'
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn nhận nuôi hoặc đơn chưa được duyệt'
+      });
+    }
+
+    request.rating = rating;
+    request.feedback = feedback || '';
+    await request.save();
+
+    res.json({
+      success: true,
+      message: 'Cảm ơn bạn đã đánh giá!',
+      data: request
+    });
+
+  } catch (error) {
+    console.error('Error rating adoption request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi đánh giá'
+    });
+  }
+};
+
 module.exports = {
   createAdoptionRequest,
   getAdoptionRequests,
@@ -473,5 +666,7 @@ module.exports = {
   rejectAdoptionRequest,
   deleteAdoptionRequest,
   cancelAdoptionRequest,
-  getMyAdoptionRequests
+  getMyAdoptionRequests,
+  getAdoptionStatistics,
+  rateAdoptionRequest
 };

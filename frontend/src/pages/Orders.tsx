@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   Button, Tag, Empty, Spin, Card, Timeline, Space, Typography,
   Row, Col, Divider, Progress, Modal, Table, Tabs, Badge,
+  Statistic, DatePicker, Select, Input, Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,8 +12,10 @@ import {
   ShoppingOutlined, ClockCircleOutlined, CheckCircleOutlined,
   CloseCircleOutlined, CarOutlined, BankOutlined, TruckOutlined,
   GiftOutlined, PhoneOutlined, HomeOutlined, EyeOutlined,
-  ReloadOutlined, BoxPlotOutlined,
+  ReloadOutlined, BoxPlotOutlined, SearchOutlined, CalendarOutlined,
+  DollarOutlined, ShoppingCartOutlined, DownloadOutlined,
 } from "@ant-design/icons";
+import dayjs from 'dayjs';
 
 const { Text, Title } = Typography;
 
@@ -147,7 +150,18 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [selected, setSelected] = useState<OrderData | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const navigate = useNavigate();
+
+  // Thống kê tổng quan
+  const orderStats = {
+    total: orders.length,
+    totalAmount: orders.reduce((sum, order) => sum + order.totals.total, 0),
+    completed: orders.filter(o => o.status === 'completed').length,
+    pending: orders.filter(o => ['pending', 'confirmed', 'paid', 'shipping'].includes(o.status)).length,
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -197,7 +211,32 @@ export default function Orders() {
     });
   };
 
-  const filtered = activeTab === "all" ? orders : orders.filter((o) => o.status === activeTab);
+  const filtered = orders.filter((order) => {
+    // Filter by tab
+    if (activeTab !== "all" && order.status !== activeTab) return false;
+    
+    // Filter by search text
+    if (searchText) {
+      const searchLower = searchText.toLowerCase();
+      const matchesId = order._id.toLowerCase().includes(searchLower);
+      const matchesCustomer = order.customer.name.toLowerCase().includes(searchLower);
+      const matchesProduct = order.items.some(item => 
+        item.name.toLowerCase().includes(searchLower)
+      );
+      if (!matchesId && !matchesCustomer && !matchesProduct) return false;
+    }
+    
+    // Filter by date range
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      const orderDate = dayjs(order.createdAt);
+      if (!orderDate.isBetween(dateRange[0], dateRange[1], 'day', '[]')) return false;
+    }
+    
+    // Filter by payment method
+    if (paymentFilter !== "all" && order.paymentMethod !== paymentFilter) return false;
+    
+    return true;
+  });
 
   const tabItems = TAB_ITEMS.map((t) => {
     const count = t.key === "all" ? orders.length : orders.filter((o) => o.status === t.key).length;
@@ -347,14 +386,14 @@ export default function Orders() {
 
   return (
     <div className="bg-gray-50 min-h-screen py-16 px-4">
-      <div className="max-w-[1100px] mx-auto">
+      <div className="max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <Title level={2} className="text-[#6272B6] m-0 flex items-center gap-2">
-              <BoxPlotOutlined /> Đơn hàng của tôi
+              <BoxPlotOutlined /> Lịch sử mua hàng
             </Title>
-            <Text type="secondary">{orders.length} đơn hàng</Text>
+            <Text type="secondary">Quản lý và theo dõi đơn hàng của bạn</Text>
           </div>
           <Space>
             <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading}>Làm mới</Button>
@@ -366,7 +405,108 @@ export default function Orders() {
           </Space>
         </div>
 
+        {/* Thống kê tổng quan */}
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={12} sm={6}>
+            <Card className="text-center border-0 shadow-sm">
+              <Statistic
+                title="Tổng đơn hàng"
+                value={orderStats.total}
+                prefix={<ShoppingCartOutlined className="text-blue-500" />}
+                valueStyle={{ color: '#6272B6', fontSize: '20px' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card className="text-center border-0 shadow-sm">
+              <Statistic
+                title="Tổng chi tiêu"
+                value={orderStats.totalAmount}
+                prefix={<DollarOutlined className="text-green-500" />}
+                suffix="đ"
+                valueStyle={{ color: '#10b981', fontSize: '20px' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card className="text-center border-0 shadow-sm">
+              <Statistic
+                title="Đã hoàn thành"
+                value={orderStats.completed}
+                prefix={<CheckCircleOutlined className="text-green-500" />}
+                valueStyle={{ color: '#10b981', fontSize: '20px' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card className="text-center border-0 shadow-sm">
+              <Statistic
+                title="Đang xử lý"
+                value={orderStats.pending}
+                prefix={<ClockCircleOutlined className="text-orange-500" />}
+                valueStyle={{ color: '#f59e0b', fontSize: '20px' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
         <Card className="rounded-2xl shadow-sm border-0">
+          {/* Bộ lọc nâng cao */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} sm={8}>
+                <Input
+                  placeholder="Tìm theo mã đơn, tên khách hàng, sản phẩm..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
+              </Col>
+              <Col xs={24} sm={6}>
+                <DatePicker.RangePicker
+                  placeholder={['Từ ngày', 'Đến ngày']}
+                  value={dateRange}
+                  onChange={setDateRange}
+                  format="DD/MM/YYYY"
+                  className="w-full"
+                />
+              </Col>
+              <Col xs={24} sm={4}>
+                <Select
+                  placeholder="Thanh toán"
+                  value={paymentFilter}
+                  onChange={setPaymentFilter}
+                  className="w-full"
+                  options={[
+                    { label: 'Tất cả', value: 'all' },
+                    { label: 'COD', value: 'cod' },
+                    { label: 'VNPay', value: 'vnpay' },
+                  ]}
+                />
+              </Col>
+              <Col xs={24} sm={6}>
+                <Space>
+                  <Button 
+                    onClick={() => {
+                      setSearchText("");
+                      setDateRange(null);
+                      setPaymentFilter("all");
+                      setActiveTab("all");
+                    }}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                  <Tooltip title="Xuất Excel">
+                    <Button icon={<DownloadOutlined />} type="primary" className="bg-green-500 border-0">
+                      Xuất
+                    </Button>
+                  </Tooltip>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+
           {/* Tabs lọc theo trạng thái */}
           <Tabs
             activeKey={activeTab}
@@ -377,21 +517,44 @@ export default function Orders() {
 
           {filtered.length === 0 ? (
             <Empty
-              description={<span className="text-gray-500">Không có đơn hàng nào</span>}
+              description={
+                <div className="text-center">
+                  <div className="text-gray-500 mb-2">
+                    {orders.length === 0 ? "Bạn chưa có đơn hàng nào" : "Không tìm thấy đơn hàng phù hợp"}
+                  </div>
+                  {searchText || dateRange || paymentFilter !== "all" ? (
+                    <Button onClick={() => {
+                      setSearchText("");
+                      setDateRange(null);
+                      setPaymentFilter("all");
+                      setActiveTab("all");
+                    }}>
+                      Xóa bộ lọc
+                    </Button>
+                  ) : null}
+                </div>
+              }
               className="py-16"
             >
-              <Link to="/products">
-                <Button type="primary" className="bg-[#6272B6] border-0 rounded-full px-8">
-                  Mua sắm ngay
-                </Button>
-              </Link>
+              {orders.length === 0 && (
+                <Link to="/products">
+                  <Button type="primary" className="bg-[#6272B6] border-0 rounded-full px-8">
+                    Mua sắm ngay
+                  </Button>
+                </Link>
+              )}
             </Empty>
           ) : (
             <Table
               columns={columns}
               dataSource={filtered}
               rowKey="_id"
-              pagination={{ pageSize: 10, showTotal: (t) => `${t} đơn hàng` }}
+              pagination={{ 
+                pageSize: 10, 
+                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn hàng`,
+                showSizeChanger: true,
+                showQuickJumper: true,
+              }}
               scroll={{ x: 900 }}
               rowClassName="hover:bg-blue-50 cursor-pointer transition-colors"
               onRow={(record) => ({ onClick: () => setSelected(record) })}

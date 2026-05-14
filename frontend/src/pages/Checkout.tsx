@@ -100,21 +100,14 @@ export default function Checkout() {
   const handleRemoveVoucher = () => {
     setAppliedVoucher(null);
     setVoucherCode("");
+    message.info("Đã bỏ mã giảm giá");
   };
 
   const handlePlaceOrder = async () => {
-    if (!form.name.trim()) return message.error("Vui lòng nhập họ tên");
-    if (!form.phone.trim()) return message.error("Vui lòng nhập số điện thoại");
-    if (!form.address.trim()) return message.error("Vui lòng nhập địa chỉ giao hàng");
+    if (!isFormValid) return message.warning("Vui lòng điền đầy đủ thông tin");
 
-    const phoneRegex = /^(0|\+84)[0-9]{9}$/;
-    if (!phoneRegex.test(form.phone.trim())) {
-      return message.error("Số điện thoại không hợp lệ");
-    }
-
+    setLoading(true);
     try {
-      setLoading(true);
-
       const payload = {
         paymentMethod: form.paymentMethod,
         customer: {
@@ -200,212 +193,159 @@ export default function Checkout() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-8">
-          <span
-            className="cursor-pointer hover:text-[#6272B6]"
-            onClick={() => navigate("/products")}
-          >
-            Sản phẩm
-          </span>
-          <span>/</span>
-          <span
-            className="cursor-pointer hover:text-[#6272B6]"
-            onClick={() => navigate("/cart")}
-          >
-            Giỏ hàng
-          </span>
-          <span>/</span>
-          <span className="text-[#6272B6] font-semibold">Thanh toán</span>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">Thanh Toán Đơn Hàng</h1>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+            <span className="cursor-pointer hover:text-blue-600" onClick={() => navigate("/products")}>
+              Sản phẩm
+            </span>
+            <span>→</span>
+            <span className="cursor-pointer hover:text-blue-600" onClick={() => navigate("/cart")}>
+              Giỏ hàng
+            </span>
+            <span>→</span>
+            <span className="text-blue-600 font-semibold">Thanh toán</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* LEFT - Thông tin */}
-          <Card className="rounded-3xl shadow-md border-0 p-2">
-            <h1 className="text-2xl font-bold text-[#6272B6] mb-6">
-              Thông tin nhận hàng
-            </h1>
+          <div className="space-y-6">
+            {/* Thông tin nhận hàng */}
+            <Card title="Thông tin nhận hàng" className="shadow-sm">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Họ và tên <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    size="large"
+                    placeholder="Nguyễn Văn A"
+                    prefix={<UserOutlined />}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Họ và tên <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  size="large"
-                  prefix={<UserOutlined className="text-gray-400" />}
-                  placeholder="Nguyễn Văn A"
-                  className="h-12 rounded-xl"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Số điện thoại <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    size="large"
+                    placeholder="0912345678"
+                    prefix={<PhoneOutlined />}
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Địa chỉ giao hàng <span className="text-red-500">*</span>
+                  </label>
+                  <Input.TextArea
+                    rows={3}
+                    placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  />
+                </div>
               </div>
+            </Card>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Số điện thoại <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  size="large"
-                  prefix={<PhoneOutlined className="text-gray-400" />}
-                  placeholder="0912345678"
-                  className="h-12 rounded-xl"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Địa chỉ giao hàng <span className="text-red-500">*</span>
-                </label>
-                <Input.TextArea
-                  rows={3}
-                  placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
-                  className="rounded-xl"
-                  value={form.address}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
-                />
-              </div>
-
-              <Divider />
-
-              {/* Payment method */}
-              <div>
-                <p className="font-bold text-gray-700 mb-4">
-                  Phương thức thanh toán
-                </p>
-                <Radio.Group
-                  value={form.paymentMethod}
-                  onChange={(e) =>
-                    setForm({ ...form, paymentMethod: e.target.value })
-                  }
-                  className="w-full"
-                >
-                  <div className="space-y-3">
-                    {/* COD */}
-                    <label
-                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                        form.paymentMethod === "cod"
-                          ? "border-[#6272B6] bg-blue-50"
-                          : "border-gray-100 hover:border-gray-200"
-                      }`}
-                    >
-                      <Radio value="cod" />
+            {/* Phương thức thanh toán */}
+            <Card title="Phương thức thanh toán" className="shadow-sm">
+              <Radio.Group
+                value={form.paymentMethod}
+                onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+                className="w-full"
+              >
+                <div className="space-y-3">
+                  <div className="p-3 border rounded-lg">
+                    <Radio value="cod">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                          <CarOutlined className="text-orange-500 text-lg" />
-                        </div>
+                        <CarOutlined className="text-orange-500" />
                         <div>
-                          <p className="font-semibold text-gray-800">
-                            Thanh toán khi nhận hàng (COD)
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            Trả tiền mặt khi nhận hàng
-                          </p>
+                          <div className="font-medium">Thanh toán khi nhận hàng (COD)</div>
+                          <p className="text-sm text-gray-500">Thanh toán bằng tiền mặt khi nhận hàng</p>
                         </div>
                       </div>
-                    </label>
-
-                    {/* VNPay */}
-                    <label
-                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                        form.paymentMethod === "vnpay"
-                          ? "border-[#6272B6] bg-blue-50"
-                          : "border-gray-100 hover:border-gray-200"
-                      }`}
-                    >
-                      <Radio value="vnpay" />
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                          <BankOutlined className="text-blue-600 text-lg" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-800">
-                            Thanh toán qua VNPay
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            ATM, Visa, MasterCard, QR Code
-                          </p>
-                        </div>
-                      </div>
-                    </label>
+                    </Radio>
                   </div>
-                </Radio.Group>
-              </div>
-            </div>
-          </Card>
+                  
+                  <div className="p-3 border rounded-lg">
+                    <Radio value="vnpay">
+                      <div className="flex items-center gap-3">
+                        <BankOutlined className="text-blue-500" />
+                        <div>
+                          <div className="font-medium">VNPay</div>
+                          <p className="text-sm text-gray-500">ATM, Visa, MasterCard, QR Code</p>
+                        </div>
+                      </div>
+                    </Radio>
+                  </div>
+                </div>
+              </Radio.Group>
+            </Card>
+          </div>
 
           {/* RIGHT - Đơn hàng */}
-          <Card className="rounded-3xl shadow-xl border-0 p-2">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">
-              Đơn hàng ({totalQty} sản phẩm)
-            </h2>
-
-            <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 mb-4">
+          <Card title={`Đơn hàng (${totalQty} sản phẩm)`} className="shadow-sm">
+            <div className="space-y-4 max-h-80 overflow-y-auto mb-4">
               {selectedItems.map((item) => (
-                <div
-                  key={item._id}
-                  className="flex items-center gap-4 pb-4 border-b border-gray-50 last:border-0"
-                >
-                  <div className="relative flex-shrink-0">
+                <div key={item._id} className="flex items-center gap-3 pb-3 border-b last:border-0">
+                  <div className="relative">
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="w-16 h-16 object-cover rounded-xl border"
+                      className="w-12 h-12 object-cover rounded border"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://placehold.co/64x64?text=No+Image";
+                        (e.target as HTMLImageElement).src = "https://placehold.co/48x48?text=No+Image";
                       }}
                     />
-                    <span className="absolute -top-2 -right-2 bg-[#6272B6] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
                       {item.cartQuantity}
                     </span>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-800 truncate text-sm">
-                      {item.name}
-                    </h3>
-                    <p className="text-gray-400 text-xs">
+                    <h3 className="font-medium text-gray-800 truncate text-sm">{item.name}</h3>
+                    <p className="text-gray-500 text-xs">
                       {item.cartQuantity} × {item.price.toLocaleString()}đ
                     </p>
                   </div>
 
-                  <div className="font-bold text-[#6272B6] text-sm flex-shrink-0">
+                  <div className="font-semibold text-blue-600 text-sm">
                     {(item.price * item.cartQuantity).toLocaleString()}đ
                   </div>
                 </div>
               ))}
             </div>
 
-            <Divider className="my-4" />
+            <Divider />
 
             {/* Voucher */}
             <div className="mb-4">
-              <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-1">
-                <TagOutlined className="text-[#6272B6]" /> Mã giảm giá
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-2">Mã giảm giá</p>
               {appliedVoucher ? (
-                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded p-3">
                   <div className="flex items-center gap-2">
                     <CheckCircleOutlined className="text-green-500" />
                     <div>
-                      <span className="font-bold text-green-700">{appliedVoucher.code}</span>
+                      <span className="font-medium text-green-700">{appliedVoucher.code}</span>
                       {appliedVoucher.description && (
                         <p className="text-xs text-gray-500">{appliedVoucher.description}</p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-green-600 font-bold">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-600 font-medium">
                       -{appliedVoucher.discount.toLocaleString()}đ
                     </span>
-                    <button onClick={handleRemoveVoucher} className="text-gray-400 hover:text-red-500 transition-colors">
+                    <button onClick={handleRemoveVoucher} className="text-gray-400 hover:text-red-500">
                       <CloseCircleOutlined />
                     </button>
                   </div>
@@ -417,48 +357,41 @@ export default function Checkout() {
                     value={voucherCode}
                     onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                     onPressEnter={handleApplyVoucher}
-                    className="rounded-xl h-10"
-                    prefix={<TagOutlined className="text-gray-400" />}
+                    prefix={<TagOutlined />}
                   />
-                  <Button
-                    onClick={handleApplyVoucher}
-                    loading={voucherLoading}
-                    className="rounded-xl h-10 px-5 bg-[#6272B6] text-white border-0 hover:bg-[#4a569d]"
-                  >
+                  <Button onClick={handleApplyVoucher} loading={voucherLoading} type="primary">
                     Áp dụng
                   </Button>
                 </div>
               )}
             </div>
 
-            <Divider className="my-4" />
+            <Divider />
 
             {/* Totals */}
-            <div className="space-y-2 mb-6">
-              <div className="flex justify-between text-gray-500 text-sm">
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-gray-600">
                 <span>Tạm tính</span>
                 <span>{total.toLocaleString()}đ</span>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-600 flex items-center gap-1">
-                    <TagOutlined /> Giảm giá ({appliedVoucher?.code})
-                  </span>
-                  <span className="text-green-600 font-semibold">-{discount.toLocaleString()}đ</span>
+                <div className="flex justify-between text-green-600">
+                  <span>Giảm giá ({appliedVoucher?.code})</span>
+                  <span>-{discount.toLocaleString()}đ</span>
                 </div>
               )}
-              <div className="flex justify-between text-gray-500 text-sm">
+              <div className="flex justify-between text-gray-600">
                 <span>Phí vận chuyển</span>
-                <span className="text-green-500 font-semibold">Miễn phí</span>
+                <span className="text-green-500">Miễn phí</span>
               </div>
-              <Divider className="my-2" />
+              <Divider />
               <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-700">Tổng thanh toán</span>
+                <span className="text-lg font-semibold">Tổng thanh toán</span>
                 <div className="text-right">
                   {discount > 0 && (
                     <p className="text-sm text-gray-400 line-through">{total.toLocaleString()}đ</p>
                   )}
-                  <span className="text-3xl font-black text-[#6272B6]">
+                  <span className="text-2xl font-bold text-blue-600">
                     {finalTotal.toLocaleString()}đ
                   </span>
                 </div>
@@ -472,7 +405,7 @@ export default function Checkout() {
               icon={<CreditCardOutlined />}
               onClick={handlePlaceOrder}
               disabled={!isFormValid}
-              className="w-full h-14 rounded-2xl bg-[#6272B6] text-lg font-bold border-0 hover:bg-[#4a569d] disabled:opacity-50"
+              className="w-full"
             >
               {loading
                 ? "Đang xử lý..."
@@ -482,7 +415,7 @@ export default function Checkout() {
             </Button>
 
             {form.paymentMethod === "vnpay" && (
-              <p className="text-center text-xs text-gray-400 mt-3">
+              <p className="text-center text-xs text-gray-500 mt-2">
                 Bạn sẽ được chuyển đến trang thanh toán VNPay an toàn
               </p>
             )}

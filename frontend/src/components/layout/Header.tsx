@@ -118,6 +118,10 @@ export default function Header() {
                 Tài khoản
               </Link>
               <span className="opacity-50">|</span>
+              <Link to="/my-adoptions" className="hover:underline font-medium">
+                Đơn nhận nuôi
+              </Link>
+              <span className="opacity-50">|</span>
               <button onClick={handleLogout} className="hover:underline cursor-pointer">Đăng xuất</button>
             </>
           ) : (
