@@ -19,6 +19,8 @@ import { UploadOutlined, LoadingOutlined, PictureOutlined } from "@ant-design/ic
 import { apiClient } from "../../api/http";
 import type { ColumnsType } from "antd/es/table";
 
+const { Title } = Typography;
+
 // Danh mục cố định cho sản phẩm thú cưng
 const PRODUCT_CATEGORIES = [
   "Thức ăn",
