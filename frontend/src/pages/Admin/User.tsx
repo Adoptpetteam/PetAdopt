@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { Table, Tag, Space, Button, Popconfirm, message } from "antd";
+import {
+  Table, Tag, Space, Button, Popconfirm, message,
+  Input, Card, Statistic, Row, Col,
+} from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
+import {
+  SearchOutlined, UserOutlined, LockOutlined, CheckCircleOutlined,
+} from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 
 interface UserType {
@@ -18,13 +24,9 @@ const API = "/admin/users";
 const User = () => {
   const [data, setData] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  // 👉 Load data
   const fetchUsers = async (page = 1, limit = 10) => {
     try {
       setLoading(true);
@@ -35,51 +37,56 @@ const User = () => {
         pageSize: res.data.pagination.limit,
         total: res.data.pagination.total,
       });
-    } catch (error) {
+    } catch {
       message.error("Lỗi khi tải danh sách người dùng");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsers(pagination.current, pagination.pageSize);
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
-  // 👉 Xử lý khi đổi trang
-  const handleTableChange: TableProps<UserType>['onChange'] = (newPagination) => {
-    fetchUsers(newPagination.current, newPagination.pageSize);
-  };
+  const handleTableChange: TableProps<UserType>["onChange"] = (p) =>
+    fetchUsers(p.current, p.pageSize);
 
-  // 👉 Khóa / Mở khóa người dùng
   const handleToggleBan = async (user: UserType) => {
     try {
       if (user.isBanned) {
         await apiClient.put(`${API}/${user._id}/unban`);
-        message.success(`Đã mở khóa tài khoản ${user.name}`);
+        message.success(`Đã mở khóa ${user.name}`);
       } else {
         await apiClient.put(`${API}/${user._id}/ban`);
-        message.success(`Đã khóa tài khoản ${user.name}`);
+        message.success(`Đã khóa ${user.name}`);
       }
       fetchUsers(pagination.current, pagination.pageSize);
-    } catch (error) {
+    } catch {
       message.error("Thao tác thất bại");
     }
   };
 
-  // 👉 Columns
+  const filtered = search
+    ? data.filter(
+        (u) =>
+          u.name.toLowerCase().includes(search.toLowerCase()) ||
+          u.email.toLowerCase().includes(search.toLowerCase())
+      )
+    : data;
+
+  const bannedCount = data.filter((u) => u.isBanned).length;
+  const verifiedCount = data.filter((u) => u.isVerified).length;
+
   const columns: ColumnsType<UserType> = [
     {
       title: "Tên",
       dataIndex: "name",
+      render: (n) => <span className="font-medium">{n}</span>,
+      width: 160,
     },
-    {
-      title: "Email",
-      dataIndex: "email",
-    },
+    { title: "Email", dataIndex: "email", width: 220 },
     {
       title: "Quyền",
       dataIndex: "role",
+      width: 90,
       render: (role) => (
         <Tag color={role === "admin" ? "volcano" : "blue"}>{role}</Tag>
       ),
@@ -87,42 +94,62 @@ const User = () => {
     {
       title: "Xác thực",
       dataIndex: "isVerified",
-      render: (isVerified) =>
-        isVerified ? (
-          <Tag color="green">Đã xác thực</Tag>
+      width: 130,
+      render: (v) =>
+        v ? (
+          <Tag color="green">✅ Đã xác thực</Tag>
         ) : (
-          <Tag color="orange">Chưa xác thực</Tag>
+          <Tag color="orange">⏳ Chưa xác thực</Tag>
         ),
     },
     {
       title: "Trạng thái",
       dataIndex: "isBanned",
-      render: (isBanned) =>
-        isBanned ? (
-          <Tag color="red">Bị khóa</Tag>
+      width: 120,
+      render: (b) =>
+        b ? (
+          <Tag color="red">🔒 Bị khóa</Tag>
         ) : (
-          <Tag color="green">Hoạt động</Tag>
+          <Tag color="green">✅ Hoạt động</Tag>
         ),
     },
     {
       title: "Ngày tham gia",
       dataIndex: "createdAt",
-      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
+      width: 120,
+      render: (d) => (
+        <span className="text-xs text-gray-400">
+          {new Date(d).toLocaleDateString("vi-VN")}
+        </span>
+      ),
+      sorter: (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend",
     },
     {
-      title: "Action",
+      title: "Hành động",
+      width: 110,
+      fixed: "right",
       render: (_, record) => (
         <Space>
           {record.role !== "admin" && (
             <Popconfirm
               title={
                 record.isBanned
-                  ? "Bạn có chắc muốn mở khóa người dùng này?"
-                  : "Bạn có chắc muốn khóa người dùng này?"
+                  ? "Mở khóa tài khoản này?"
+                  : "Khóa tài khoản này?"
               }
               onConfirm={() => handleToggleBan(record)}
+              okText="Xác nhận"
+              cancelText="Hủy"
+              okType={record.isBanned ? "primary" : "danger"}
             >
-              <Button danger={!record.isBanned} type={record.isBanned ? "primary" : "default"}>
+              <Button
+                size="small"
+                danger={!record.isBanned}
+                type={record.isBanned ? "primary" : "default"}
+                className="rounded-lg"
+              >
                 {record.isBanned ? "Mở khóa" : "Khóa"}
               </Button>
             </Popconfirm>
@@ -133,22 +160,76 @@ const User = () => {
   ];
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2 style={{ marginBottom: 20 }}>Quản lý người dùng</h2>
-      <Table 
-        rowKey="_id" 
-        columns={columns} 
-        dataSource={data} 
-        loading={loading}
-        pagination={{
-          current: pagination.current,
-          pageSize: pagination.pageSize,
-          total: pagination.total,
-          showSizeChanger: true,
-          pageSizeOptions: ['10', '20', '50'],
-        }}
-        onChange={handleTableChange}
-      />
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h2 className="text-2xl font-bold text-[#6272B6] mb-6">
+        Quản lý người dùng
+      </h2>
+
+      {/* Stats */}
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Tổng người dùng"
+              value={pagination.total}
+              prefix={<UserOutlined />}
+              valueStyle={{ color: "#6272B6" }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Đã xác thực"
+              value={verifiedCount}
+              prefix={<CheckCircleOutlined />}
+              valueStyle={{ color: "#52c41a" }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Bị khóa"
+              value={bannedCount}
+              prefix={<LockOutlined />}
+              valueStyle={{ color: "#ff4d4f" }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Search */}
+      <div className="bg-white rounded-xl shadow p-4 mb-4">
+        <Input
+          placeholder="Tìm theo tên hoặc email..."
+          prefix={<SearchOutlined className="text-gray-400" />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          allowClear
+          className="rounded-lg max-w-sm"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow">
+        <Table
+          rowKey="_id"
+          columns={columns}
+          dataSource={filtered}
+          loading={loading}
+          scroll={{ x: 900 }}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+            showTotal: (t) => `${t} người dùng`,
+          }}
+          onChange={handleTableChange}
+        />
+      </div>
     </div>
   );
 };
