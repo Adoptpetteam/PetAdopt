@@ -480,6 +480,7 @@ export default function VoucherPage() {
 
       {/* Modal tạo/sửa */}
       <Modal
+        open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleSave}
         confirmLoading={saving}
