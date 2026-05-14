@@ -17,7 +17,7 @@ export default function News() {
   const fetchNews = async (p = 1, q = "") => {
     setLoading(true)
     try {
-      const res = await listNews({ limit: PAGE_SIZE, page: p } as any)
+      const res = await listNews({ limit: PAGE_SIZE, page: p, status: "published" } as any)
       let items = res.data || []
       // Filter client-side nếu có search
       if (q.trim()) {

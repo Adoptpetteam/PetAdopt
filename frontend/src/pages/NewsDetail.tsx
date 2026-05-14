@@ -40,14 +40,25 @@ export default function NewsDetail() {
         className="w-full h-[400px] object-cover rounded-xl mb-6"
       />
 
-      <p className="text-gray-500 mb-4">
+      <p className="text-gray-500 mb-6">
         Ngày đăng: {article.createdAt ? new Date(article.createdAt).toLocaleDateString("vi-VN") : ""}
       </p>
 
-      <p>{article.description}</p>
+      {article.description && (
+        <p className="text-gray-600 text-lg italic mb-6 border-l-4 border-[#6272B6] pl-4">
+          {article.description}
+        </p>
+      )}
 
       {article.content && (
-        <div className="mt-6 whitespace-pre-wrap">{article.content}</div>
+        <div
+          className="prose prose-lg max-w-none mt-6
+            prose-headings:text-gray-800 prose-headings:font-bold
+            prose-p:text-gray-600 prose-p:leading-relaxed
+            prose-li:text-gray-600 prose-strong:text-gray-800
+            prose-blockquote:border-[#6272B6] prose-blockquote:text-gray-500"
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
       )}
     </div>
   )

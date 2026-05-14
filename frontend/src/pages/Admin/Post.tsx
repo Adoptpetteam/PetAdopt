@@ -24,9 +24,12 @@ const Post = () => {
   const fetchData = async (page = 1, limit = 10) => {
     setLoading(true);
     try {
-      const res = await listNews({ limit, page, status: "all" } as any);
-      setData(res.data || []);
-      setPagination(p => ({ ...p, current: page, total: res.pagination?.total || (res.data || []).length }));
+      // Không truyền status để lấy tất cả bài viết (backend mặc định filter published)
+      // Dùng limit lớn để lấy hết, admin cần thấy tất cả
+      const res = await apiClient.get("/news", { params: { limit: 100, page: 1 } });
+      const items = res.data?.data || [];
+      setData(items);
+      setPagination(p => ({ ...p, current: page, total: items.length }));
     } catch {
       message.error("Không tải được danh sách tin tức");
     } finally {
