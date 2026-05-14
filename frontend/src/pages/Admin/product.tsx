@@ -19,7 +19,12 @@ import { UploadOutlined, LoadingOutlined, PictureOutlined } from "@ant-design/ic
 import { apiClient } from "../../api/http";
 import type { ColumnsType } from "antd/es/table";
 
-const { Title } = Typography;
+// Danh mục cố định cho sản phẩm thú cưng
+const PRODUCT_CATEGORIES = [
+  "Thức ăn",
+  "Vệ sinh & Làm sạch",
+  "Phụ kiện đồ chơi",
+];
 
 interface ProductRow {
   _id: string;
@@ -32,15 +37,8 @@ interface ProductRow {
   brand?: string;
 }
 
-interface Category {
-  _id: string;
-  name: string;
-  description?: string;
-}
-
 const ProductPage = () => {
   const [data, setData] = useState<ProductRow[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,17 +54,6 @@ const ProductPage = () => {
     const token = localStorage.getItem("admin_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
-
-  // 👉 Tải danh sách categories từ API
-  const loadCategories = useCallback(async () => {
-    try {
-      const res = await apiClient.get("/category");
-      const result = res.data.data || res.data;
-      setCategories(Array.isArray(result) ? result : []);
-    } catch (e: any) {
-      message.error(e?.response?.data?.message || "Không thể tải danh sách danh mục");
-    }
-  }, []);
 
   // 👉 Tải danh sách sản phẩm từ API
   const loadProducts = useCallback(async () => {
@@ -88,8 +75,7 @@ const ProductPage = () => {
 
   useEffect(() => {
     loadProducts();
-    loadCategories();
-  }, [loadProducts, loadCategories]);
+  }, [loadProducts]);
 
   // 👉 Mở modal (Thêm mới hoặc Chỉnh sửa)
   const handleOpenModal = (product: ProductRow | null = null) => {
@@ -385,18 +371,9 @@ const ProductPage = () => {
               rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]} 
               style={{ flex: 1 }}
             >
-              <Select 
-                placeholder="Chọn danh mục sản phẩm"
-                loading={categories.length === 0}
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {categories.map(cat => (
-                  <Select.Option key={cat._id} value={cat.name} label={cat.name}>
-                    {cat.name}
-                  </Select.Option>
+              <Select placeholder="Chọn danh mục sản phẩm" showSearch>
+                {PRODUCT_CATEGORIES.map(cat => (
+                  <Select.Option key={cat} value={cat}>{cat}</Select.Option>
                 ))}
               </Select>
             </Form.Item>
