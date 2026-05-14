@@ -192,3 +192,69 @@ exports.deleteVoucher = async (req, res) => {
 // Export helper để dùng trong orderController
 exports.validateVoucherHelper = validateVoucher;
 exports.calcDiscount = calcDiscount;
+
+// ===============================
+// ADMIN: GET /api/vouchers/admin/:id/usage
+// Chi tiết lượt dùng của 1 voucher
+// ===============================
+exports.getVoucherUsage = async (req, res) => {
+  try {
+    const voucher = await Voucher.findById(req.params.id)
+      .populate('usedBy.user', 'name email');
+
+    if (!voucher) return res.status(404).json({ success: false, message: 'Không tìm thấy voucher' });
+
+    // Lấy các đơn hàng đã dùng voucher này
+    const Order = require('../models/Order');
+    const orders = await Order.find({ 'voucher.code': voucher.code })
+      .populate('user', 'name email')
+      .select('_id status paymentMethod totals voucher createdAt customer')
+      .sort({ createdAt: -1 });
+
+    // Tổng tiền đã giảm
+    const totalDiscount = orders
+      .filter(o => ['paid', 'completed', 'confirmed', 'shipping'].includes(o.status))
+      .reduce((s, o) => s + (o.voucher?.discount || 0), 0);
+
+    // Thống kê theo ngày
+    const byDay = orders.reduce((acc, o) => {
+      const day = new Date(o.createdAt).toLocaleDateString('vi-VN');
+      if (!acc[day]) acc[day] = { count: 0, discount: 0 };
+      acc[day].count += 1;
+      acc[day].discount += o.voucher?.discount || 0;
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        voucher: {
+          _id: voucher._id,
+          code: voucher.code,
+          type: voucher.type,
+          value: voucher.value,
+          usedCount: voucher.usedCount,
+          usageLimit: voucher.usageLimit,
+        },
+        stats: {
+          totalOrders: orders.length,
+          totalDiscount,
+          byDay,
+        },
+        orders: orders.map(o => ({
+          _id: o._id,
+          status: o.status,
+          paymentMethod: o.paymentMethod,
+          customerName: o.customer?.name || o.user?.name || '—',
+          customerEmail: o.user?.email || '—',
+          subtotal: o.totals?.subtotal || 0,
+          discount: o.voucher?.discount || 0,
+          total: o.totals?.total || 0,
+          createdAt: o.createdAt,
+        })),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

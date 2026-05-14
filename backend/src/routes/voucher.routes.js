@@ -9,6 +9,7 @@ router.post('/validate', authenticate, voucherController.validateVoucherCode);
 
 // Admin: quản lý voucher
 router.get('/admin', authenticate, isAdmin, voucherController.listVouchers);
+router.get('/admin/:id/usage', authenticate, isAdmin, voucherController.getVoucherUsage);
 router.post('/admin', authenticate, isAdmin, voucherController.createVoucher);
 router.put('/admin/:id', authenticate, isAdmin, voucherController.updateVoucher);
 router.delete('/admin/:id', authenticate, isAdmin, voucherController.deleteVoucher);
