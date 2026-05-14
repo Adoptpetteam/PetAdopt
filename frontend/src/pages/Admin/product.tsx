@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Table,
   Button,
@@ -13,7 +13,9 @@ import {
   Image,
   Select,
   Tag,
+  Upload,
 } from "antd";
+import { UploadOutlined, LoadingOutlined, PictureOutlined } from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 import type { ColumnsType } from "antd/es/table";
 
@@ -43,7 +45,10 @@ const ProductPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
-  
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [form] = Form.useForm();
 
   // Hàm lấy token và header dùng chung
@@ -91,10 +96,50 @@ const ProductPage = () => {
     setEditingProduct(product);
     if (product) {
       form.setFieldsValue(product);
+      setImagePreview(product.image || "");
     } else {
       form.resetFields();
+      setImagePreview("");
     }
     setIsModalOpen(true);
+  };
+
+  // Upload ảnh lên server
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      message.error("Chỉ chấp nhận file ảnh");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      message.error("Ảnh không được vượt quá 5MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const token = localStorage.getItem("admin_token");
+      const res = await apiClient.post("/products/upload-image", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const imageUrl = res.data.imageUrl;
+      const fullUrl = imageUrl.startsWith("http")
+        ? imageUrl
+        : `http://localhost:5000${imageUrl}`;
+      form.setFieldValue("image", fullUrl);
+      setImagePreview(fullUrl);
+      message.success("Tải ảnh lên thành công");
+    } catch {
+      message.error("Tải ảnh thất bại");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   // 👉 Xử lý Lưu dữ liệu (Submit Form)
@@ -267,8 +312,60 @@ const ProductPage = () => {
             <Input />
           </Form.Item>
 
-          <Form.Item name="image" label="Link ảnh" rules={[{ required: true, message: 'Vui lòng nhập link ảnh' }]}>
-            <Input />
+          <Form.Item name="image" label="Ảnh sản phẩm" rules={[{ required: true, message: 'Vui lòng chọn ảnh' }]}>
+            <div className="space-y-3">
+              {/* Preview ảnh */}
+              {imagePreview && (
+                <div className="flex justify-center">
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    className="w-32 h-32 object-cover rounded-lg border shadow-sm"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://placehold.co/128x128?text=No+Image";
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Nút chọn file */}
+              <div className="flex gap-2 items-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  icon={uploading ? <LoadingOutlined /> : <UploadOutlined />}
+                  onClick={() => fileInputRef.current?.click()}
+                  loading={uploading}
+                  className="rounded-lg"
+                >
+                  {uploading ? "Đang tải..." : "Chọn ảnh từ máy"}
+                </Button>
+                {imagePreview && (
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    <PictureOutlined /> Đã chọn ảnh
+                  </span>
+                )}
+              </div>
+
+              {/* Hoặc nhập link thủ công */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">Hoặc nhập link ảnh:</div>
+                <Input
+                  placeholder="https://example.com/image.jpg"
+                  value={imagePreview}
+                  onChange={(e) => {
+                    setImagePreview(e.target.value);
+                    form.setFieldValue("image", e.target.value);
+                  }}
+                  className="rounded-lg"
+                />
+              </div>
+            </div>
           </Form.Item>
 
           <div style={{ display: "flex", gap: "16px" }}>
