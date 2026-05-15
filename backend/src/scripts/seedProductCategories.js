@@ -1,83 +1,142 @@
 const mongoose = require('mongoose');
-require('dotenv').config({ path: '../.env' });
+const Category = require('../models/Category');
 
-// Connect to database
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pawpalace');
+// Load environment variables
+require('dotenv').config();
 
-// Category schema (assuming it exists)
-const categorySchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  description: String,
-  icon: String,
-  color: String,
-  isActive: { type: Boolean, default: true },
-}, { timestamps: true });
-
-const Category = mongoose.model('Category', categorySchema);
-
-const categories = [
+const productCategories = [
   {
-    name: "Thức ăn & Dinh dưỡng",
-    description: "Thức ăn chính, bánh thưởng, dinh dưỡng bổ sung cho thú cưng",
-    icon: "🍖",
-    color: "#ff6b35"
+    name: 'Thức ăn & Dinh dưỡng',
+    description: 'Thức ăn khô, ướt, snack và các sản phẩm dinh dưỡng cho thú cưng',
+    type: 'product',
+    isActive: true
   },
   {
-    name: "Chăm sóc sức khỏe & Y tế", 
-    description: "Thuốc đặc trị, thực phẩm chức năng, y tế cơ bản",
-    icon: "🏥",
-    color: "#4ecdc4"
+    name: 'Đồ chơi & Huấn luyện',
+    description: 'Đồ chơi giải trí, dụng cụ huấn luyện và phát triển trí tuệ cho thú cưng',
+    type: 'product',
+    isActive: true
   },
   {
-    name: "Vệ sinh & Làm sạch",
-    description: "Cát mèo, khay vệ sinh, kiểm soát mùi, vệ sinh khác",
-    icon: "🧽",
-    color: "#45b7d1"
+    name: 'Chăm sóc sức khỏe & Y tế',
+    description: 'Thuốc, vitamin, dụng cụ y tế và sản phẩm chăm sóc sức khỏe',
+    type: 'product',
+    isActive: true
   },
   {
-    name: "Chăm sóc sắc đẹp",
-    description: "Dụng cụ làm lông/móng, mỹ phẩm cho thú cưng",
-    icon: "✨",
-    color: "#f093fb"
+    name: 'Vệ sinh & Làm sạch',
+    description: 'Cát vệ sinh, khay toilet, sản phẩm tắm gội và vệ sinh môi trường',
+    type: 'product',
+    isActive: true
   },
   {
-    name: "Đồ dùng sinh hoạt & Chỗ ở",
-    description: "Chỗ ngủ, bát ăn, nội thất thú cưng",
-    icon: "🏠",
-    color: "#feca57"
+    name: 'Chăm sóc sắc đẹp',
+    description: 'Dụng cụ chải lông, cắt móng, tắm gội và làm đẹp cho thú cưng',
+    type: 'product',
+    isActive: true
   },
   {
-    name: "Phụ kiện đi dạo & Vận chuyển",
-    description: "Vòng cổ, dây dắt, balo vận chuyển, thời trang",
-    icon: "🚶",
-    color: "#48dbfb"
+    name: 'Đồ dùng sinh hoạt & Chỗ ở',
+    description: 'Chuồng, lồng, giường, chăn đệm và đồ dùng sinh hoạt hàng ngày',
+    type: 'product',
+    isActive: true
   },
   {
-    name: "Đồ chơi & Huấn luyện",
-    description: "Đồ chơi giải trí, dụng cụ huấn luyện",
-    icon: "🎾",
-    color: "#ff9ff3"
+    name: 'Phụ kiện thời trang',
+    description: 'Vòng cổ, dây dắt, quần áo và phụ kiện thời trang cho thú cưng',
+    type: 'product',
+    isActive: true
+  },
+  {
+    name: 'Thiết bị công nghệ',
+    description: 'Camera giám sát, GPS tracker, máy cho ăn tự động và thiết bị thông minh',
+    type: 'product',
+    isActive: true
+  },
+  {
+    name: 'Dụng cụ vận chuyển',
+    description: 'Túi xách, ba lô, lồng vận chuyển và phụ kiện đi du lịch',
+    type: 'product',
+    isActive: true
+  },
+  {
+    name: 'Sản phẩm đặc biệt',
+    description: 'Sản phẩm cao cấp, limited edition và các món đồ đặc biệt khác',
+    type: 'product',
+    isActive: true
   }
 ];
 
-async function seedCategories() {
+const petCategories = [
+  {
+    name: 'Chó',
+    description: 'Các giống chó từ nhỏ đến lớn, thân thiện và trung thành',
+    type: 'pet',
+    isActive: true
+  },
+  {
+    name: 'Mèo',
+    description: 'Các giống mèo dễ thương, độc lập và tình cảm',
+    type: 'pet',
+    isActive: true
+  },
+  {
+    name: 'Chim',
+    description: 'Các loài chim cảnh xinh đẹp và thông minh',
+    type: 'pet',
+    isActive: true
+  },
+  {
+    name: 'Cá cảnh',
+    description: 'Các loài cá cảnh đẹp mắt và dễ chăm sóc',
+    type: 'pet',
+    isActive: true
+  },
+  {
+    name: 'Thú nhỏ',
+    description: 'Hamster, thỏ, chuột lang và các thú nhỏ khác',
+    type: 'pet',
+    isActive: true
+  }
+];
+
+async function seedProductCategories() {
   try {
-    console.log('🗑️  Xóa categories cũ...');
-    await Category.deleteMany({});
-    
-    console.log('📦 Tạo categories mới...');
-    const created = await Category.insertMany(categories);
-    
-    console.log(`✅ Đã tạo ${created.length} categories:`);
-    created.forEach(cat => {
-      console.log(`   ${cat.icon} ${cat.name}`);
+    // Connect to MongoDB
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log('✅ Connected to MongoDB');
+
+    // Xóa tất cả danh mục cũ (cả pet và product)
+    const deleteResult = await Category.deleteMany({});
+    console.log(`🗑️  Deleted ${deleteResult.deletedCount} old categories`);
+
+    // Thêm danh mục pet trước
+    const createdPetCategories = await Category.insertMany(petCategories);
+    console.log(`✅ Created ${createdPetCategories.length} pet categories:`);
+    createdPetCategories.forEach((category, index) => {
+      console.log(`   ${index + 1}. ${category.name} (${category.type})`);
     });
+
+    // Thêm danh mục sản phẩm
+    const createdProductCategories = await Category.insertMany(productCategories);
+    console.log(`✅ Created ${createdProductCategories.length} product categories:`);
+    createdProductCategories.forEach((category, index) => {
+      console.log(`   ${index + 1}. ${category.name} (${category.type})`);
+    });
+
+    console.log('\n🎉 All categories seeded successfully!');
     
-    process.exit(0);
   } catch (error) {
-    console.error('❌ Lỗi:', error);
-    process.exit(1);
+    console.error('❌ Error seeding product categories:', error);
+  } finally {
+    await mongoose.disconnect();
+    console.log('🔌 Disconnected from MongoDB');
   }
 }
 
-seedCategories();
+// Run the seeder
+if (require.main === module) {
+  seedProductCategories();
+}
+
+module.exports = { seedProductCategories, productCategories, petCategories };

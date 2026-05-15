@@ -39,7 +39,7 @@ export default function Products() {
       setLoading(true);
       const [productsRes, categoriesRes] = await Promise.all([
         apiClient.get("/products", { params: { limit: 100, page: 1 } }),
-        apiClient.get("/category").catch(() => ({ data: { data: [] } }))
+        apiClient.get("/category", { params: { type: "product" } }).catch(() => ({ data: { data: [] } }))
       ]);
       
       if (productsRes.data && productsRes.data.success) {
