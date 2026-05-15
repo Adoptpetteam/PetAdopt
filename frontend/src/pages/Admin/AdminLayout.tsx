@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { message } from "antd";
+import { message, Tooltip } from "antd";
 import {
   DashboardOutlined,
   HeartOutlined,
@@ -27,9 +27,12 @@ export default function AdminLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
-  const adminUser = JSON.parse(
-    localStorage.getItem("admin_user") || "{}"
-  );
+  let adminUser: any = {};
+  try {
+    adminUser = JSON.parse(localStorage.getItem("admin_user") || "{}");
+  } catch {
+    adminUser = {};
+  }
 
   const menuItems = [
     { path: "/admin", icon: <DashboardOutlined />, label: "Dashboard", color: "#6366f1" },
@@ -61,6 +64,8 @@ export default function AdminLayout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
+    window.dispatchEvent(new Event("auth-change"));
+
     message.success("Đã đăng xuất hoàn toàn");
     navigate("/admin/login");
   };
@@ -73,20 +78,16 @@ export default function AdminLayout() {
           collapsed ? "w-20" : "w-72"
         } transition-all duration-500 relative shadow-2xl`}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-[#6272B6] via-purple-600 to-indigo-700"></div>
-        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#6272B6] via-purple-600 to-indigo-700" />
+        <div className="absolute inset-0 bg-black/10" />
 
-        <div className="relative h-full text-white p-6 overflow-y-auto">
-          {/* Decorative */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-
+        <div className="relative h-full text-white p-6 overflow-y-auto scrollbar-thin">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             {!collapsed && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <BugOutlined className="text-xl text-white" />
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <BugOutlined className="text-xl" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">PetAdopt Admin</h2>
@@ -107,46 +108,50 @@ export default function AdminLayout() {
 
           {/* Navigation */}
           <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                title={item.label}
-                className={`group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden hover:shadow-lg ${
-                  isActive(item.path)
-                    ? "bg-white/20 text-white shadow-lg backdrop-blur-sm"
-                    : "hover:bg-white/10 text-white/80 hover:text-white"
-                }`}
-              >
-                {isActive(item.path) && (
-                  <div
-                    className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
-                    style={{ backgroundColor: item.color }}
-                  ></div>
-                )}
+            {menuItems.map((item) => {
+              const active = isActive(item.path);
 
-                <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                    isActive(item.path)
-                      ? "scale-110"
-                      : "group-hover:scale-105"
+              const menuLink = (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 relative ${
+                    active
+                      ? "bg-white/20 text-white shadow-lg"
+                      : "hover:bg-white/10 text-white/80 hover:text-white"
                   }`}
-                  style={{
-                    backgroundColor: isActive(item.path)
-                      ? item.color
-                      : "rgba(255,255,255,0.1)",
-                  }}
                 >
-                  {item.icon}
-                </div>
+                  {active && (
+                    <div className="absolute left-2 w-2 h-2 rounded-full bg-white animate-pulse" />
+                  )}
 
-                {!collapsed && (
-                  <span className="font-medium group-hover:translate-x-1 transition-transform">
-                    {item.label}
-                  </span>
-                )}
-              </Link>
-            ))}
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                      active ? "scale-110" : "group-hover:scale-105"
+                    }`}
+                    style={{
+                      backgroundColor: active
+                        ? item.color
+                        : "rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+
+                  {!collapsed && (
+                    <span className="font-medium">{item.label}</span>
+                  )}
+                </Link>
+              );
+
+              return collapsed ? (
+                <Tooltip title={item.label} placement="right" key={item.path}>
+                  {menuLink}
+                </Tooltip>
+              ) : (
+                menuLink
+              );
+            })}
 
             {/* Logout */}
             <button
@@ -157,15 +162,10 @@ export default function AdminLayout() {
                 <LogoutOutlined />
               </div>
 
-              {!collapsed && (
-                <span className="font-medium group-hover:translate-x-1 transition-transform">
-                  Đăng xuất hệ thống
-                </span>
-              )}
+              {!collapsed && <span>Đăng xuất hệ thống</span>}
             </button>
           </nav>
 
-          {/* Footer */}
           {!collapsed && (
             <div className="mt-10 pt-6 border-t border-white/10 text-center text-xs text-white/50">
               PetAdopt © 2026
@@ -176,17 +176,13 @@ export default function AdminLayout() {
 
       {/* Content */}
       <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30"></div>
-
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(98,114,182,0.05) 0%, transparent 50%),
-                             radial-gradient(circle at 75% 75%, rgba(139,92,246,0.05) 0%, transparent 50%)`,
-          }}
-        ></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30" />
 
         <div className="relative p-10 min-h-screen max-w-[1600px] mx-auto">
+          <div className="mb-6 text-sm text-gray-400 font-medium">
+            Admin Panel
+          </div>
+
           <Outlet />
         </div>
       </div>
