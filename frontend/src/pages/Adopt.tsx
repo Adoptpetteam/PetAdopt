@@ -86,7 +86,7 @@ export default function Pets() {
                   : "bg-white text-gray-700 hover:bg-gray-50 shadow-md border border-gray-200"
               }`}
             >
-              🌟 Tất cả
+               Tất cả.
             </button>
 
             {categoriesData?.map((cat: any) => (
@@ -134,7 +134,7 @@ export default function Pets() {
                 />
 
                 <button className="h-14 rounded-2xl bg-gradient-to-r from-[#6272B6] to-purple-600 text-white font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                  🔍 Tìm kiếm
+                  🔍 Tìm kiếm.
                 </button>
               </div>
             </div>
