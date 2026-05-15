@@ -1,9 +1,9 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { message } from "antd";
-import {
-  DashboardOutlined,
-  HeartOutlined,
-  TeamOutlined,
+import { 
+  DashboardOutlined, 
+  HeartOutlined, 
+  TeamOutlined, 
   FileTextOutlined,
   UserOutlined,
   AppstoreOutlined,
@@ -17,11 +17,10 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  StarOutlined,
+  StarOutlined
 } from "@ant-design/icons";
 import { useState } from "react";
 
-// Admin layout dashboard
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,27 +57,24 @@ export default function AdminLayout() {
     localStorage.removeItem("admin_user");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     message.success("Đã đăng xuất hoàn toàn");
     navigate("/admin/login");
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div
-        className={`${
-          collapsed ? "w-20" : "w-72"
-        } transition-all duration-500 relative shadow-2xl`}
-      >
+      {/* SIDEBAR với gradient và glass effect */}
+      <div className={`${collapsed ? 'w-20' : 'w-72'} transition-all duration-300 relative`}>
+        {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#6272B6] via-purple-600 to-indigo-700"></div>
         <div className="absolute inset-0 bg-black/10"></div>
-
+        
+        {/* Sidebar content */}
         <div className="relative h-full text-white p-6 overflow-hidden">
-          {/* Decorative */}
+          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-
+          
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             {!collapsed && (
@@ -87,12 +83,11 @@ export default function AdminLayout() {
                   <BugOutlined className="text-xl text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">PetAdopt Admin</h2>
-                  <p className="text-white/70 text-xs">Trang quản trị</p>
+                  <h2 className="text-xl font-bold">T1 Pet Admin</h2>
+                  <p className="text-white/70 text-xs">Quản trị hệ thống</p>
                 </div>
               </div>
             )}
-
             <button
               onClick={() => setCollapsed(!collapsed)}
               className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
@@ -107,57 +102,55 @@ export default function AdminLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                title={item.label}
-                className={`group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-500 relative overflow-hidden ${
+                className={`group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden ${
                   isActive(item.path)
-                    ? "bg-white/20 text-white shadow-lg backdrop-blur-sm"
-                    : "hover:bg-white/10 text-white/80 hover:text-white"
+                    ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm'
+                    : 'hover:bg-white/10 text-white/80 hover:text-white'
                 }`}
               >
+                {/* Active indicator */}
                 {isActive(item.path) && (
-                  <div
+                  <div 
                     className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
                     style={{ backgroundColor: item.color }}
                   ></div>
                 )}
-
-                <div
+                
+                {/* Icon with color */}
+                <div 
                   className={`w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all duration-300 ${
-                    isActive(item.path)
-                      ? "scale-110"
-                      : "group-hover:scale-105"
+                    isActive(item.path) ? 'scale-110' : 'group-hover:scale-105'
                   }`}
-                  style={{
-                    backgroundColor: isActive(item.path)
-                      ? item.color
-                      : "rgba(255,255,255,0.1)",
+                  style={{ 
+                    backgroundColor: isActive(item.path) ? item.color : 'rgba(255,255,255,0.1)',
                   }}
                 >
                   {item.icon}
                 </div>
-
+                
+                {/* Label */}
                 {!collapsed && (
                   <span className="font-medium group-hover:translate-x-1 transition-transform duration-300">
                     {item.label}
                   </span>
                 )}
-
+                
+                {/* Hover effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
               </Link>
             ))}
-
-            {/* Logout */}
-            <button
+            
+            {/* Logout button */}
+            <button 
               onClick={handleLogout}
-              className="group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-500 text-red-300 hover:text-red-200 hover:bg-red-500/20 w-full mt-6"
+              className="group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 text-red-300 hover:text-red-200 hover:bg-red-500/20 w-full mt-6"
             >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/20 group-hover:bg-red-500/30 transition-colors">
                 <LogoutOutlined />
               </div>
-
               {!collapsed && (
                 <span className="font-medium group-hover:translate-x-1 transition-transform duration-300">
-                  Đăng xuất hệ thống
+                  Đăng xuất
                 </span>
               )}
             </button>
@@ -165,19 +158,17 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* CONTENT với gradient background */}
       <div className="flex-1 relative overflow-hidden">
+        {/* Background pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30"></div>
-
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(98, 114, 182, 0.05) 0%, transparent 50%),
-                             radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 50%)`,
-          }}
-        ></div>
-
-        <div className="relative p-10 min-h-screen">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25% 25%, rgba(98, 114, 182, 0.05) 0%, transparent 50%),
+                           radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 50%)`
+        }}></div>
+        
+        {/* Content */}
+        <div className="relative p-8 min-h-screen">
           <Outlet />
         </div>
       </div>
