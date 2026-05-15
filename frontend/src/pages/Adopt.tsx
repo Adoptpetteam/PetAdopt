@@ -114,9 +114,9 @@ export default function Pets() {
                     onChange={(e) => { setGender(e.target.value); setCurrentPage(1); }} 
                     className="w-full h-14 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl px-6 outline-none border-2 border-transparent focus:border-[#6272B6] transition-all duration-300 appearance-none cursor-pointer"
                   >
-                    <option value="all">🚻 Tất cả giới tính</option>
-                    <option value="Male">♂️ Đực</option>
-                    <option value="Female">♀️ Cái</option>
+                    <option value="all"> Tất cả giới tính</option>
+                    <option value="Male"> Đực</option>
+                    <option value="Female"> Cái</option>
                   </select>
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +182,7 @@ export default function Pets() {
                       }}
                       className="px-8 py-3 bg-gradient-to-r from-[#6272B6] to-purple-600 text-white rounded-2xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                     >
-                      🔄 Xóa bộ lọc
+                      Xóa bộ lọc
                     </button>
                   </div>
                 )}
