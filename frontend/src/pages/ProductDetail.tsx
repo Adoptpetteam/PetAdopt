@@ -196,15 +196,29 @@ export default function ProductDetail() {
                   <span className="font-bold text-gray-700">Số lượng:</span>
                   <InputNumber 
                     min={1} 
-                    max={product.quantity} 
+                    max={product.quantity}
                     value={buyQty} 
-                    onChange={(v) => setBuyQty(v || 1)}
+                    onChange={(v) => {
+                      const val = v || 1;
+                      if (val > product.quantity) {
+                        message.warning(`Kho chỉ còn ${product.quantity} sản phẩm`);
+                        setBuyQty(product.quantity);
+                      } else {
+                        setBuyQty(val);
+                      }
+                    }}
                     className="rounded-lg h-10 flex items-center w-24 border-gray-200"
+                    keyboard
                   />
-                  <span className="text-gray-400 text-sm font-medium">
-                    (Kho còn: {product.quantity})
+                  <span className={`text-sm font-medium ${product.quantity <= 5 ? "text-red-500" : "text-gray-400"}`}>
+                    (Kho còn: <strong>{product.quantity}</strong>)
                   </span>
                 </div>
+                {buyQty >= product.quantity && product.quantity > 0 && (
+                  <p className="text-orange-500 text-xs mt-1">
+                    ⚠️ Bạn đang chọn tối đa số lượng trong kho
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3">

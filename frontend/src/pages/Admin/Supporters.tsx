@@ -1,196 +1,199 @@
-import { useEffect, useState } from 'react';
-import { Card, Table, Tag, Button, Space, message, Statistic, Row, Col } from 'antd';
-import { HeartOutlined, DollarOutlined, UserOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { apiClient } from '../../api/http';
+import { useEffect, useState } from "react"
+import { Table, Tag, Button, message, Card, Statistic, Row, Col, Popconfirm, Select, Space } from "antd"
+import type { ColumnsType } from "antd/es/table"
+import { ReloadOutlined, DeleteOutlined, HeartOutlined, DollarOutlined, ClockCircleOutlined } from "@ant-design/icons"
+import { apiClient } from "../../api/http"
+
+interface Donation {
+  _id: string
+  orderId: string
+  name: string
+  email: string
+  amount: number
+  status: "pending" | "success" | "failed"
+  paymentMethod: string
+  paidAt: string | null
+  createdAt: string
+}
+
+const statusConfig = {
+  success: { label: "Thành công", color: "green" },
+  pending: { label: "Chờ xử lý", color: "orange" },
+  failed:  { label: "Thất bại",   color: "red" },
+}
+
+const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n)
 
 export default function Supporters() {
-  const [supporters, setSupporters] = useState([]);
-  const [stats, setStats] = useState({
-    total: 0,
-    totalAmount: 0,
-    avgAmount: 0,
-    pending: 0,
-    completed: 0,
-    failed: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [data, setData] = useState<Donation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState("success")
 
-  useEffect(() => {
-    fetchData();
-    fetchStats();
-  }, [pagination.current]);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const load = async () => {
+    setLoading(true)
     try {
-      const res = await apiClient.get('/donate/supporters', {
-        params: { page: pagination.current, limit: pagination.pageSize }
-      });
-      setSupporters(res.data.data || []);
-      setPagination(prev => ({ ...prev, total: res.data.pagination?.total || 0 }));
-    } catch (error) {
-      message.error('Không thể tải danh sách người ủng hộ');
+      const res = await apiClient.get("/donate/admin/list", {
+        params: { limit: 200, status: statusFilter !== "all" ? statusFilter : undefined },
+      })
+      setData(res.data.data || [])
+    } catch {
+      message.error("Không thể tải danh sách người ủng hộ")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const fetchStats = async () => {
+  useEffect(() => { load() }, [statusFilter])
+
+  const handleDelete = async (id: string) => {
     try {
-      const res = await apiClient.get('/donate/statistics');
-      setStats(res.data.data.overview);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      await apiClient.delete(`/donate/admin/${id}`)
+      message.success("Đã xóa")
+      setData(prev => prev.filter(d => d._id !== id))
+    } catch {
+      message.error("Không thể xóa")
     }
-  };
+  }
 
-  const columns = [
+  const successDonations = data.filter(d => d.status === "success")
+  const totalRevenue = successDonations.reduce((s, d) => s + d.amount, 0)
+  const totalCount = successDonations.length
+
+  const columns: ColumnsType<Donation> = [
     {
-      title: 'Tên',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string, record: any) => (
-        <div>
-          <div className="font-medium">{record.isAnonymous ? '🎭 Ẩn danh' : name}</div>
-          <div className="text-xs text-gray-500">{record.email}</div>
-        </div>
-      )
+      title: "Tên",
+      dataIndex: "name",
+      render: (n: string) => n || <span className="text-gray-400 italic">Ẩn danh</span>,
+      width: 160,
     },
     {
-      title: 'Số tiền',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right' as const,
-      render: (amount: number) => (
-        <span className="font-bold text-[#6272B6]">
-          {amount.toLocaleString('vi-VN')} đ
-        </span>
-      )
+      title: "Email",
+      dataIndex: "email",
+      render: (e: string) => e || <span className="text-gray-400">—</span>,
+      width: 200,
     },
     {
-      title: 'Phương thức',
-      dataIndex: 'paymentMethod',
-      key: 'paymentMethod',
-      render: (method: string) => {
-        const methodMap: any = {
-          vnpay: { text: 'VNPay', color: 'blue' },
-          bank_transfer: { text: 'Chuyển khoản', color: 'green' },
-          cash: { text: 'Tiền mặt', color: 'orange' }
-        };
-        const m = methodMap[method] || { text: method, color: 'default' };
-        return <Tag color={m.color}>{m.text}</Tag>;
-      }
+      title: "Số tiền",
+      dataIndex: "amount",
+      render: (a: number) => (
+        <span className="text-green-600 font-bold">{fmt(a)}đ</span>
+      ),
+      sorter: (a, b) => a.amount - b.amount,
+      width: 130,
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const statusMap: any = {
-          pending: { text: 'Chờ xử lý', color: 'orange', icon: <CloseCircleOutlined /> },
-          completed: { text: 'Thành công', color: 'green', icon: <CheckCircleOutlined /> },
-          failed: { text: 'Thất bại', color: 'red', icon: <CloseCircleOutlined /> }
-        };
-        const s = statusMap[status] || { text: status, color: 'default' };
-        return <Tag color={s.color} icon={s.icon}>{s.text}</Tag>;
-      }
+      title: "Trạng thái",
+      dataIndex: "status",
+      render: (s: string) => {
+        const cfg = statusConfig[s as keyof typeof statusConfig]
+        return <Tag color={cfg?.color}>{cfg?.label}</Tag>
+      },
+      width: 120,
     },
     {
-      title: 'Lời nhắn',
-      dataIndex: 'message',
-      key: 'message',
-      ellipsis: true,
-      render: (msg: string) => msg || <span className="text-gray-400">-</span>
+      title: "Thời gian",
+      dataIndex: "paidAt",
+      render: (d: string, r: Donation) => {
+        const date = d || r.createdAt
+        return (
+          <div className="text-xs">
+            <div>{new Date(date).toLocaleDateString("vi-VN")}</div>
+            <div className="text-gray-400">{new Date(date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</div>
+          </div>
+        )
+      },
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend",
+      width: 120,
     },
     {
-      title: 'Ngày ủng hộ',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleString('vi-VN')
-    }
-  ];
+      title: "",
+      render: (_, record) => (
+        <Popconfirm
+          title="Xóa bản ghi này?"
+          onConfirm={() => handleDelete(record._id)}
+          okText="Xóa"
+          cancelText="Hủy"
+          okType="danger"
+        >
+          <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+        </Popconfirm>
+      ),
+      width: 60,
+    },
+  ]
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600">
-            💝 Quản Lý Người Ủng Hộ
-          </h1>
-          <p className="text-gray-500 mt-1">Danh sách những người đã ủng hộ chúng tôi</p>
-        </div>
-        <Button type="primary" icon={<HeartOutlined />} onClick={fetchData}>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-[#6272B6]">
+          Danh sách người ủng hộ
+        </h1>
+        <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
           Làm mới
         </Button>
       </div>
 
-      {/* Statistics */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="border-0 shadow-lg">
+      {/* Stats */}
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card>
             <Statistic
-              title="Tổng người ủng hộ"
-              value={stats.total}
-              prefix={<UserOutlined style={{ color: '#6272B6' }} />}
-              valueStyle={{ color: '#6272B6' }}
+              title="Tổng lượt ủng hộ"
+              value={totalCount}
+              prefix={<HeartOutlined />}
+              valueStyle={{ color: "#6272B6" }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="border-0 shadow-lg">
+        <Col span={8}>
+          <Card>
             <Statistic
-              title="Tổng số tiền"
-              value={stats.totalAmount}
-              prefix={<DollarOutlined style={{ color: '#10b981' }} />}
-              valueStyle={{ color: '#10b981' }}
+              title="Tổng tiền nhận được"
+              value={totalRevenue}
               suffix="đ"
+              prefix={<DollarOutlined />}
+              valueStyle={{ color: "#52c41a" }}
+              formatter={(v) => fmt(Number(v))}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="border-0 shadow-lg">
+        <Col span={8}>
+          <Card>
             <Statistic
-              title="Trung bình"
-              value={stats.avgAmount}
-              prefix={<DollarOutlined style={{ color: '#f59e0b' }} />}
-              valueStyle={{ color: '#f59e0b' }}
-              suffix="đ"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="border-0 shadow-lg">
-            <Statistic
-              title="Thành công"
-              value={stats.completed}
-              prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
-              valueStyle={{ color: '#10b981' }}
+              title="Chờ xử lý"
+              value={data.filter(d => d.status === "pending").length}
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{ color: "#faad14" }}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Table */}
-      <Card className="border-0 shadow-lg">
+      <Card>
+        <Space className="mb-4">
+          <Select
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: 160 }}
+          >
+            <Select.Option value="all">Tất cả</Select.Option>
+            <Select.Option value="success">Thành công</Select.Option>
+            <Select.Option value="pending">Chờ xử lý</Select.Option>
+            <Select.Option value="failed">Thất bại</Select.Option>
+          </Select>
+          <Tag color="blue">{data.length} bản ghi</Tag>
+        </Space>
+
         <Table
-          dataSource={supporters}
           columns={columns}
-          loading={loading}
+          dataSource={data}
           rowKey="_id"
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `Tổng ${total} người ủng hộ`,
-            onChange: (page, pageSize) => {
-              setPagination(prev => ({ ...prev, current: page, pageSize: pageSize || 10 }));
-            }
-          }}
+          loading={loading}
+          pagination={{ pageSize: 20, showTotal: (t) => `${t} bản ghi` }}
+          scroll={{ x: 800 }}
         />
       </Card>
     </div>
-  );
+  )
 }

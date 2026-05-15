@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import {
   Table, Button, Modal, Form, Input, Select, InputNumber,
   Switch, Tag, Space, message, Card, Statistic, Row, Col,
-  DatePicker, Tooltip, Popconfirm,
+  DatePicker, Tooltip, Popconfirm, Divider, Progress, Empty,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
   TagOutlined, ReloadOutlined, CopyOutlined,
+  BarChartOutlined, UserOutlined, DollarOutlined,
 } from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 import dayjs from "dayjs";
@@ -29,6 +30,33 @@ interface Voucher {
   createdAt: string;
 }
 
+interface UsageOrder {
+  _id: string;
+  status: string;
+  paymentMethod: string;
+  customerName: string;
+  customerEmail: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  createdAt: string;
+}
+
+interface VoucherUsage {
+  voucher: { _id: string; code: string; type: string; value: number; usedCount: number; usageLimit: number };
+  stats: { totalOrders: number; totalDiscount: number; byDay: Record<string, { count: number; discount: number }> };
+  orders: UsageOrder[];
+}
+
+const statusLabel: Record<string, { label: string; color: string }> = {
+  pending:   { label: "Chờ xử lý",   color: "orange" },
+  confirmed: { label: "Đã xác nhận", color: "cyan" },
+  paid:      { label: "Đã thanh toán", color: "blue" },
+  shipping:  { label: "Đang giao",   color: "purple" },
+  completed: { label: "Hoàn thành",  color: "green" },
+  cancelled: { label: "Đã hủy",      color: "red" },
+};
+
 const fmt = (n: number) =>
   new Intl.NumberFormat("vi-VN").format(n);
 
@@ -39,6 +67,11 @@ export default function VoucherPage() {
   const [editing, setEditing] = useState<Voucher | null>(null);
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+
+  // Usage modal
+  const [usageModal, setUsageModal] = useState(false);
+  const [usageData, setUsageData] = useState<VoucherUsage | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -118,6 +151,20 @@ export default function VoucherPage() {
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     message.success(`Đã copy mã ${code}`);
+  };
+
+  const openUsage = async (v: Voucher) => {
+    setUsageModal(true);
+    setUsageData(null);
+    setUsageLoading(true);
+    try {
+      const res = await apiClient.get(`/vouchers/admin/${v._id}/usage`);
+      setUsageData(res.data.data);
+    } catch {
+      message.error("Không thể tải chi tiết voucher");
+    } finally {
+      setUsageLoading(false);
+    }
   };
 
   // Stats
@@ -216,6 +263,7 @@ export default function VoucherPage() {
       title: "",
       render: (_, v) => (
         <Space>
+          <Button type="link" icon={<BarChartOutlined />} onClick={() => openUsage(v)}>Chi tiết</Button>
           <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(v)}>Sửa</Button>
           <Popconfirm
             title="Xóa voucher này?"
@@ -228,7 +276,7 @@ export default function VoucherPage() {
           </Popconfirm>
         </Space>
       ),
-      width: 140,
+      width: 200,
     },
   ];
 
@@ -285,6 +333,150 @@ export default function VoucherPage() {
           scroll={{ x: 1100 }}
         />
       </Card>
+
+      {/* Modal chi tiết sử dụng voucher */}
+      <Modal
+        open={usageModal}
+        onCancel={() => setUsageModal(false)}
+        footer={<Button onClick={() => setUsageModal(false)}>Đóng</Button>}
+        title={
+          <span className="text-[#6272B6] font-bold text-lg">
+            <BarChartOutlined className="mr-2" />
+            Chi tiết voucher {usageData?.voucher.code}
+          </span>
+        }
+        width={860}
+      >
+        {usageLoading ? (
+          <div className="text-center py-10 text-gray-400">Đang tải...</div>
+        ) : !usageData ? null : (
+          <div>
+            <Row gutter={16} className="mb-4">
+              <Col span={8}>
+                <Card size="small" className="text-center">
+                  <Statistic
+                    title="Tổng lượt dùng"
+                    value={usageData.stats.totalOrders}
+                    prefix={<UserOutlined />}
+                    valueStyle={{ color: "#6272B6" }}
+                  />
+                  {usageData.voucher.usageLimit > 0 && (
+                    <Progress
+                      percent={Math.round((usageData.voucher.usedCount / usageData.voucher.usageLimit) * 100)}
+                      size="small"
+                      strokeColor="#6272B6"
+                      className="mt-2"
+                      format={() => `${usageData.voucher.usedCount}/${usageData.voucher.usageLimit}`}
+                    />
+                  )}
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" className="text-center">
+                  <Statistic
+                    title="Tổng tiền đã giảm"
+                    value={usageData.stats.totalDiscount}
+                    suffix="đ"
+                    prefix={<DollarOutlined />}
+                    valueStyle={{ color: "#52c41a" }}
+                    formatter={(v) => fmt(Number(v))}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" className="text-center">
+                  <Statistic
+                    title="Giảm TB/đơn"
+                    value={usageData.stats.totalOrders > 0
+                      ? Math.round(usageData.stats.totalDiscount / usageData.stats.totalOrders)
+                      : 0}
+                    suffix="đ"
+                    valueStyle={{ color: "#1890ff" }}
+                    formatter={(v) => fmt(Number(v))}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            {Object.keys(usageData.stats.byDay).length > 0 && (
+              <>
+                <Divider orientation="left" className="text-sm">📅 Theo ngày</Divider>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {Object.entries(usageData.stats.byDay)
+                    .sort((a, b) => b[0].localeCompare(a[0]))
+                    .slice(0, 10)
+                    .map(([day, info]) => (
+                      <Tag key={day} color="blue" className="text-xs">
+                        {day}: <strong>{info.count} đơn</strong> — giảm {fmt(info.discount)}đ
+                      </Tag>
+                    ))}
+                </div>
+              </>
+            )}
+
+            <Divider orientation="left" className="text-sm">🛒 Đơn hàng đã dùng voucher</Divider>
+            {usageData.orders.length === 0 ? (
+              <Empty description="Chưa có đơn hàng nào dùng voucher này" />
+            ) : (
+              <Table
+                size="small"
+                dataSource={usageData.orders}
+                rowKey="_id"
+                pagination={{ pageSize: 8, showTotal: (t) => `${t} đơn` }}
+                scroll={{ x: 700 }}
+                columns={[
+                  {
+                    title: "Khách hàng",
+                    render: (_: any, r: UsageOrder) => (
+                      <div>
+                        <div className="font-medium text-sm">{r.customerName}</div>
+                        <div className="text-xs text-gray-400">{r.customerEmail}</div>
+                      </div>
+                    ),
+                    width: 180,
+                  },
+                  {
+                    title: "Trạng thái",
+                    dataIndex: "status",
+                    render: (s: string) => (
+                      <Tag color={statusLabel[s]?.color}>{statusLabel[s]?.label || s}</Tag>
+                    ),
+                    width: 120,
+                  },
+                  {
+                    title: "Tạm tính",
+                    dataIndex: "subtotal",
+                    render: (v: number) => <span className="text-gray-600">{fmt(v)}đ</span>,
+                    width: 110,
+                  },
+                  {
+                    title: "Giảm",
+                    dataIndex: "discount",
+                    render: (v: number) => <span className="text-green-600 font-semibold">-{fmt(v)}đ</span>,
+                    width: 100,
+                  },
+                  {
+                    title: "Thanh toán",
+                    dataIndex: "total",
+                    render: (v: number) => <span className="text-[#6272B6] font-bold">{fmt(v)}đ</span>,
+                    width: 110,
+                  },
+                  {
+                    title: "Ngày đặt",
+                    dataIndex: "createdAt",
+                    render: (d: string) => (
+                      <span className="text-xs text-gray-500">
+                        {new Date(d).toLocaleDateString("vi-VN")}
+                      </span>
+                    ),
+                    width: 100,
+                  },
+                ]}
+              />
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* Modal tạo/sửa */}
       <Modal

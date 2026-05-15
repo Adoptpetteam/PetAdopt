@@ -4,6 +4,12 @@ import { message, Badge } from "antd"
 import { apiClient } from "../../api/http"
 import NotificationBell from "../NotificationBell"
 
+interface Supporter {
+  _id: string
+  name: string
+  amount: number
+}
+
 function getCartCount(): number {
   try {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -18,7 +24,9 @@ export default function Header() {
   const location = useLocation()
   const [user, setUser] = useState<any>(null)
   const [cartCount, setCartCount] = useState(0)
-  const [supporters, setSupporters] = useState<any[]>([])
+  const [supporters, setSupporters] = useState<Supporter[]>([])
+
+  const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n)
 
   // Fetch top supporters
   useEffect(() => {
@@ -61,13 +69,8 @@ export default function Header() {
     setUser(readUser())
     setCartCount(getCartCount())
 
-    const handleAuthChange = () => {
-      setUser(readUser())
-    }
-
-    const handleCartChange = () => {
-      setCartCount(getCartCount())
-    }
+    const handleAuthChange = () => { setUser(readUser()) }
+    const handleCartChange = () => { setCartCount(getCartCount()) }
 
     window.addEventListener("auth-change", handleAuthChange)
     window.addEventListener("storage", handleAuthChange)
@@ -78,6 +81,13 @@ export default function Header() {
       window.removeEventListener("cart-change", handleCartChange)
     }
   }, [location.pathname])
+
+  // Fetch supporters 1 lần khi mount
+  useEffect(() => {
+    apiClient.get("/donate/supporters", { params: { limit: 50 } })
+      .then(res => setSupporters(res.data.data || []))
+      .catch(() => {})
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -275,6 +285,7 @@ export default function Header() {
 
       {/* ===== DONORS MARQUEE ===== */}
       <div className="bg-[#FFF5E1] text-[#D48B3B] h-10 flex items-center overflow-hidden border-t border-b border-[#F3E0C0]">
+<<<<<<< HEAD
         <div className="animate-marquee font-medium text-sm whitespace-nowrap">
           {supporters.length > 0 ? (
             <>
@@ -301,6 +312,33 @@ export default function Header() {
             </>
           )}
         </div>
+=======
+        {supporters.length > 0 ? (
+          <div
+            className="flex whitespace-nowrap font-medium text-sm"
+            style={{ animation: "marquee 40s linear infinite", display: "inline-flex" }}
+          >
+            {/* Nhân đôi để loop liên tục */}
+            {[...supporters, ...supporters].map((s, i) => (
+              <span key={i} className="mx-10">
+                ❤️ Cảm ơn bạn {s.name || "Ẩn danh"} đã ủng hộ {fmt(s.amount)}đ
+              </span>
+            ))}
+          </div>
+        ) : (
+          /* Fallback khi chưa có data */
+          <div className="animate-marquee font-medium text-sm">
+            <span className="mx-10">❤️ Hãy là người đầu tiên ủng hộ chúng tôi!</span>
+            <span className="mx-10">🐾 Mỗi đóng góp của bạn giúp các bé thú cưng có mái ấm</span>
+          </div>
+        )}
+        <style>{`
+          @keyframes marquee {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        `}</style>
+>>>>>>> 18e2d00a5209c25c7802923905918c9d4ecb2989
       </div>
 
     </header>

@@ -17,9 +17,10 @@ const News = mongoose.models.News || mongoose.model('News', newsSchema);
 // GET /api/news - Lấy danh sách tin tức
 router.get('/', async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status = 'published' } = req.query;
+    const { page = 1, limit = 10, status } = req.query;
     const query = {};
-    if (status) query.status = status;
+    // Chỉ filter status nếu được truyền vào, không truyền = lấy tất cả
+    if (status && status !== 'all') query.status = status;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [news, total] = await Promise.all([
