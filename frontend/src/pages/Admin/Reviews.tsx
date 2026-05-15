@@ -242,7 +242,7 @@ export default function Reviews() {
               title="Tổng đánh giá"
               value={stats.total}
               prefix={<StarOutlined style={{ color: '#6272B6' }} />}
-              valueStyle={{ color: '#6272B6' }}
+              styles={{ content: { color: '#6272B6'  }}}
             />
           </Card>
         </Col>
@@ -252,7 +252,7 @@ export default function Reviews() {
               title="Thú cưng"
               value={stats.pet}
               prefix={<StarOutlined style={{ color: '#3b82f6' }} />}
-              valueStyle={{ color: '#3b82f6' }}
+              styles={{ content: { color: '#3b82f6'  }}}
             />
           </Card>
         </Col>
@@ -262,7 +262,7 @@ export default function Reviews() {
               title="Sản phẩm"
               value={stats.product}
               prefix={<StarOutlined style={{ color: '#10b981' }} />}
-              valueStyle={{ color: '#10b981' }}
+              styles={{ content: { color: '#10b981'  }}}
             />
           </Card>
         </Col>
@@ -273,7 +273,7 @@ export default function Reviews() {
               value={stats.avgRating}
               suffix="/ 5"
               prefix={<StarOutlined style={{ color: '#f59e0b' }} />}
-              valueStyle={{ color: '#f59e0b' }}
+              styles={{ content: { color: '#f59e0b'  }}}
               precision={1}
             />
           </Card>

@@ -303,22 +303,22 @@ export default function VoucherPage() {
       <Row gutter={16} className="mb-6">
         <Col span={6}>
           <Card>
-            <Statistic title="Tổng voucher" value={total} prefix={<TagOutlined />} valueStyle={{ color: "#6272B6" }} />
+            <Statistic title="Tổng voucher" value={total} prefix={<TagOutlined />} styles={{ content: { color: "#6272B6"  }}} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Đang hoạt động" value={active} valueStyle={{ color: "#52c41a" }} />
+            <Statistic title="Đang hoạt động" value={active} styles={{ content: { color: "#52c41a"  }}} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Tổng lượt dùng" value={totalUsed} valueStyle={{ color: "#1890ff" }} />
+            <Statistic title="Tổng lượt dùng" value={totalUsed} styles={{ content: { color: "#1890ff"  }}} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Đã hết hạn" value={expired} valueStyle={{ color: "#ff4d4f" }} />
+            <Statistic title="Đã hết hạn" value={expired} styles={{ content: { color: "#ff4d4f"  }}} />
           </Card>
         </Col>
       </Row>
@@ -358,7 +358,7 @@ export default function VoucherPage() {
                     title="Tổng lượt dùng"
                     value={usageData.stats.totalOrders}
                     prefix={<UserOutlined />}
-                    valueStyle={{ color: "#6272B6" }}
+                    styles={{ content: { color: "#6272B6"  }}}
                   />
                   {usageData.voucher.usageLimit > 0 && (
                     <Progress
@@ -378,7 +378,7 @@ export default function VoucherPage() {
                     value={usageData.stats.totalDiscount}
                     suffix="đ"
                     prefix={<DollarOutlined />}
-                    valueStyle={{ color: "#52c41a" }}
+                    styles={{ content: { color: "#52c41a"  }}}
                     formatter={(v) => fmt(Number(v))}
                   />
                 </Card>
@@ -391,7 +391,7 @@ export default function VoucherPage() {
                       ? Math.round(usageData.stats.totalDiscount / usageData.stats.totalOrders)
                       : 0}
                     suffix="đ"
-                    valueStyle={{ color: "#1890ff" }}
+                    styles={{ content: { color: "#1890ff"  }}}
                     formatter={(v) => fmt(Number(v))}
                   />
                 </Card>

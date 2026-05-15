@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Avatar, Card } from 'antd';
-import { HeartOutlined, TrophyOutlined, CrownOutlined } from '@ant-design/icons';
+import { HeartOutlined, TrophyOutlined, CrownOutlined, StarOutlined } from '@ant-design/icons';
 import { apiClient } from '../api/http';
+import './TopSupportersMarquee.css';
 
 export default function TopSupportersMarquee() {
   const [supporters, setSupporters] = useState([]);
@@ -33,10 +34,24 @@ export default function TopSupportersMarquee() {
   console.log('[TopSupportersMarquee] Rendering with', supporters.length, 'supporters');
 
   const getRankIcon = (index: number) => {
-    if (index === 0) return <CrownOutlined className="text-yellow-500 text-xl" />;
+    if (index === 0) return <CrownOutlined className="text-yellow-500 text-2xl animate-pulse" />;
     if (index === 1) return <CrownOutlined className="text-gray-400 text-xl" />;
     if (index === 2) return <CrownOutlined className="text-orange-600 text-xl" />;
     return <TrophyOutlined className="text-[#6272B6]" />;
+  };
+
+  const getRankBadge = (index: number) => {
+    if (index === 0) return "🥇 Hạng 1";
+    if (index === 1) return "🥈 Hạng 2";
+    if (index === 2) return "🥉 Hạng 3";
+    return `#${index + 1}`;
+  };
+
+  const getCardGradient = (index: number) => {
+    if (index === 0) return 'linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #fff2a1 100%)';
+    if (index === 1) return 'linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 50%, #f5f5f5 100%)';
+    if (index === 2) return 'linear-gradient(135deg, #cd7f32 0%, #daa520 50%, #f4a460 100%)';
+    return 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%)';
   };
 
   const getDisplayName = (supporter: any) => {
@@ -48,95 +63,88 @@ export default function TopSupportersMarquee() {
   const duplicatedSupporters = [...supporters, ...supporters];
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50 py-8 overflow-hidden">
-      <div className="container mx-auto px-4 mb-4">
+    <div className="supporters-marquee-container">
+      <div className="container mx-auto px-4 mb-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 mb-2 flex items-center justify-center gap-2">
-            <TrophyOutlined className="text-yellow-500" />
+          <h2 className="supporters-title">
+            <TrophyOutlined className="text-yellow-500 mr-2" />
             🏆 Top Người Ủng Hộ Nhiều Nhất
+            <StarOutlined className="text-yellow-500 ml-2" />
           </h2>
-          <p className="text-gray-600">Cảm ơn những tấm lòng vàng đã đồng hành cùng chúng tôi</p>
+          <p className="supporters-subtitle">
+            Cảm ơn những tấm lòng vàng đã đồng hành cùng chúng tôi ❤️
+          </p>
         </div>
       </div>
 
-      <div className="relative w-full overflow-hidden">
-        <div 
-          className="flex gap-6 animate-marquee"
-          style={{
-            animation: 'marquee 60s linear infinite',
-            width: 'fit-content'
-          }}
-        >
+      <div className="marquee-wrapper">
+        <div className="marquee-track">
           {duplicatedSupporters.map((supporter, index) => {
             const originalIndex = index % supporters.length;
             return (
               <Card
                 key={`${supporter._id}-${index}`}
-                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 flex-shrink-0"
+                className={`supporter-card ${originalIndex < 3 ? 'top-three' : ''}`}
                 style={{
-                  background: originalIndex < 3 
-                    ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
-                    : 'white',
-                  minWidth: '400px',
-                  maxWidth: '400px',
-                  borderRadius: '1rem',
-                  padding: '1rem'
+                  background: getCardGradient(originalIndex),
+                  minWidth: '420px',
+                  maxWidth: '420px',
                 }}
               >
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center">
-                    {getRankIcon(originalIndex)}
+                <div className="supporter-content">
+                  {/* Rank Badge */}
+                  <div className="rank-badge">
+                    <div className="rank-icon">
+                      {getRankIcon(originalIndex)}
+                    </div>
+                    <div className="rank-text">
+                      {getRankBadge(originalIndex)}
+                    </div>
                   </div>
 
                   {/* Avatar */}
                   <Avatar
-                    size={56}
+                    size={64}
+                    className="supporter-avatar"
                     style={{
                       backgroundColor: supporter.isAnonymous ? '#9ca3af' : '#6272B6',
-                      fontSize: '24px',
-                      fontWeight: 'bold'
+                      fontSize: '28px',
+                      fontWeight: 'bold',
+                      border: originalIndex < 3 ? '3px solid #fff' : '2px solid #e2e8f0',
+                      boxShadow: originalIndex < 3 ? '0 4px 12px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)'
                     }}
                   >
                     {supporter.isAnonymous ? '?' : getDisplayName(supporter).charAt(0).toUpperCase()}
                   </Avatar>
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-gray-800 truncate text-lg">
+                  <div className="supporter-info">
+                    <div className="supporter-name">
                       {getDisplayName(supporter)}
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {supporter.donationCount} lần ủng hộ
+                    <div className="supporter-stats">
+                      <span className="donation-count">
+                        {supporter.donationCount} lần ủng hộ
+                      </span>
                     </div>
                   </div>
 
                   {/* Amount */}
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-xl font-bold text-[#6272B6]">
+                  <div className="supporter-amount">
+                    <div className="amount-value">
                       {supporter.totalAmount.toLocaleString('vi-VN')}
                     </div>
-                    <div className="text-xs text-gray-500">VNĐ</div>
+                    <div className="amount-currency">VNĐ</div>
                   </div>
 
                   {/* Heart icon */}
-                  <HeartOutlined className="text-2xl text-red-500 flex-shrink-0" />
+                  <HeartOutlined className="heart-icon" />
                 </div>
               </Card>
             );
           })}
         </div>
       </div>
-
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
     </div>
   );
 }

@@ -312,7 +312,7 @@ export default function Vaccinations() {
               title="Tổng lịch tiêm"
               value={stats.total}
               prefix={<MedicineBoxOutlined className="text-[#6272B6]" />}
-              valueStyle={{ color: "#6272B6", fontSize: "24px", fontWeight: "bold" }}
+              styles={{ content: { color: "#6272B6", fontSize: "24px", fontWeight: "bold"  }}}
             />
           </Card>
         </Col>
@@ -322,7 +322,7 @@ export default function Vaccinations() {
               title="Đã lên lịch"
               value={stats.scheduled}
               prefix={<CalendarOutlined className="text-blue-500" />}
-              valueStyle={{ color: "#3b82f6", fontSize: "24px", fontWeight: "bold" }}
+              styles={{ content: { color: "#3b82f6", fontSize: "24px", fontWeight: "bold"  }}}
             />
           </Card>
         </Col>
@@ -332,7 +332,7 @@ export default function Vaccinations() {
               title="Đã hoàn thành"
               value={stats.completed}
               prefix={<CheckCircleOutlined className="text-green-500" />}
-              valueStyle={{ color: "#10b981", fontSize: "24px", fontWeight: "bold" }}
+              styles={{ content: { color: "#10b981", fontSize: "24px", fontWeight: "bold"  }}}
             />
           </Card>
         </Col>
@@ -342,7 +342,7 @@ export default function Vaccinations() {
               title="Trễ hẹn"
               value={stats.overdue}
               prefix={<CloseCircleOutlined className="text-red-500" />}
-              valueStyle={{ color: "#ef4444", fontSize: "24px", fontWeight: "bold" }}
+              styles={{ content: { color: "#ef4444", fontSize: "24px", fontWeight: "bold"  }}}
             />
           </Card>
         </Col>

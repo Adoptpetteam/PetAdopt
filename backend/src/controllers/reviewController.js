@@ -295,20 +295,34 @@ exports.getReviews = async (req, res) => {
 // @access  Private (Admin)
 exports.getAllReviews = async (req, res) => {
   try {
-    const { page = 1, limit = 100, sort = '-createdAt' } = req.query;
+    const { 
+      page = 1, 
+      limit = 100, 
+      sort = '-createdAt',
+      status,
+      reviewType,
+      rating 
+    } = req.query;
+
+    // Build filter
+    const filter = {};
+    if (status) filter.status = status;
+    if (reviewType) filter.reviewType = reviewType;
+    if (rating) filter.rating = parseInt(rating);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const reviews = await Review.find()
-      .populate('user', 'name email')
-      .populate('pet', 'name')
-      .populate('product', 'name')
-      .populate('adminResponse.respondedBy', 'name')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Review.countDocuments();
+    const [reviews, total] = await Promise.all([
+      Review.find(filter)
+        .populate('user', 'name email')
+        .populate('pet', 'name species breed')
+        .populate('product', 'name price')
+        .populate('adminResponse.respondedBy', 'name')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Review.countDocuments(filter)
+    ]);
 
     res.json({
       success: true,
@@ -325,7 +339,8 @@ exports.getAllReviews = async (req, res) => {
     console.error('Error getting all reviews:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server'
+      message: 'Lỗi server khi lấy danh sách đánh giá',
+      error: error.message
     });
   }
 };

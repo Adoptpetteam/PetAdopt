@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, Button, Space, Popconfirm, Typography, Tag, Modal, Form, Input, message, Card, Upload } from "antd";
 import { EditOutlined, DeleteOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -34,9 +34,9 @@ const PetCategories: React.FC = () => {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     fetchCategories();
-  });
+  }, []);
 
   const handleOpenAddModal = () => {
     setEditingCategory(null);

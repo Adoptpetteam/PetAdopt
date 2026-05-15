@@ -7,24 +7,38 @@ const { isAdmin } = require('../middleware/adminMiddleware');
 // ====== GET /api/category - Lấy danh sách danh mục ======
 router.get('/', async (req, res) => {
   try {
-    const { type, isActive = true } = req.query;
+    const { type, isActive } = req.query;
     
-    const query = { isActive };
+    console.log('[Category GET] Query params:', { type, isActive });
+    
+    const query = {};
+    
+    // Only filter by isActive if explicitly provided
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true' || isActive === true;
+    }
+    
     if (type) {
       query.type = type;
     }
     
+    console.log('[Category GET] MongoDB query:', query);
+    
     const categories = await Category.find(query).sort({ name: 1 });
+    
+    console.log('[Category GET] Found', categories.length, 'categories');
     
     res.json({
       success: true,
       data: categories
     });
   } catch (error) {
-    console.error('[Category] Get categories error:', error);
+    console.error('[Category GET] ERROR:', error);
+    console.error('[Category GET] Stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy danh mục'
+      message: 'Lỗi khi lấy danh mục',
+      error: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 });

@@ -66,34 +66,34 @@ const StatisticsWidget = () => {
     >
       <Row gutter={16}>
         <Col span={8}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Tổng đơn hàng"
               value={data.totalOrders || 0}
               prefix={<ShoppingCartOutlined />}
-              valueStyle={{ color: "#3f8600" }}
+              styles={{ content: { color: "#3f8600"  }}}
             />
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Tổng doanh thu"
               value={data.totalRevenue || 0}
               prefix={<DollarOutlined />}
               formatter={(value) => formatCurrency(Number(value))}
-              valueStyle={{ color: "#cf1322" }}
+              styles={{ content: { color: "#cf1322"  }}}
             />
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Giá trị TB/đơn"
               value={data.avgOrderValue || 0}
               prefix={<RiseOutlined />}
               formatter={(value) => formatCurrency(Number(value))}
-              valueStyle={{ color: "#1890ff" }}
+              styles={{ content: { color: "#1890ff"  }}}
             />
           </Card>
         </Col>

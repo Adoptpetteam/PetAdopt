@@ -259,16 +259,41 @@ exports.vnpayIPN = async (req, res) => {
 // ====== GET /api/donate/supporters ======
 exports.getSupporters = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status } = req.query;
+        const { 
+            page = 1, 
+            limit = 20, 
+            status = 'completed',
+            search,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.query;
         
-        const query = status ? { status } : { status: 'completed' };
+        // Build query
+        const query = {};
+        if (status && status !== 'all') {
+            query.status = status;
+        }
         
-        const supporters = await Supporter.find(query)
-            .sort({ createdAt: -1 })
-            .limit(limit * 1)
-            .skip((page - 1) * limit);
-
-        const total = await Supporter.countDocuments(query);
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+        
+        // Build sort
+        const sort = {};
+        sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+        
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        
+        const [supporters, total] = await Promise.all([
+            Supporter.find(query)
+                .sort(sort)
+                .limit(parseInt(limit))
+                .skip(skip),
+            Supporter.countDocuments(query)
+        ]);
 
         return res.json({
             success: true,
@@ -276,12 +301,17 @@ exports.getSupporters = async (req, res) => {
             pagination: {
                 current: parseInt(page),
                 pageSize: parseInt(limit),
-                total
+                total,
+                pages: Math.ceil(total / parseInt(limit))
             }
         });
     } catch (err) {
         console.error('[Donate] Get supporters error:', err);
-        return res.status(500).json({ success: false, message: err.message });
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Lỗi khi lấy danh sách người ủng hộ',
+            error: err.message 
+        });
     }
 };
 
@@ -297,8 +327,10 @@ exports.getTopSupporters = async (req, res) => {
                     _id: '$email',
                     name: { $first: '$name' },
                     totalAmount: { $sum: '$amount' },
+                    donationCount: { $sum: 1 },
                     isAnonymous: { $first: '$isAnonymous' },
-                    lastDonation: { $max: '$createdAt' }
+                    lastDonation: { $max: '$createdAt' },
+                    displayName: { $first: '$name' }
                 }
             },
             { $sort: { totalAmount: -1 } },

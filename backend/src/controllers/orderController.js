@@ -589,12 +589,21 @@ exports.cancelMyOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
 
-    // Chỉ cho hủy khi chưa giao
+    // Chỉ cho hủy khi chưa giao hàng
     const cancellableStatuses = ['pending', 'confirmed'];
     if (!cancellableStatuses.includes(order.status)) {
+      const statusMessages = {
+        'paid': 'đã thanh toán',
+        'shipping': 'đang giao hàng', 
+        'completed': 'đã hoàn thành',
+        'cancelled': 'đã bị hủy'
+      };
+      
+      const statusText = statusMessages[order.status] || order.status;
+      
       return res.status(400).json({
         success: false,
-        message: `Không thể hủy đơn ở trạng thái "${order.status}". Chỉ hủy được khi đơn chưa được giao.`,
+        message: `Không thể hủy đơn hàng ${statusText}. Chỉ có thể hủy đơn khi chưa được giao hàng.`,
       });
     }
 

@@ -343,7 +343,7 @@ export default function MyPets() {
                                 title="Điểm sức khỏe"
                                 value={getHealthScore(healthProfile)}
                                 suffix="/100"
-                                valueStyle={{ color: getHealthScoreColor(getHealthScore(healthProfile)) }}
+                                styles={{ content: { color: getHealthScoreColor(getHealthScore(healthProfile))  }}}
                               />
                             </Col>
                             <Col xs={12} sm={6}>
@@ -351,21 +351,21 @@ export default function MyPets() {
                                 title="Mũi tiêm"
                                 value={healthProfile.statistics.vaccination.completed}
                                 suffix={`/${healthProfile.statistics.vaccination.total}`}
-                                valueStyle={{ color: '#1890ff' }}
+                                styles={{ content: { color: '#1890ff'  }}}
                               />
                             </Col>
                             <Col xs={12} sm={6}>
                               <Statistic
                                 title="Lần khám"
                                 value={healthProfile.statistics.health.checkups}
-                                valueStyle={{ color: '#52c41a' }}
+                                styles={{ content: { color: '#52c41a'  }}}
                               />
                             </Col>
                             <Col xs={12} sm={6}>
                               <Statistic
                                 title="Hồ sơ y tế"
                                 value={healthProfile.statistics.health.totalRecords}
-                                valueStyle={{ color: '#722ed1' }}
+                                styles={{ content: { color: '#722ed1'  }}}
                               />
                             </Col>
                           </Row>
@@ -499,7 +499,7 @@ export default function MyPets() {
                               title="Lần tiêm phòng"
                               value={healthProfile.statistics.health.vaccinations}
                               prefix={<MedicineBoxOutlined />}
-                              valueStyle={{ color: '#1890ff' }}
+                              styles={{ content: { color: '#1890ff'  }}}
                             />
                           </Card>
                         </Col>
@@ -509,7 +509,7 @@ export default function MyPets() {
                               title="Lần khám bệnh"
                               value={healthProfile.statistics.health.checkups}
                               prefix={<HeartOutlined />}
-                              valueStyle={{ color: '#52c41a' }}
+                              styles={{ content: { color: '#52c41a'  }}}
                             />
                           </Card>
                         </Col>

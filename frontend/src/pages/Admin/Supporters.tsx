@@ -10,14 +10,14 @@ interface Donation {
   name: string
   email: string
   amount: number
-  status: "pending" | "success" | "failed"
+  status: "pending" | "completed" | "failed"
   paymentMethod: string
   paidAt: string | null
   createdAt: string
 }
 
 const statusConfig = {
-  success: { label: "Thành công", color: "green" },
+  completed: { label: "Thành công", color: "green" },
   pending: { label: "Chờ xử lý", color: "orange" },
   failed:  { label: "Thất bại",   color: "red" },
 }
@@ -27,16 +27,19 @@ const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n)
 export default function Supporters() {
   const [data, setData] = useState<Donation[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState("success")
+  const [statusFilter, setStatusFilter] = useState("completed")
 
   const load = async () => {
     setLoading(true)
     try {
+      console.log('[Supporters] Loading with status:', statusFilter);
       const res = await apiClient.get("/donate/admin/list", {
         params: { limit: 200, status: statusFilter !== "all" ? statusFilter : undefined },
       })
+      console.log('[Supporters] API Response:', res.data);
       setData(res.data.data || [])
-    } catch {
+    } catch (error) {
+      console.error('[Supporters] API Error:', error);
       message.error("Không thể tải danh sách người ủng hộ")
     } finally {
       setLoading(false)
@@ -55,7 +58,7 @@ export default function Supporters() {
     }
   }
 
-  const successDonations = data.filter(d => d.status === "success")
+  const successDonations = data.filter(d => d.status === "completed")
   const totalRevenue = successDonations.reduce((s, d) => s + d.amount, 0)
   const totalCount = successDonations.length
 
@@ -142,7 +145,7 @@ export default function Supporters() {
               title="Tổng lượt ủng hộ"
               value={totalCount}
               prefix={<HeartOutlined />}
-              valueStyle={{ color: "#6272B6" }}
+              styles={{ content: { color: "#6272B6"  }}}
             />
           </Card>
         </Col>
@@ -153,7 +156,7 @@ export default function Supporters() {
               value={totalRevenue}
               suffix="đ"
               prefix={<DollarOutlined />}
-              valueStyle={{ color: "#52c41a" }}
+              styles={{ content: { color: "#52c41a"  }}}
               formatter={(v) => fmt(Number(v))}
             />
           </Card>
@@ -164,7 +167,7 @@ export default function Supporters() {
               title="Chờ xử lý"
               value={data.filter(d => d.status === "pending").length}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: "#faad14" }}
+              styles={{ content: { color: "#faad14"  }}}
             />
           </Card>
         </Col>
@@ -178,7 +181,7 @@ export default function Supporters() {
             style={{ width: 160 }}
           >
             <Select.Option value="all">Tất cả</Select.Option>
-            <Select.Option value="success">Thành công</Select.Option>
+            <Select.Option value="completed">Thành công</Select.Option>
             <Select.Option value="pending">Chờ xử lý</Select.Option>
             <Select.Option value="failed">Thất bại</Select.Option>
           </Select>

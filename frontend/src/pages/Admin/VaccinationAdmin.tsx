@@ -427,7 +427,7 @@ const VaccinationAdmin = () => {
               title="Tổng lịch tiêm"
               value={stats.total}
               prefix={<CalendarOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              styles={{ content: { color: '#1890ff'  }}}
             />
           </Card>
         </Col>
@@ -437,7 +437,7 @@ const VaccinationAdmin = () => {
               title="Sắp tới"
               value={stats.upcoming}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              styles={{ content: { color: '#52c41a'  }}}
             />
           </Card>
         </Col>
@@ -447,7 +447,7 @@ const VaccinationAdmin = () => {
               title="Quá hạn"
               value={stats.overdue}
               prefix={<ExclamationCircleOutlined />}
-              valueStyle={{ color: '#ff4d4f' }}
+              styles={{ content: { color: '#ff4d4f'  }}}
             />
           </Card>
         </Col>
@@ -457,7 +457,7 @@ const VaccinationAdmin = () => {
               title="Cần nhắc nhở"
               value={stats.needReminder}
               prefix={<SendOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
+              styles={{ content: { color: '#fa8c16'  }}}
             />
           </Card>
         </Col>

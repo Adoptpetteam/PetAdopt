@@ -48,7 +48,7 @@ export default function AdminRoute() {
   if (status === "checking") {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" tip="Đang xác thực..." />
+        <Spin size="large" description="Đang xác thực..." />
       </div>
     );
   }

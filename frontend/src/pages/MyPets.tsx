@@ -239,7 +239,7 @@ export default function MyPets() {
                     value={healthProfile?.statistics?.vaccination?.completionRate || 0}
                     suffix="%"
                     prefix={<MedicineBoxOutlined />}
-                    valueStyle={{ color: '#52c41a', fontSize: '18px' }}
+                    styles={{ content: { color: '#52c41a', fontSize: '18px'  }}}
                   />
                 </Col>
                 <Col span={12}>
@@ -247,7 +247,7 @@ export default function MyPets() {
                     title="Khám bệnh"
                     value={healthProfile?.statistics?.healthRecords?.total || 0}
                     prefix={<HeartOutlined />}
-                    valueStyle={{ color: '#1890ff', fontSize: '18px' }}
+                    styles={{ content: { color: '#1890ff', fontSize: '18px'  }}}
                   />
                 </Col>
               </Row>

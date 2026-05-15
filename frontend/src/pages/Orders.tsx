@@ -413,7 +413,7 @@ export default function Orders() {
                 title="Tổng đơn hàng"
                 value={orderStats.total}
                 prefix={<ShoppingCartOutlined className="text-blue-500" />}
-                valueStyle={{ color: '#6272B6', fontSize: '20px' }}
+                styles={{ content: { color: '#6272B6', fontSize: '20px'  }}}
               />
             </Card>
           </Col>
@@ -424,7 +424,7 @@ export default function Orders() {
                 value={orderStats.totalAmount}
                 prefix={<DollarOutlined className="text-green-500" />}
                 suffix="đ"
-                valueStyle={{ color: '#10b981', fontSize: '20px' }}
+                styles={{ content: { color: '#10b981', fontSize: '20px'  }}}
               />
             </Card>
           </Col>
@@ -434,7 +434,7 @@ export default function Orders() {
                 title="Đã hoàn thành"
                 value={orderStats.completed}
                 prefix={<CheckCircleOutlined className="text-green-500" />}
-                valueStyle={{ color: '#10b981', fontSize: '20px' }}
+                styles={{ content: { color: '#10b981', fontSize: '20px'  }}}
               />
             </Card>
           </Col>
@@ -444,7 +444,7 @@ export default function Orders() {
                 title="Đang xử lý"
                 value={orderStats.pending}
                 prefix={<ClockCircleOutlined className="text-orange-500" />}
-                valueStyle={{ color: '#f59e0b', fontSize: '20px' }}
+                styles={{ content: { color: '#f59e0b', fontSize: '20px'  }}}
               />
             </Card>
           </Col>

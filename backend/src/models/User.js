@@ -28,7 +28,14 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Vui lòng nhập mật khẩu!'],
-    minlength: 6,
+    minlength: [8, 'Mật khẩu phải có ít nhất 8 ký tự'],
+    validate: {
+      validator: function(password) {
+        // Password must contain at least one uppercase, one lowercase, one number
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
+      },
+      message: 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số'
+    },
     select: false
   },
   role: {

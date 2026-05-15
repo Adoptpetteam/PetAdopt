@@ -257,7 +257,7 @@ export default function Home() {
               <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
                 <div className="text-5xl mb-4">🐾</div>
                 <div className="text-5xl font-bold text-white mb-2">
-                  {supporters.reduce((sum, s) => sum + s.donationCount, 0)}
+                  {supporters.length > 0 ? supporters.reduce((sum, s) => sum + (s.donationCount || 1), 0) : 0}
                 </div>
                 <div className="text-white/80 text-lg">Lượt ủng hộ</div>
               </div>
@@ -266,7 +266,7 @@ export default function Home() {
               <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
                 <div className="text-5xl mb-4">💰</div>
                 <div className="text-5xl font-bold text-white mb-2">
-                  {(supporters.reduce((sum, s) => sum + s.totalAmount, 0) / 1000000).toFixed(1)}M
+                  {supporters.length > 0 ? (supporters.reduce((sum, s) => sum + (s.totalAmount || 0), 0) / 1000000).toFixed(1) : '0.0'}M
                 </div>
                 <div className="text-white/80 text-lg">Tổng ủng hộ (VNĐ)</div>
               </div>
@@ -275,7 +275,7 @@ export default function Home() {
               <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
                 <div className="text-5xl mb-4">❤️</div>
                 <div className="text-5xl font-bold text-white mb-2">
-                  {supporters.length}
+                  {supporters.length || 0}
                 </div>
                 <div className="text-white/80 text-lg">Người ủng hộ</div>
               </div>
@@ -284,7 +284,7 @@ export default function Home() {
               <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
                 <div className="text-5xl mb-4">🏆</div>
                 <div className="text-5xl font-bold text-white mb-2">
-                  {pets.length}+
+                  {pets.length || 0}+
                 </div>
                 <div className="text-white/80 text-lg">Thú cưng được cứu</div>
               </div>

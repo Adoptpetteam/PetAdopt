@@ -222,37 +222,37 @@ const OrderPage = () => {
       <Row gutter={16} className="mb-6">
         <Col span={4}>
           <Card>
-            <Statistic title="Tổng đơn" value={stats.total} prefix={<ShoppingOutlined />} valueStyle={{ color: "#3f8600" }} />
+            <Statistic title="Tổng đơn" value={stats.total} prefix={<ShoppingOutlined />} styles={{ content: { color: "#3f8600"  }}} />
           </Card>
         </Col>
         <Col span={4}>
           <Card>
-            <Statistic title="Doanh thu" value={stats.revenue} suffix="đ" prefix={<DollarOutlined />} valueStyle={{ color: "#6272B6" }} />
+            <Statistic title="Doanh thu" value={stats.revenue} suffix="đ" prefix={<DollarOutlined />} styles={{ content: { color: "#6272B6"  }}} />
           </Card>
         </Col>
         <Col span={3}>
           <Card>
-            <Statistic title="Chờ xử lý" value={stats.pending} prefix={<ClockCircleOutlined />} valueStyle={{ color: "#faad14" }} />
+            <Statistic title="Chờ xử lý" value={stats.pending} prefix={<ClockCircleOutlined />} styles={{ content: { color: "#faad14"  }}} />
           </Card>
         </Col>
         <Col span={3}>
           <Card>
-            <Statistic title="Đã xác nhận" value={stats.confirmed} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#13c2c2" }} />
+            <Statistic title="Đã xác nhận" value={stats.confirmed} prefix={<CheckCircleOutlined />} styles={{ content: { color: "#13c2c2"  }}} />
           </Card>
         </Col>
         <Col span={3}>
           <Card>
-            <Statistic title="Đã TT" value={stats.paid} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#1890ff" }} />
+            <Statistic title="Đã TT" value={stats.paid} prefix={<CheckCircleOutlined />} styles={{ content: { color: "#1890ff"  }}} />
           </Card>
         </Col>
         <Col span={3}>
           <Card>
-            <Statistic title="Đang giao" value={stats.shipping} prefix={<TruckOutlined />} valueStyle={{ color: "#722ed1" }} />
+            <Statistic title="Đang giao" value={stats.shipping} prefix={<TruckOutlined />} styles={{ content: { color: "#722ed1"  }}} />
           </Card>
         </Col>
         <Col span={4}>
           <Card>
-            <Statistic title="Hoàn thành" value={stats.completed} prefix={<GiftOutlined />} valueStyle={{ color: "#52c41a" }} />
+            <Statistic title="Hoàn thành" value={stats.completed} prefix={<GiftOutlined />} styles={{ content: { color: "#52c41a"  }}} />
           </Card>
         </Col>
       </Row>

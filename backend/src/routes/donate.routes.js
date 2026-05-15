@@ -19,6 +19,11 @@ router.get('/vnpay-ipn', vnpayIPN);
 router.get('/top-supporters', getTopSupporters);
 router.get('/supporters', getSupporters);
 
+// Admin routes
+router.get('/admin/all', authenticate, isAdmin, getSupporters);
+router.get('/admin/statistics', authenticate, isAdmin, getDonationStatistics);
+router.get('/admin/list', authenticate, isAdmin, getSupporters);
+
 // Admin
 router.get('/admin/supporters', authenticate, isAdmin, getSupporters);
 router.get('/statistics', authenticate, isAdmin, getDonationStatistics);

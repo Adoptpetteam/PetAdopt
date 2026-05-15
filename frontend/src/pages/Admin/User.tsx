@@ -173,7 +173,7 @@ const User = () => {
               title="Tổng người dùng"
               value={pagination.total}
               prefix={<UserOutlined />}
-              valueStyle={{ color: "#6272B6" }}
+              styles={{ content: { color: "#6272B6"  }}}
             />
           </Card>
         </Col>
@@ -183,7 +183,7 @@ const User = () => {
               title="Đã xác thực"
               value={verifiedCount}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: "#52c41a" }}
+              styles={{ content: { color: "#52c41a"  }}}
             />
           </Card>
         </Col>
@@ -193,7 +193,7 @@ const User = () => {
               title="Bị khóa"
               value={bannedCount}
               prefix={<LockOutlined />}
-              valueStyle={{ color: "#ff4d4f" }}
+              styles={{ content: { color: "#ff4d4f"  }}}
             />
           </Card>
         </Col>

@@ -231,7 +231,7 @@ export default function Volunteers() {
               title="Tổng đơn"
               value={stats.total}
               prefix={<TeamOutlined style={{ color: '#6272B6' }} />}
-              valueStyle={{ color: '#6272B6' }}
+              styles={{ content: { color: '#6272B6'  }}}
             />
           </Card>
         </Col>
@@ -241,7 +241,7 @@ export default function Volunteers() {
               title="Chờ duyệt"
               value={stats.pending}
               prefix={<ClockCircleOutlined style={{ color: '#f59e0b' }} />}
-              valueStyle={{ color: '#f59e0b' }}
+              styles={{ content: { color: '#f59e0b'  }}}
             />
           </Card>
         </Col>
@@ -251,7 +251,7 @@ export default function Volunteers() {
               title="Đã duyệt"
               value={stats.approved}
               prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
-              valueStyle={{ color: '#10b981' }}
+              styles={{ content: { color: '#10b981'  }}}
             />
           </Card>
         </Col>
@@ -261,7 +261,7 @@ export default function Volunteers() {
               title="Từ chối"
               value={stats.rejected}
               prefix={<CloseCircleOutlined style={{ color: '#ef4444' }} />}
-              valueStyle={{ color: '#ef4444' }}
+              styles={{ content: { color: '#ef4444'  }}}
             />
           </Card>
         </Col>

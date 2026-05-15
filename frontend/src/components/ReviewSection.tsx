@@ -162,7 +162,7 @@ export default function ReviewSection({ type, id }: ReviewSectionProps) {
                 <Progress
                   percent={getRatingPercentage(star)}
                   strokeColor="#6272B6"
-                  trailColor="#e5e7eb"
+                  railColor="#e5e7eb"
                   showInfo={false}
                   className="flex-1"
                 />

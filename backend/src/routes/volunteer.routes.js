@@ -22,7 +22,9 @@ console.log('Volunteer route module loaded');
 
 // GET /api/volunteer - Lấy danh sách (admin)
 const { authenticate } = require('../middleware/authMiddleware');
-router.get('/', authenticate, async (req, res, next) => {
+const { isAdmin } = require('../middleware/adminMiddleware');
+
+router.get('/', authenticate, isAdmin, async (req, res, next) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
     const query = {};
@@ -50,7 +52,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // GET /api/volunteer/:id - Chi tiết (admin)
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', authenticate, isAdmin, async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {
@@ -89,7 +91,7 @@ router.post('/', async (req, res, next) => {
 });
 
 // PUT /api/volunteer/:id/approve - Duyệt (admin)
-router.put('/:id/approve', authenticate, async (req, res, next) => {
+router.put('/:id/approve', authenticate, isAdmin, async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {
@@ -125,7 +127,7 @@ router.put('/:id/approve', authenticate, async (req, res, next) => {
 });
 
 // PUT /api/volunteer/:id/reject - Từ chối (admin)
-router.put('/:id/reject', authenticate, async (req, res, next) => {
+router.put('/:id/reject', authenticate, isAdmin, async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {
@@ -161,7 +163,7 @@ router.put('/:id/reject', authenticate, async (req, res, next) => {
 });
 
 // DELETE /api/volunteer/:id - Xóa đơn tình nguyện viên (admin)
-router.delete('/:id', authenticate, async (req, res, next) => {
+router.delete('/:id', authenticate, isAdmin, async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {
@@ -176,7 +178,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
 });
 
 // POST /api/volunteer/:id/delete - Xóa đơn tình nguyện viên (admin, fallback)
-router.post('/:id/delete', authenticate, async (req, res, next) => {
+router.post('/:id/delete', authenticate, isAdmin, async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {

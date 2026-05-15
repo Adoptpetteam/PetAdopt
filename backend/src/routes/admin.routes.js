@@ -12,4 +12,10 @@ router.get('/users', authenticate, isAdmin, adminController.getAllUsers);
 router.put('/users/:id/ban', authenticate, isAdmin, adminController.banUser);
 router.put('/users/:id/unban', authenticate, isAdmin, adminController.unbanUser);
 
+// Orders admin routes
+router.get('/orders', authenticate, isAdmin, adminController.getAllOrdersAdmin);
+
+// Adoptions admin routes  
+router.get('/adoptions', authenticate, isAdmin, adminController.getAllAdoptionsAdmin);
+
 module.exports = router;

@@ -2,6 +2,7 @@ const Pet = require('../models/Pet');
 const User = require('../models/User');
 const AdoptionRequest = require('../models/AdoptionRequest');
 const Supporter = require('../models/Supporter');
+const Order = require('../models/Order');
 const mongoose = require('mongoose');
 
 // Get Volunteer model
@@ -262,6 +263,74 @@ exports.getAllUsers = async (req, res, next) => {
       }
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// Get all orders for admin
+exports.getAllOrdersAdmin = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    
+    const filter = {};
+    if (status) filter.status = status;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Order.countDocuments(filter);
+
+    const orders = await Order.find(filter)
+      .populate('user', 'name email')
+      .populate('items.product', 'name price')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('[Admin Orders] Error:', error);
+    next(error);
+  }
+};
+
+// Get all adoptions for admin
+exports.getAllAdoptionsAdmin = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    
+    const filter = {};
+    if (status) filter.status = status;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await AdoptionRequest.countDocuments(filter);
+
+    const adoptions = await AdoptionRequest.find(filter)
+      .populate('user', 'name email phone')
+      .populate('pet', 'name species breed age')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: adoptions,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('[Admin Adoptions] Error:', error);
     next(error);
   }
 };

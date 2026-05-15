@@ -42,9 +42,38 @@ const app = express();
 // ===============================
 // MIDDLEWARE
 // ===============================
-app.use(cors());
 
-app.use(express.json({ limit: '10mb' }));
+// CORS Configuration
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid JSON format'
+      });
+      return;
+    }
+  }
+}));
 
 app.use(express.urlencoded({
   extended: true,
@@ -118,14 +147,63 @@ app.get('/', (req, res) => {
 // ===============================
 // ERROR HANDLER
 // ===============================
+// GLOBAL ERROR HANDLER
+// ===============================
 app.use((err, req, res, next) => {
+  // Log error details (but not in production)
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('SERVER ERROR:', err);
+  }
 
-  console.error('SERVER ERROR:', err);
+  // Default error
+  let error = { ...err };
+  error.message = err.message;
 
-  res.status(err.statusCode || 500).json({
+  // Mongoose bad ObjectId
+  if (err.name === 'CastError') {
+    const message = 'Tài nguyên không tồn tại';
+    error = { message, statusCode: 404 };
+  }
+
+  // Mongoose duplicate key
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue)[0];
+    const message = `${field} đã tồn tại`;
+    error = { message, statusCode: 400 };
+  }
+
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(val => val.message).join(', ');
+    error = { message, statusCode: 400 };
+  }
+
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    const message = 'Token không hợp lệ';
+    error = { message, statusCode: 401 };
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    const message = 'Token đã hết hạn';
+    error = { message, statusCode: 401 };
+  }
+
+  // File upload errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    const message = 'File quá lớn. Vui lòng chọn file nhỏ hơn 5MB';
+    error = { message, statusCode: 400 };
+  }
+
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    const message = 'Loại file không được hỗ trợ';
+    error = { message, statusCode: 400 };
+  }
+
+  res.status(error.statusCode || 500).json({
     success: false,
-    message:
-      err.message || 'Internal Server Error',
+    message: error.message || 'Lỗi máy chủ nội bộ',
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 });
 

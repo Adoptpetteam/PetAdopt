@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { message, Card, Row, Col, Statistic, Progress, Avatar, List, Badge } from "antd"
+import { message, Card, Row, Col, Statistic, Progress, Avatar, Badge } from "antd"
 import { 
   HeartOutlined, 
   ClockCircleOutlined, 
@@ -77,7 +77,7 @@ export default function Dashboard() {
           .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 2)
           .map((order: any) => ({
-            user: order.customer?.name || 'Khách hàng',
+            user: order.user?.name || 'Khách hàng',
             action: 'đã đặt hàng',
             pet: `${order.items?.length || 0} sản phẩm`,
             time: new Date(order.createdAt).toLocaleString('vi-VN'),
@@ -338,7 +338,7 @@ export default function Dashboard() {
                       title="Tổng đơn"
                       value={stats.total}
                       prefix={<HeartOutlined style={{ color: '#6272B6' }} />}
-                      valueStyle={{ color: '#6272B6', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#6272B6', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -346,7 +346,7 @@ export default function Dashboard() {
                       title="Chờ duyệt"
                       value={stats.pending}
                       prefix={<ClockCircleOutlined style={{ color: '#f59e0b' }} />}
-                      valueStyle={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#f59e0b', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -354,7 +354,7 @@ export default function Dashboard() {
                       title="Đã duyệt"
                       value={stats.approved}
                       prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
-                      valueStyle={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#10b981', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -362,7 +362,7 @@ export default function Dashboard() {
                       title="Từ chối"
                       value={stats.rejected}
                       prefix={<CloseCircleOutlined style={{ color: '#ef4444' }} />}
-                      valueStyle={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#ef4444', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                 </Row>
@@ -377,7 +377,7 @@ export default function Dashboard() {
                     <Progress 
                       percent={stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0} 
                       strokeColor="#10b981"
-                      trailColor="#f3f4f6"
+                      railColor="#f3f4f6"
                     />
                   </div>
                   <div>
@@ -388,7 +388,7 @@ export default function Dashboard() {
                     <Progress 
                       percent={stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0} 
                       strokeColor="#f59e0b"
-                      trailColor="#f3f4f6"
+                      railColor="#f3f4f6"
                     />
                   </div>
                 </div>
@@ -411,7 +411,7 @@ export default function Dashboard() {
                       title="Tổng đơn"
                       value={orderStats.total}
                       prefix={<ShoppingCartOutlined style={{ color: '#6272B6' }} />}
-                      valueStyle={{ color: '#6272B6', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#6272B6', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -419,7 +419,7 @@ export default function Dashboard() {
                       title="Chờ xử lý"
                       value={orderStats.pending}
                       prefix={<ClockCircleOutlined style={{ color: '#f59e0b' }} />}
-                      valueStyle={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#f59e0b', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -427,7 +427,7 @@ export default function Dashboard() {
                       title="Hoàn thành"
                       value={orderStats.completed}
                       prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
-                      valueStyle={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#10b981', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -435,7 +435,7 @@ export default function Dashboard() {
                       title="Đã hủy"
                       value={orderStats.cancelled}
                       prefix={<CloseCircleOutlined style={{ color: '#ef4444' }} />}
-                      valueStyle={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#ef4444', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                 </Row>
@@ -450,7 +450,7 @@ export default function Dashboard() {
                     <Progress 
                       percent={orderStats.total > 0 ? Math.round((orderStats.completed / orderStats.total) * 100) : 0} 
                       strokeColor="#10b981"
-                      trailColor="#f3f4f6"
+                      railColor="#f3f4f6"
                     />
                   </div>
                   <div>
@@ -461,7 +461,7 @@ export default function Dashboard() {
                     <Progress 
                       percent={100} 
                       strokeColor="#f59e0b"
-                      trailColor="#f3f4f6"
+                      railColor="#f3f4f6"
                       showInfo={false}
                     />
                   </div>
@@ -488,7 +488,7 @@ export default function Dashboard() {
                       title="Tổng sản phẩm"
                       value={productStats.total}
                       prefix={<ShoppingCartOutlined style={{ color: '#6272B6' }} />}
-                      valueStyle={{ color: '#6272B6', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#6272B6', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -496,7 +496,7 @@ export default function Dashboard() {
                       title="Còn hàng"
                       value={productStats.inStock}
                       prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
-                      valueStyle={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#10b981', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -504,7 +504,7 @@ export default function Dashboard() {
                       title="Hết hàng"
                       value={productStats.outOfStock}
                       prefix={<CloseCircleOutlined style={{ color: '#ef4444' }} />}
-                      valueStyle={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#ef4444', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                   <Col xs={12} sm={6}>
@@ -512,7 +512,7 @@ export default function Dashboard() {
                       title="Sắp hết"
                       value={productStats.lowStockCount}
                       prefix={<ClockCircleOutlined style={{ color: '#f59e0b' }} />}
-                      valueStyle={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold' }}
+                      styles={{ content: { color: '#f59e0b', fontSize: '24px', fontWeight: 'bold'  }}}
                     />
                   </Col>
                 </Row>
@@ -527,7 +527,7 @@ export default function Dashboard() {
                     <Progress 
                       percent={productStats.total > 0 ? Math.round((productStats.inStock / productStats.total) * 100) : 0} 
                       strokeColor="#10b981"
-                      trailColor="#f3f4f6"
+                      railColor="#f3f4f6"
                     />
                   </div>
                   <div>
@@ -538,7 +538,7 @@ export default function Dashboard() {
                     <Progress 
                       percent={productStats.total > 0 ? Math.round((productStats.lowStockCount / productStats.total) * 100) : 0} 
                       strokeColor="#f59e0b"
-                      trailColor="#f3f4f6"
+                      railColor="#f3f4f6"
                     />
                   </div>
                 </div>
@@ -556,36 +556,35 @@ export default function Dashboard() {
                 }
                 className="shadow-lg border-0 h-full"
               >
-                <List
-                  dataSource={recentActivities}
-                  renderItem={(item) => (
-                    <List.Item className="border-0 px-0">
-                      <List.Item.Meta
-                        avatar={
-                          <Avatar 
-                            size={40} 
-                            style={{ 
-                              backgroundColor: '#6272B6',
-                              fontSize: '18px'
-                            }}
-                          >
-                            {item.avatar}
-                          </Avatar>
-                        }
-                        title={
-                          <div className="text-sm">
-                            <span className="font-medium text-gray-800">{item.user}</span>
-                            <span className="text-gray-500 mx-1">{item.action}</span>
-                            <span className="font-medium text-[#6272B6]">{item.pet}</span>
-                          </div>
-                        }
-                        description={
-                          <span className="text-xs text-gray-400">{item.time}</span>
-                        }
-                      />
-                    </List.Item>
+                <div className="space-y-4">
+                  {recentActivities.map((item, index) => (
+                    <div key={index} className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                      <Avatar 
+                        size={40} 
+                        style={{ 
+                          backgroundColor: '#6272B6',
+                          fontSize: '18px',
+                          flexShrink: 0
+                        }}
+                      >
+                        {item.avatar}
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm mb-1">
+                          <span className="font-medium text-gray-800">{item.user}</span>
+                          <span className="text-gray-500 mx-1">{item.action}</span>
+                          <span className="font-medium text-[#6272B6]">{item.pet}</span>
+                        </div>
+                        <span className="text-xs text-gray-400">{item.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {recentActivities.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">
+                      Chưa có hoạt động nào
+                    </div>
                   )}
-                />
+                </div>
               </Card>
             </Col>
           </Row>
