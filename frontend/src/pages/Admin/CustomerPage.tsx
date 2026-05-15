@@ -26,12 +26,6 @@ interface Customer {
 
 export default function CustomerInfo() {
   const [data, setData] = useState<Customer[]>([]);
-  const [filteredData, setFilteredData] = useState<Customer[]>([]);
-  const [searchText, setSearchText] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
 
@@ -39,37 +33,13 @@ export default function CustomerInfo() {
 
   // LOAD DATA
   const fetchData = async () => {
-    setLoading(true);
-
-    try {
-      const res = await axios.get(
-        "http://localhost:3000/customers"
-      );
-
-      setData(res.data);
-      setFilteredData(res.data);
-    } catch (err) {
-      console.log(err);
-      message.error("Không tải được dữ liệu khách hàng");
-    } finally {
-      setLoading(false);
-    }
+    const res = await axios.get("http://localhost:3000/customers");
+    setData(res.data);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  // SEARCH
-  useEffect(() => {
-    const result = data.filter((item) =>
-      item.name
-        .toLowerCase()
-        .includes(searchText.toLowerCase())
-    );
-
-    setFilteredData(result);
-  }, [searchText, data]);
 
   // ADD
   const handleAdd = () => {
@@ -78,7 +48,7 @@ export default function CustomerInfo() {
     setIsModalOpen(true);
   };
 
-  // EDIT
+  // EDIT PHONE
   const handleEdit = (record: Customer) => {
     setEditing(record);
 
@@ -89,19 +59,12 @@ export default function CustomerInfo() {
     setIsModalOpen(true);
   };
 
-  // CLOSE MODAL
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    form.resetFields();
-  };
-
   // SUBMIT
   const handleSubmit = async () => {
     const values = await form.validateFields();
 
-    setSubmitting(true);
-
     try {
+      // EDIT
       if (editing) {
         await axios.patch(
           `http://localhost:3000/customers/${editing.id}`,
@@ -111,15 +74,21 @@ export default function CustomerInfo() {
         );
 
         message.success("Cập nhật SĐT thành công");
-      } else {
+      }
+
+      // ADD
+      else {
         const newCustomer = {
           id: Date.now().toString(),
+
           name: values.name,
           phone: values.phone,
           email: values.email,
           petName: values.petName,
+
           lastVaccineDate: values.lastVaccineDate,
           nextVaccineDate: values.nextVaccineDate,
+
           createdAt: new Date().toLocaleDateString(),
         };
 
@@ -131,13 +100,11 @@ export default function CustomerInfo() {
         message.success("Thêm khách hàng thành công");
       }
 
-      handleCloseModal();
+      setIsModalOpen(false);
       fetchData();
     } catch (err) {
       console.log(err);
       message.error("Có lỗi xảy ra");
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -145,51 +112,45 @@ export default function CustomerInfo() {
     {
       title: "Tên khách",
       dataIndex: "name",
-      width: 150,
     },
+
     {
       title: "SĐT",
       dataIndex: "phone",
-      sorter: (a, b) =>
-        a.phone.localeCompare(b.phone),
     },
+
     {
       title: "Gmail",
       dataIndex: "email",
     },
+
     {
       title: "Tên pet",
       dataIndex: "petName",
-      render: (text) => (
-        <Tag color="blue">{text}</Tag>
-      ),
+      render: (text) => <Tag color="blue">{text}</Tag>,
     },
+
     {
       title: "Ngày tiêm gần nhất",
       dataIndex: "lastVaccineDate",
     },
+
     {
       title: "Ngày tiêm tiếp",
       dataIndex: "nextVaccineDate",
-      render: (date) => (
-        <Tag color="green">{date}</Tag>
-      ),
+      render: (date) => <Tag color="green">{date}</Tag>,
     },
+
     {
       title: "Ngày tạo đơn",
       dataIndex: "createdAt",
-      sorter: (a, b) =>
-        a.createdAt.localeCompare(b.createdAt),
     },
+
     {
       title: "Hành động",
       render: (_, record) => (
         <Space>
-          <Button
-            onClick={() =>
-              handleEdit(record)
-            }
-          >
+          <Button onClick={() => handleEdit(record)}>
             Sửa SĐT
           </Button>
         </Space>
@@ -204,92 +165,43 @@ export default function CustomerInfo() {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            gap: 12,
             marginBottom: 20,
           }}
         >
           <h2>Thông tin khách hàng</h2>
 
-          <Space>
-            <Input
-              placeholder="Tìm theo tên..."
-              value={searchText}
-              onChange={(e) =>
-                setSearchText(
-                  e.target.value
-                )
-              }
-              style={{ width: 220 }}
-            />
-
-            <Button
-              onClick={fetchData}
-            >
-              Refresh
-            </Button>
-
-            <Button
-              type="primary"
-              onClick={handleAdd}
-            >
-              Thêm khách hàng
-            </Button>
-          </Space>
+          <Button type="primary" onClick={handleAdd}>
+            Thêm khách hàng mới
+          </Button>
         </div>
 
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={filteredData}
-          loading={loading}
-          bordered
-          pagination={{
-            pageSize: 5,
-          }}
-          scroll={{
-            x: "max-content",
-          }}
+          dataSource={data}
         />
       </Card>
 
       <Modal
-        title={
-          editing
-            ? "Sửa SĐT"
-            : "Thêm khách hàng"
-        }
+        title={editing ? "Sửa SĐT" : "Thêm khách hàng"}
         open={isModalOpen}
         onOk={handleSubmit}
-        onCancel={handleCloseModal}
-        confirmLoading={submitting}
-        destroyOnClose
+        onCancel={() => setIsModalOpen(false)}
       >
-        <Form
-          form={form}
-          layout="vertical"
-        >
+        <Form form={form} layout="vertical">
+
           <Form.Item
             name="name"
             label="Tên khách hàng"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+            rules={[{ required: true }]}
           >
-            <Input
-              disabled={!!editing}
-            />
+            <Input disabled={!!editing} />
           </Form.Item>
 
           <Form.Item
             name="phone"
             label="SĐT"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+            rules={[{ required: true }]}
           >
             <Input />
           </Form.Item>
@@ -297,58 +209,33 @@ export default function CustomerInfo() {
           <Form.Item
             name="email"
             label="Gmail"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+            rules={[{ required: true }]}
           >
-            <Input
-              disabled={!!editing}
-            />
+            <Input disabled={!!editing} />
           </Form.Item>
-
           <Form.Item
             name="petName"
             label="Tên pet"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+            rules={[{ required: true }]}
           >
-            <Input
-              disabled={!!editing}
-            />
+            <Input disabled={!!editing} />
           </Form.Item>
-
           <Form.Item
             name="lastVaccineDate"
             label="Ngày tiêm gần nhất"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+            rules={[{ required: true }]}
           >
-            <Input
-              disabled={!!editing}
-            />
+            <Input placeholder="VD: 10/05/2026" disabled={!!editing} />
           </Form.Item>
 
           <Form.Item
             name="nextVaccineDate"
             label="Ngày tiêm tiếp theo"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+            rules={[{ required: true }]}
           >
-            <Input
-              disabled={!!editing}
-            />
+            <Input placeholder="VD: 10/06/2026" disabled={!!editing} />
           </Form.Item>
+
         </Form>
       </Modal>
     </div>
