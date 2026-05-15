@@ -110,7 +110,10 @@ export default function MyAdoptions() {
       render: (_, record) => (
         <div className="flex items-center gap-3">
           <img
-            src={record.pet?.images?.[0] ? `http://localhost:5000${record.pet.images[0]}` : "https://placehold.co/60x60?text=Pet"}
+            src={record.pet?.images?.[0] ? 
+              (record.pet.images[0].startsWith('http') ? record.pet.images[0] : `http://localhost:5000${record.pet.images[0]}`) : 
+              "https://placehold.co/60x60?text=Pet"
+            }
             alt={record.pet?.name}
             className="w-14 h-14 rounded-xl object-cover border-2 border-white shadow"
             onError={(e) => {
@@ -273,7 +276,10 @@ export default function MyAdoptions() {
               {/* Pet Info */}
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                 <img
-                  src={selectedRequest.pet?.images?.[0] ? `http://localhost:5000${selectedRequest.pet.images[0]}` : "https://placehold.co/100x100?text=Pet"}
+                  src={selectedRequest.pet?.images?.[0] ? 
+                    (selectedRequest.pet.images[0].startsWith('http') ? selectedRequest.pet.images[0] : `http://localhost:5000${selectedRequest.pet.images[0]}`) : 
+                    "https://placehold.co/100x100?text=Pet"
+                  }
                   alt={selectedRequest.pet?.name}
                   className="w-20 h-20 rounded-xl object-cover border-2 border-white shadow"
                 />

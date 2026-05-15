@@ -8,7 +8,9 @@ const {
   rejectAdoptionRequest,
   deleteAdoptionRequest,
   cancelAdoptionRequest,
-  getMyAdoptionRequests
+  getMyAdoptionRequests,
+  getAdoptionStatistics,
+  rateAdoptionRequest
 } = require('../controllers/adoptionController');
 const { authenticate } = require('../middleware/authMiddleware');
 const { isAdmin } = require('../middleware/adminMiddleware');
@@ -21,21 +23,27 @@ router.post('/', authenticate, createAdoptionRequest);
 // GET /api/adoption/my-requests - Đơn của user hiện tại
 router.get('/my-requests', authenticate, getMyAdoptionRequests);
 
+// Admin routes
+// GET /api/adoption/statistics - Thống kê (admin) - PHẢI ĐẶT TRƯỚC /:id
+router.get('/statistics', authenticate, isAdmin, getAdoptionStatistics);
+
+// GET /api/adoption - Danh sách tất cả đơn (admin)
+router.get('/', authenticate, isAdmin, getAdoptionRequests);
+
 // GET /api/adoption/:id - Chi tiết đơn
 router.get('/:id', authenticate, getAdoptionRequestById);
 
 // PUT /api/adoption/:id/cancel - Hủy đơn (user)
 router.put('/:id/cancel', authenticate, cancelAdoptionRequest);
 
-// Admin routes
-// GET /api/adoption - Danh sách tất cả đơn (admin)
-router.get('/', authenticate, isAdmin, getAdoptionRequests);
-
 // PUT /api/adoption/:id/approve - Duyệt đơn (admin)
 router.put('/:id/approve', authenticate, isAdmin, approveAdoptionRequest);
 
 // PUT /api/adoption/:id/reject - Từ chối đơn (admin)
 router.put('/:id/reject', authenticate, isAdmin, rejectAdoptionRequest);
+
+// PUT /api/adoption/:id/rate - Đánh giá đơn (user)
+router.put('/:id/rate', authenticate, rateAdoptionRequest);
 
 // DELETE /api/adoption/:id - Xóa đơn nhận nuôi (admin)
 router.delete('/:id', authenticate, isAdmin, deleteAdoptionRequest);

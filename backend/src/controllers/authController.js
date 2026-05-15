@@ -129,6 +129,21 @@ exports.verifyRegistrationOTP = async (req, res, next) => {
       });
     }
 
+    // TEMPORARY: Allow bypass with special OTP for testing
+    if (normalizedOtp === '999999') {
+      console.log('🔓 Using bypass OTP for testing');
+      
+      user.isVerified = true;
+      user.registrationOTP = null;
+      user.registrationOTPExpires = null;
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Xác thực email thành công! (Bypass mode) Bạn có thể đăng nhập.'
+      });
+    }
+
     if (user.registrationOTP !== normalizedOtp) {
       return res.status(400).json({
         success: false,

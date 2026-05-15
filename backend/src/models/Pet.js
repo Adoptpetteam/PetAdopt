@@ -96,6 +96,20 @@ const petSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'Thiếu thông tin người tạo'] // 🔥 bắt buộc
+  },
+
+  // Rating & Reviews
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+
+  totalReviews: {
+    type: Number,
+    default: 0,
+    min: 0
   }
 
 }, {

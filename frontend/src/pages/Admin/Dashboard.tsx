@@ -15,6 +15,7 @@ import {
 import { getAdoptionRequests } from "../../api/adoptionApi"
 import { apiClient } from "../../api/http"
 import StatisticsWidget from "../../components/StatisticsWidget"
+import TopSupporters from "../../components/TopSupporters"
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -22,6 +23,19 @@ export default function Dashboard() {
     pending: 0,
     approved: 0,
     rejected: 0,
+  })
+  const [orderStats, setOrderStats] = useState({
+    total: 0,
+    pending: 0,
+    completed: 0,
+    cancelled: 0,
+    totalRevenue: 0,
+  })
+  const [productStats, setProductStats] = useState({
+    total: 0,
+    inStock: 0,
+    outOfStock: 0,
+    lowStockCount: 0,
   })
   const [dashboardData, setDashboardData] = useState({
     totalUsers: 0,
@@ -38,76 +52,41 @@ export default function Dashboard() {
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
-      // Fetch users count
-      const usersRes = await apiClient.get('/admin/users')
-      const totalUsers = usersRes.data?.data?.length || 0
-
-      // Fetch pets count  
-      const petsRes = await apiClient.get('/admin/pets')
-      const totalPets = petsRes.data?.data?.length || 0
-
-      // Fetch orders count and revenue
-      const ordersRes = await apiClient.get('/admin/orders')
-      const orders = ordersRes.data?.data || []
-      const totalOrders = orders.length
-      const totalRevenue = orders
-        .filter((order: any) => order.status === 'completed')
-        .reduce((sum: number, order: any) => sum + (order.total || 0), 0)
-
-      // Fetch donations
-      let totalDonations = 0
-      try {
-        const donationsRes = await apiClient.get('/admin/supporters')
-        totalDonations = donationsRes.data?.data?.length || 0
-      } catch (error) {
-        console.log('Donations API not available')
-      }
-
-      // Fetch volunteers
-      let totalVolunteers = 0
-      try {
-        const volunteersRes = await apiClient.get('/admin/volunteers')
-        totalVolunteers = volunteersRes.data?.data?.length || 0
-      } catch (error) {
-        console.log('Volunteers API not available')
-      }
-
-      // Fetch adoptions
-      let totalAdoptions = 0
-      try {
-        const adoptionsRes = await apiClient.get('/admin/adoptions')
-        const adoptions = adoptionsRes.data?.data || []
-        totalAdoptions = adoptions.filter((a: any) => a.status === 'approved').length
-      } catch (error) {
-        console.log('Adoptions API not available')
-      }
-
+      // Fetch dashboard stats from new API
+      const dashboardRes = await apiClient.get('/admin/dashboard')
+      const data = dashboardRes.data.data
+      
       setDashboardData({
-        totalUsers,
-        totalPets,
-        totalOrders,
-        totalRevenue,
-        totalDonations,
-        totalVolunteers,
-        totalAdoptions,
+        totalUsers: data.totalUsers || 0,
+        totalPets: data.totalPets || 0,
+        totalOrders: orderStats.total,
+        totalRevenue: orderStats.totalRevenue,
+        totalDonations: data.totalSupporters || 0,
+        totalVolunteers: data.approvedVolunteers || 0,
+        totalAdoptions: data.approvedAdoptions || 0,
       })
 
       // Get mixed recent activities
       const activities = []
 
       // Recent orders
-      const recentOrders = orders
-        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 2)
-        .map((order: any) => ({
-          user: order.customer?.name || 'Khách hàng',
-          action: 'đã đặt hàng',
-          pet: `${order.items?.length || 0} sản phẩm`,
-          time: new Date(order.createdAt).toLocaleString('vi-VN'),
-          avatar: '🛒'
-        }))
-
-      activities.push(...recentOrders)
+      try {
+        const ordersRes = await apiClient.get('/admin/orders')
+        const orders = ordersRes.data?.data || []
+        const recentOrders = orders
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 2)
+          .map((order: any) => ({
+            user: order.customer?.name || 'Khách hàng',
+            action: 'đã đặt hàng',
+            pet: `${order.items?.length || 0} sản phẩm`,
+            time: new Date(order.createdAt).toLocaleString('vi-VN'),
+            avatar: '🛒'
+          }))
+        activities.push(...recentOrders)
+      } catch (error) {
+        console.log('Recent orders not available')
+      }
 
       // Recent adoptions (if available)
       try {
@@ -130,7 +109,7 @@ export default function Dashboard() {
 
       // Recent volunteers (if available)
       try {
-        const volunteersRes = await apiClient.get('/admin/volunteers')
+        const volunteersRes = await apiClient.get('/volunteer')
         const volunteers = volunteersRes.data?.data || []
         const recentVolunteers = volunteers
           .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -172,6 +151,35 @@ export default function Dashboard() {
           rejected: adoptionData.filter((o: any) => o.status === "rejected").length,
         })
 
+        // Fetch order statistics
+        try {
+          const orderStatsRes = await apiClient.get('/orders/statistics')
+          const orderData = orderStatsRes.data.data.overview
+          setOrderStats({
+            total: orderData.total,
+            pending: orderData.pending,
+            completed: orderData.completed,
+            cancelled: orderData.cancelled,
+            totalRevenue: orderData.totalRevenue,
+          })
+        } catch (error) {
+          console.log('Order statistics not available')
+        }
+
+        // Fetch product statistics
+        try {
+          const productStatsRes = await apiClient.get('/products/statistics')
+          const productData = productStatsRes.data.data.overview
+          setProductStats({
+            total: productData.total,
+            inStock: productData.inStock,
+            outOfStock: productData.outOfStock,
+            lowStockCount: productData.lowStockCount,
+          })
+        } catch (error) {
+          console.log('Product statistics not available')
+        }
+
         // Fetch dashboard data
         await fetchDashboardData()
       } catch (error) {
@@ -202,21 +210,21 @@ export default function Dashboard() {
     },
     { 
       title: "Đơn hàng", 
-      value: dashboardData.totalOrders, 
+      value: orderStats.total, 
       icon: <ShoppingCartOutlined />, 
       color: "#10b981", 
       trend: "+18%" 
     },
     { 
       title: "Doanh thu", 
-      value: `${(dashboardData.totalRevenue / 1000000).toFixed(1)}M`, 
+      value: `${(orderStats.totalRevenue / 1000000).toFixed(1)}M`, 
       icon: <TrophyOutlined />, 
       color: "#f59e0b", 
       trend: "+25%" 
     },
     { 
       title: "Nhận nuôi", 
-      value: dashboardData.totalAdoptions, 
+      value: stats.approved, 
       icon: <HeartOutlined />, 
       color: "#ef4444", 
       trend: "+8%" 
@@ -229,10 +237,17 @@ export default function Dashboard() {
       trend: "+15%" 
     },
     { 
+      title: "Sản phẩm", 
+      value: productStats.total, 
+      icon: <ShoppingCartOutlined />, 
+      color: "#06b6d4", 
+      trend: "+10%" 
+    },
+    { 
       title: "Người ủng hộ", 
       value: dashboardData.totalDonations, 
       icon: <TrophyOutlined />, 
-      color: "#06b6d4", 
+      color: "#f97316", 
       trend: "+20%" 
     },
   ]
@@ -307,7 +322,7 @@ export default function Dashboard() {
 
           {/* Adoption Stats */}
           <Row gutter={[24, 24]}>
-            <Col xs={24} lg={16}>
+            <Col xs={24} lg={12}>
               <Card 
                 title={
                   <div className="flex items-center gap-3">
@@ -379,6 +394,156 @@ export default function Dashboard() {
                 </div>
               </Card>
             </Col>
+
+            <Col xs={24} lg={12}>
+              <Card 
+                title={
+                  <div className="flex items-center gap-3">
+                    <ShoppingCartOutlined className="text-[#10b981]" />
+                    <span className="text-lg font-bold">Thống Kê Đơn Hàng</span>
+                  </div>
+                }
+                className="shadow-lg border-0"
+              >
+                <Row gutter={[16, 16]}>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Tổng đơn"
+                      value={orderStats.total}
+                      prefix={<ShoppingCartOutlined style={{ color: '#6272B6' }} />}
+                      valueStyle={{ color: '#6272B6', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Chờ xử lý"
+                      value={orderStats.pending}
+                      prefix={<ClockCircleOutlined style={{ color: '#f59e0b' }} />}
+                      valueStyle={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Hoàn thành"
+                      value={orderStats.completed}
+                      prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
+                      valueStyle={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Đã hủy"
+                      value={orderStats.cancelled}
+                      prefix={<CloseCircleOutlined style={{ color: '#ef4444' }} />}
+                      valueStyle={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                </Row>
+                
+                {/* Progress bars */}
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">Tỷ lệ hoàn thành</span>
+                      <span className="text-sm font-medium">{orderStats.total > 0 ? Math.round((orderStats.completed / orderStats.total) * 100) : 0}%</span>
+                    </div>
+                    <Progress 
+                      percent={orderStats.total > 0 ? Math.round((orderStats.completed / orderStats.total) * 100) : 0} 
+                      strokeColor="#10b981"
+                      trailColor="#f3f4f6"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">Doanh thu</span>
+                      <span className="text-sm font-medium">{(orderStats.totalRevenue / 1000000).toFixed(1)}M VNĐ</span>
+                    </div>
+                    <Progress 
+                      percent={100} 
+                      strokeColor="#f59e0b"
+                      trailColor="#f3f4f6"
+                      showInfo={false}
+                    />
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Product Stats */}
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={16}>
+              <Card 
+                title={
+                  <div className="flex items-center gap-3">
+                    <ShoppingCartOutlined className="text-[#06b6d4]" />
+                    <span className="text-lg font-bold">Thống Kê Sản Phẩm</span>
+                  </div>
+                }
+                className="shadow-lg border-0"
+              >
+                <Row gutter={[16, 16]}>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Tổng sản phẩm"
+                      value={productStats.total}
+                      prefix={<ShoppingCartOutlined style={{ color: '#6272B6' }} />}
+                      valueStyle={{ color: '#6272B6', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Còn hàng"
+                      value={productStats.inStock}
+                      prefix={<CheckCircleOutlined style={{ color: '#10b981' }} />}
+                      valueStyle={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Hết hàng"
+                      value={productStats.outOfStock}
+                      prefix={<CloseCircleOutlined style={{ color: '#ef4444' }} />}
+                      valueStyle={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title="Sắp hết"
+                      value={productStats.lowStockCount}
+                      prefix={<ClockCircleOutlined style={{ color: '#f59e0b' }} />}
+                      valueStyle={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold' }}
+                    />
+                  </Col>
+                </Row>
+                
+                {/* Progress bars */}
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">Tỷ lệ còn hàng</span>
+                      <span className="text-sm font-medium">{productStats.total > 0 ? Math.round((productStats.inStock / productStats.total) * 100) : 0}%</span>
+                    </div>
+                    <Progress 
+                      percent={productStats.total > 0 ? Math.round((productStats.inStock / productStats.total) * 100) : 0} 
+                      strokeColor="#10b981"
+                      trailColor="#f3f4f6"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">Sản phẩm cần nhập thêm</span>
+                      <span className="text-sm font-medium">{productStats.lowStockCount} sản phẩm</span>
+                    </div>
+                    <Progress 
+                      percent={productStats.total > 0 ? Math.round((productStats.lowStockCount / productStats.total) * 100) : 0} 
+                      strokeColor="#f59e0b"
+                      trailColor="#f3f4f6"
+                    />
+                  </div>
+                </div>
+              </Card>
+            </Col>
             
             <Col xs={24} lg={8}>
               <Card 
@@ -437,6 +602,9 @@ export default function Dashboard() {
           >
             <StatisticsWidget />
           </Card>
+
+          {/* Top Supporters */}
+          <TopSupporters />
         </>
       )}
     </div>

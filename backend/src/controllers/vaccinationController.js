@@ -13,6 +13,8 @@ exports.getMyVaccinations = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
+    console.log('Getting vaccinations for user:', userId);
+
     const { status, page = 1, limit = 20 } = req.query;
     const filter = { owner: userId };
     
@@ -24,10 +26,12 @@ exports.getMyVaccinations = async (req, res) => {
     const total = await VaccinationSchedule.countDocuments(filter);
     
     const schedules = await VaccinationSchedule.find(filter)
-      .populate('pet', 'name breed age image')
+      .populate('pet', 'name breed age images')
       .sort({ scheduledDate: 1 })
       .skip(skip)
       .limit(Number(limit));
+
+    console.log('Found vaccinations:', schedules.length);
 
     return res.status(200).json({
       success: true,
@@ -40,6 +44,7 @@ exports.getMyVaccinations = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Error in getMyVaccinations:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -53,6 +58,9 @@ exports.createVaccination = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
+
+    console.log('Creating vaccination for user:', userId);
+    console.log('Request body:', req.body);
 
     const {
       petId,
@@ -79,11 +87,32 @@ exports.createVaccination = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy thú cưng' });
     }
 
+    console.log('Found pet:', pet.name);
+
     // Lấy thông tin user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
     }
+
+    console.log('Found user:', user.name);
+
+    // Kiểm tra user có quyền tạo lịch tiêm cho pet này không (đã nhận nuôi)
+    const AdoptionRequest = require('../models/AdoptionRequest');
+    const adoption = await AdoptionRequest.findOne({
+      user: userId,
+      pet: petId,
+      status: 'approved'
+    });
+
+    if (!adoption) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Bạn chỉ có thể tạo lịch tiêm cho thú cưng đã nhận nuôi' 
+      });
+    }
+
+    console.log('User has adopted this pet');
 
     // Tạo lịch tiêm mới
     const vaccination = await VaccinationSchedule.create({
@@ -102,9 +131,11 @@ exports.createVaccination = async (req, res) => {
       totalDoses: totalDoses || 1
     });
 
+    console.log('Created vaccination:', vaccination._id);
+
     // Populate để trả về đầy đủ thông tin
     const populatedVaccination = await VaccinationSchedule.findById(vaccination._id)
-      .populate('pet', 'name breed age image');
+      .populate('pet', 'name breed age images');
 
     // Gửi email xác nhận
     try {
@@ -115,6 +146,7 @@ exports.createVaccination = async (req, res) => {
         scheduledDate: new Date(scheduledDate),
         veterinarian: veterinarian || {}
       });
+      console.log('Confirmation email sent');
     } catch (emailErr) {
       console.error('Failed to send vaccination confirmation email:', emailErr);
       // Không fail request nếu email lỗi
@@ -126,6 +158,7 @@ exports.createVaccination = async (req, res) => {
       data: populatedVaccination
     });
   } catch (err) {
+    console.error('Error in createVaccination:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -159,7 +192,7 @@ exports.updateVaccination = async (req, res) => {
     await vaccination.save();
 
     const updatedVaccination = await VaccinationSchedule.findById(vaccination._id)
-      .populate('pet', 'name breed age image');
+      .populate('pet', 'name breed age images');
 
     return res.status(200).json({
       success: true,
@@ -196,7 +229,7 @@ exports.completeVaccination = async (req, res) => {
     await vaccination.save();
 
     const updatedVaccination = await VaccinationSchedule.findById(vaccination._id)
-      .populate('pet', 'name breed age image');
+      .populate('pet', 'name breed age images');
 
     return res.status(200).json({
       success: true,
@@ -258,7 +291,7 @@ exports.getUpcomingVaccinations = async (req, res) => {
         $lte: nextWeek
       }
     })
-    .populate('pet', 'name breed age image')
+    .populate('pet', 'name breed age images')
     .sort({ scheduledDate: 1 });
 
     return res.status(200).json({
@@ -293,7 +326,7 @@ exports.getAllVaccinations = async (req, res) => {
     const total = await VaccinationSchedule.countDocuments(filter);
     
     const schedules = await VaccinationSchedule.find(filter)
-      .populate('pet', 'name breed age image')
+      .populate('pet', 'name breed age images')
       .populate('owner', 'name email phone')
       .sort({ scheduledDate: 1 })
       .skip(skip)

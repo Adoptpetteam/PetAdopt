@@ -1,10 +1,19 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Voucher = require('../models/Voucher');
+const User = require('../models/User');
 const crypto = require('crypto');
 const querystring = require('querystring');
 const { VNPAY_CONFIG } = require('../config/paymentConfig');
 const { validateVoucherHelper, calcDiscount } = require('./voucherController');
+const { sendOrderConfirmation, sendOrderStatusUpdate } = require('../utils/emailService');
+const {
+  notifyOrderConfirmed,
+  notifyOrderPaid,
+  notifyOrderShipping,
+  notifyOrderCompleted,
+  notifyOrderCancelled
+} = require('../utils/notificationService');
 
 // ===============================
 // Helper: hoàn voucher khi đơn bị hủy
@@ -262,6 +271,34 @@ exports.checkoutOrder = async (req, res) => {
       $push: { statusHistory: { status: 'confirmed', note: 'Đơn COD đã xác nhận, thanh toán khi nhận hàng' } },
     });
 
+    // Gửi email xác nhận đơn hàng COD
+    try {
+      const user = await User.findById(userId);
+      if (user?.email) {
+        await sendOrderConfirmation(user.email, {
+          customerName: customer.name,
+          orderId: createdOrder._id,
+          items: orderItems,
+          totals: { subtotal, discount, total },
+          paymentMethod: 'cod',
+          customer
+        });
+      }
+    } catch (emailError) {
+      console.error('Email error (non-blocking):', emailError.message);
+    }
+
+    // Tạo notification
+    try {
+      await notifyOrderConfirmed(
+        userId,
+        createdOrder._id,
+        createdOrder._id.toString().slice(-8).toUpperCase()
+      );
+    } catch (notifError) {
+      console.error('Notification error (non-blocking):', notifError.message);
+    }
+
     return res.status(201).json({
       success: true,
       paymentMethod: 'cod',
@@ -332,6 +369,35 @@ exports.vnpayReturn = async (req, res) => {
           }
         );
       }
+
+      // Gửi email xác nhận thanh toán VNPay thành công
+      try {
+        const user = await User.findById(order.user);
+        if (user?.email) {
+          await sendOrderConfirmation(user.email, {
+            customerName: order.customer.name,
+            orderId: order._id,
+            items: order.items,
+            totals: order.totals,
+            paymentMethod: 'vnpay',
+            customer: order.customer
+          });
+        }
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+
+      // Tạo notification
+      try {
+        await notifyOrderPaid(
+          order.user,
+          order._id,
+          order._id.toString().slice(-8).toUpperCase()
+        );
+      } catch (notifError) {
+        console.error('Notification error (non-blocking):', notifError.message);
+      }
+
       return res.redirect(`${frontendBase}/orders/payment-result?status=success&orderId=${orderId}`);
     } else {
       // ===== XỬ LÝ HỦY THANH TOÁN =====
@@ -457,7 +523,51 @@ exports.updateOrderStatus = async (req, res) => {
         $push: { statusHistory: { status, note: note || `Admin cập nhật: ${status}` } },
       },
       { new: true }
-    );
+    ).populate('user', 'name email');
+
+    // Gửi email thông báo cập nhật trạng thái
+    if (updated && updated.user?.email) {
+      try {
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status,
+          note: note || `Admin cập nhật: ${status}`,
+          items: updated.items,
+          totals: updated.totals
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    // Tạo notification theo trạng thái
+    if (updated && updated.user) {
+      try {
+        const orderCode = updated._id.toString().slice(-8).toUpperCase();
+        const userId = updated.user._id || updated.user;
+        
+        switch (status) {
+          case 'confirmed':
+            await notifyOrderConfirmed(userId, updated._id, orderCode);
+            break;
+          case 'paid':
+            await notifyOrderPaid(userId, updated._id, orderCode);
+            break;
+          case 'shipping':
+            await notifyOrderShipping(userId, updated._id, orderCode);
+            break;
+          case 'completed':
+            await notifyOrderCompleted(userId, updated._id, orderCode);
+            break;
+          case 'cancelled':
+            await notifyOrderCancelled(userId, updated._id, orderCode, note || '');
+            break;
+        }
+      } catch (notifError) {
+        console.error('Notification error (non-blocking):', notifError.message);
+      }
+    }
 
     return res.status(200).json({ success: true, data: updated });
   } catch (err) {
@@ -508,7 +618,34 @@ exports.cancelMyOrder = async (req, res) => {
         $push: { statusHistory: { status: 'cancelled', note: 'Khách hàng tự hủy đơn' } },
       },
       { new: true }
-    );
+    ).populate('user', 'name email');
+
+    // Gửi email thông báo hủy đơn
+    if (updated && updated.user?.email) {
+      try {
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status: 'cancelled',
+          note: 'Bạn đã hủy đơn hàng này',
+          items: updated.items,
+          totals: updated.totals
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    // Tạo notification
+    if (updated && updated.user) {
+      try {
+        const orderCode = updated._id.toString().slice(-8).toUpperCase();
+        const userId = updated.user._id || updated.user;
+        await notifyOrderCancelled(userId, updated._id, orderCode, 'Bạn đã hủy đơn hàng này');
+      } catch (notifError) {
+        console.error('Notification error (non-blocking):', notifError.message);
+      }
+    }
 
     return res.status(200).json({ success: true, data: updated });
   } catch (err) {
@@ -539,6 +676,106 @@ exports.deleteOrder = async (req, res) => {
     await Order.findByIdAndDelete(req.params.id);
     return res.status(200).json({ success: true, message: 'Đã xóa đơn hàng và hoàn lại kho' });
   } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// GET /api/orders/statistics (admin)
+// Thống kê đơn hàng
+// ===============================
+exports.getOrderStatistics = async (req, res) => {
+  try {
+    // Tổng số đơn hàng theo trạng thái
+    const totalOrders = await Order.countDocuments();
+    const pendingOrders = await Order.countDocuments({ status: 'pending' });
+    const confirmedOrders = await Order.countDocuments({ status: 'confirmed' });
+    const paidOrders = await Order.countDocuments({ status: 'paid' });
+    const shippingOrders = await Order.countDocuments({ status: 'shipping' });
+    const completedOrders = await Order.countDocuments({ status: 'completed' });
+    const cancelledOrders = await Order.countDocuments({ status: 'cancelled' });
+
+    // Tổng doanh thu (chỉ tính đơn completed)
+    const revenueResult = await Order.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$totals.total' } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+    // Doanh thu theo tháng (6 tháng gần nhất)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyRevenue = await Order.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          createdAt: { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          revenue: { $sum: '$totals.total' },
+          orders: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ]);
+
+    // Top sản phẩm bán chạy
+    const topProducts = await Order.aggregate([
+      { $match: { status: { $in: ['completed', 'shipping', 'paid'] } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.product',
+          name: { $first: '$items.name' },
+          image: { $first: '$items.image' },
+          totalSold: { $sum: '$items.quantity' },
+          revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+        }
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // Phương thức thanh toán
+    const paymentMethods = await Order.aggregate([
+      {
+        $group: {
+          _id: '$paymentMethod',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        overview: {
+          total: totalOrders,
+          pending: pendingOrders,
+          confirmed: confirmedOrders,
+          paid: paidOrders,
+          shipping: shippingOrders,
+          completed: completedOrders,
+          cancelled: cancelledOrders,
+          totalRevenue,
+          completionRate: totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0
+        },
+        monthlyRevenue,
+        topProducts,
+        paymentMethods
+      }
+    });
+  } catch (err) {
+    console.error('GET ORDER STATISTICS ERROR:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

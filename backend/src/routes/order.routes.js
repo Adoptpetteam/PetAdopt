@@ -15,6 +15,7 @@ router.put('/me/:id/cancel', authenticate, orderController.cancelMyOrder);
 router.get('/vnpay-return', orderController.vnpayReturn);
 
 // Admin routes
+router.get('/statistics', authenticate, isAdmin, orderController.getOrderStatistics);
 router.get('/', authenticate, isAdmin, orderController.listAllOrders);
 router.put('/:id/status', authenticate, isAdmin, orderController.updateOrderStatus);
 router.delete('/:id', authenticate, isAdmin, orderController.deleteOrder);

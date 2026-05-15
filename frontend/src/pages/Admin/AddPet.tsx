@@ -1,250 +1,222 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { useListCategory, useCreatePet } from "../../hook/huyHook";
+import { Card, Form, Input, Select, InputNumber, Checkbox, Button, Upload, message } from "antd";
+import { UploadOutlined, PlusOutlined } from "@ant-design/icons";
+import { apiClient } from "../../api/http";
 
 export default function AddPet() {
   const navigate = useNavigate();
+  const [form] = Form.useForm();
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fileList, setFileList] = useState<any[]>([]);
 
-  const { data: categories } = useListCategory({ resource: "category" });
-  const { mutate: addPet } = useCreatePet({ resource: "pets" });
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
-  const [fileKey, setFileKey] = useState(0);
-
-  const [form, setForm] = useState({
-    name: "",
-    species: "",
-    breed: "",
-    age: 0,
-    gender: "",
-    size: "",
-    color: "",
-    description: "",
-    healthStatus: "",
-    vaccinated: false,
-    neutered: false,
-    adoptionFee: 0,
-    location: "",
-    categoryId: "",
-    images: [] as File[],
-  });
-
-  // ===== HANDLE INPUT =====
-  const handleChange = (e: any) => {
-    const { name, value, type, checked } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : name === "age" || name === "adoptionFee"
-          ? Number(value)
-          : value,
-    }));
+  const fetchCategories = async () => {
+    try {
+      const res = await apiClient.get("/category?type=pet");
+      setCategories(res.data.data || []);
+    } catch (error) {
+      message.error("Không thể tải danh mục");
+    }
   };
 
-  // ===== HANDLE IMAGE =====
-  const handleImageChange = (e: any) => {
-    const files = e.target.files;
-    if (!files) return;
+  const handleSubmit = async (values: any) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      
+      // Append all form fields
+      Object.keys(values).forEach(key => {
+        if (values[key] !== undefined && values[key] !== null && key !== 'images') {
+          formData.append(key, values[key]);
+        }
+      });
 
-    setForm((prev) => ({
-      ...prev,
-      images: Array.from(files),
-    }));
+      // Append images
+      fileList.forEach(file => {
+        if (file.originFileObj) {
+          formData.append('images', file.originFileObj);
+        }
+      });
 
-    setFileKey((prev) => prev + 1);
+      await apiClient.post("/pets", formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      message.success("Thêm thú cưng thành công!");
+      navigate("/admin/pets");
+    } catch (error: any) {
+      message.error(error.response?.data?.message || "Thêm thú cưng thất bại");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeImage = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  // ===== SUBMIT =====
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
-
-    const formData = new FormData();
-
-    // REQUIRED
-    formData.append("name", form.name);
-    formData.append("species", form.species.toLowerCase());
-
-    // OPTIONAL (chỉ gửi nếu có)
-    if (form.breed) formData.append("breed", form.breed);
-    if (form.age) formData.append("age", String(form.age));
-    if (form.gender) formData.append("gender", form.gender);
-    if (form.size) formData.append("size", form.size);
-    if (form.color) formData.append("color", form.color);
-    if (form.description) formData.append("description", form.description);
-    if (form.healthStatus) formData.append("healthStatus", form.healthStatus);
-    if (form.location) formData.append("location", form.location);
-    if (form.categoryId) formData.append("categoryId", form.categoryId);
-
-    // BOOLEAN đúng format
-    formData.append("vaccinated", String(form.vaccinated));
-    formData.append("neutered", String(form.neutered));
-
-    if (form.adoptionFee)
-      formData.append("adoptionFee", String(form.adoptionFee));
-
-    // IMAGES
-    form.images.forEach((file) => {
-      formData.append("images", file);
-    });
-
-    // DEBUG (nếu cần)
-    // for (let pair of formData.entries()) {
-    //   console.log(pair[0], pair[1]);
-    // }
-
-    addPet(formData, {
-      onSuccess: () => {
-        navigate("/admin/pets");
-      },
-      onError: (error) => {
-        console.error("CREATE PET ERROR:", error);
-        alert("Tạo thú cưng thất bại!");
-      },
-    });
+  const uploadProps = {
+    fileList,
+    onChange: ({ fileList: newFileList }: any) => setFileList(newFileList),
+    beforeUpload: () => false,
+    listType: "picture-card" as const,
+    multiple: true,
   };
 
   return (
-    <div className="max-w-[600px] mx-auto py-20 px-6">
-      <h1 className="text-3xl font-bold text-center text-[#6272B6] mb-10">
-        Thêm thú cưng
-      </h1>
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 min-h-screen">
+      <Card className="max-w-3xl mx-auto border-0 shadow-lg rounded-2xl">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 mb-6">
+          ➕ Thêm thú cưng mới
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-xl shadow">
-        
-        <input name="name" placeholder="Tên" onChange={handleChange} className="input" required />
-
-        <select name="species" onChange={handleChange} className="input" required>
-          <option value="">-- Chọn loài --</option>
-          <option value="dog">Chó</option>
-          <option value="cat">Mèo</option>
-          <option value="bird">Chim</option>
-          <option value="rabbit">Thỏ</option>
-          <option value="hamster">Hamster</option>
-          <option value="other">Khác</option>
-        </select>
-
-        {/* 🔥 FIX _id */}
-        <select name="categoryId" onChange={handleChange} className="input">
-          <option value="">-- Chọn danh mục --</option>
-          {categories?.map((c: any) => (
-            <option key={c._id} value={c._id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-
-        <input name="breed" placeholder="Giống" onChange={handleChange} className="input" />
-
-        <input name="age" type="number" placeholder="Tuổi" onChange={handleChange} className="input" />
-
-        {/* Gender */}
-        <select
-          name="gender"
-          value={form.gender}
-          onChange={handleChange}
-          className="input"
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={{
+            gender: "male",
+            size: "medium",
+            healthStatus: "good",
+            vaccinated: false,
+            neutered: false,
+            status: "available"
+          }}
         >
-          <option value="">-- Giới tính --</option>
-          <option value="male">Đực</option>
-          <option value="female">Cái</option>
-        </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="name"
+              label="Tên thú cưng"
+              rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+            >
+              <Input size="large" placeholder="Ví dụ: Lucky" />
+            </Form.Item>
 
-        {/* Size */}
-        <select
-          name="size"
-          value={form.size}
-          onChange={handleChange}
-          className="input"
-        >
-          <option value="">-- Kích thước --</option>
-          <option value="small">Nhỏ</option>
-          <option value="medium">Trung bình</option>
-          <option value="large">Lớn</option>
-        </select>
+            <Form.Item
+              name="species"
+              label="Loài"
+              rules={[{ required: true, message: "Vui lòng chọn loài" }]}
+            >
+              <Select size="large" placeholder="Chọn loài">
+                <Select.Option value="dog">🐕 Chó</Select.Option>
+                <Select.Option value="cat">🐱 Mèo</Select.Option>
+                <Select.Option value="bird">🐦 Chim</Select.Option>
+                <Select.Option value="rabbit">🐰 Thỏ</Select.Option>
+                <Select.Option value="hamster">🐹 Hamster</Select.Option>
+                <Select.Option value="other">🐾 Khác</Select.Option>
+              </Select>
+            </Form.Item>
 
-        {/* IMAGES */}
-        <div>
-          <label className="block mb-2 font-medium">Ảnh thú cưng</label>
+            <Form.Item name="categoryId" label="Danh mục">
+              <Select size="large" placeholder="Chọn danh mục" allowClear>
+                {categories.map((cat) => (
+                  <Select.Option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <input
-            key={fileKey}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageChange}
-            className="input"
-          />
+            <Form.Item name="breed" label="Giống">
+              <Input size="large" placeholder="Ví dụ: Golden Retriever" />
+            </Form.Item>
 
-          <div className="flex flex-wrap gap-2 mt-2">
-            {form.images.map((file, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={URL.createObjectURL(file)}
-                  className="w-20 h-20 object-cover rounded"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-0 right-0 bg-red-500 text-white w-5 h-5 rounded-full text-xs"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+            <Form.Item name="age" label="Tuổi">
+              <InputNumber size="large" min={0} className="w-full" placeholder="0" />
+            </Form.Item>
+
+            <Form.Item name="gender" label="Giới tính">
+              <Select size="large">
+                <Select.Option value="male">♂ Đực</Select.Option>
+                <Select.Option value="female">♀ Cái</Select.Option>
+                <Select.Option value="unknown">❓ Không rõ</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="size" label="Kích thước">
+              <Select size="large">
+                <Select.Option value="small">Nhỏ</Select.Option>
+                <Select.Option value="medium">Trung bình</Select.Option>
+                <Select.Option value="large">Lớn</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="color" label="Màu sắc">
+              <Input size="large" placeholder="Ví dụ: Vàng" />
+            </Form.Item>
+
+            <Form.Item name="healthStatus" label="Tình trạng sức khỏe">
+              <Select size="large">
+                <Select.Option value="excellent">Xuất sắc</Select.Option>
+                <Select.Option value="good">Tốt</Select.Option>
+                <Select.Option value="fair">Bình thường</Select.Option>
+                <Select.Option value="needs_care">Cần chăm sóc</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="adoptionFee" label="Phí nhận nuôi (VNĐ)">
+              <InputNumber size="large" min={0} className="w-full" placeholder="0" />
+            </Form.Item>
+
+            <Form.Item name="location" label="Địa điểm">
+              <Input size="large" placeholder="Ví dụ: Hà Nội" />
+            </Form.Item>
+
+            <Form.Item name="status" label="Trạng thái">
+              <Select size="large">
+                <Select.Option value="available">Sẵn sàng nhận nuôi</Select.Option>
+                <Select.Option value="pending">Chờ duyệt</Select.Option>
+                <Select.Option value="reserved">Đã đặt</Select.Option>
+                <Select.Option value="adopted">Đã nhận nuôi</Select.Option>
+              </Select>
+            </Form.Item>
           </div>
-        </div>
 
-        <input name="color" placeholder="Màu sắc" onChange={handleChange} className="input" />
+          <Form.Item name="description" label="Mô tả">
+            <Input.TextArea rows={4} placeholder="Mô tả về thú cưng..." />
+          </Form.Item>
 
-        <textarea
-          name="description"
-          placeholder="Mô tả"
-          onChange={handleChange}
-          className="w-full h-24 bg-[#DDEDFF] rounded-2xl px-4 py-2 outline-none"
-        />
+          <Form.Item label="Hình ảnh">
+            <Upload {...uploadProps}>
+              <div>
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>Upload</div>
+              </div>
+            </Upload>
+          </Form.Item>
 
-            {/*Health Status*/}
-                  <select
-            name="healthStatus"
-            value={form.healthStatus}
-            onChange={handleChange}
-            className="input"
-          >
-            <option value="">-- Tình trạng sức khỏe --</option>
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item name="vaccinated" valuePropName="checked">
+              <Checkbox>💉 Đã tiêm phòng</Checkbox>
+            </Form.Item>
 
-            <option value="excellent">Rất tốt</option>
+            <Form.Item name="neutered" valuePropName="checked">
+              <Checkbox>✂️ Đã triệt sản</Checkbox>
+            </Form.Item>
+          </div>
 
-            <option value="good">Tốt</option>
-
-            <option value="fair">Bình thường</option>
-
-            <option value="needs_care">Cần chăm sóc</option>
-          </select>
-
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="vaccinated" onChange={handleChange} />
-          Đã tiêm phòng
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="neutered" onChange={handleChange} />
-          Đã triệt sản
-        </label>
-
-        <button className="w-full bg-[#6272B6] text-white py-3 rounded-full">
-          Thêm
-        </button>
-      </form>
+          <div className="flex gap-4 mt-6">
+            <Button
+              type="default"
+              size="large"
+              onClick={() => navigate("/admin/pets")}
+              className="flex-1"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              loading={loading}
+              className="flex-1 bg-gradient-to-r from-[#6272B6] to-purple-600 border-0"
+            >
+              Thêm thú cưng
+            </Button>
+          </div>
+        </Form>
+      </Card>
     </div>
   );
 }

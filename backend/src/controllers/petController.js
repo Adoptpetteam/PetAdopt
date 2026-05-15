@@ -70,17 +70,22 @@ exports.createPet = async (req, res, next) => {
 // GET ALL
 exports.getAllPets = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, species, status } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const pets = await Pet.find()
+    const query = {};
+    if (species) query.species = species;
+    if (status) query.status = status;
+
+    const pets = await Pet.find(query)
       .populate('createdBy', 'name email')
+      .populate('categoryId', 'name description image type')
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
 
-    const total = await Pet.countDocuments();
+    const total = await Pet.countDocuments(query);
 
     res.json({
       success: true,
@@ -125,6 +130,11 @@ exports.getPetById = async (req, res, next) => {
 // UPDATE
 exports.updatePet = async (req, res, next) => {
   try {
+    console.log('=== UPDATE PET ===');
+    console.log('Pet ID:', req.params.id);
+    console.log('Body:', req.body);
+    console.log('Files:', req.files?.length || 0);
+
     const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
@@ -134,14 +144,49 @@ exports.updatePet = async (req, res, next) => {
       });
     }
 
-    Object.assign(pet, req.body);
-
-    if (req.files && req.files.length > 0) {
-      const uploadedImages = req.files.map(file => `/uploads/${file.filename}`);
-      pet.images = [...(pet.images || []), ...uploadedImages];
+    // Xử lý existingImages từ frontend
+    let finalImages = [];
+    
+    if (req.body.existingImages) {
+      try {
+        const existingImages = JSON.parse(req.body.existingImages);
+        finalImages = Array.isArray(existingImages) ? existingImages : [];
+        console.log('Existing images:', finalImages.length);
+      } catch (e) {
+        console.error('Error parsing existingImages:', e);
+        finalImages = pet.images || [];
+      }
+    } else {
+      // Nếu không có existingImages, giữ nguyên ảnh cũ
+      finalImages = pet.images || [];
     }
 
+    // Thêm ảnh mới nếu có
+    if (req.files && req.files.length > 0) {
+      const uploadedImages = req.files.map(file => `/uploads/${file.filename}`);
+      finalImages = [...finalImages, ...uploadedImages];
+      console.log('New images added:', uploadedImages.length);
+    }
+
+    // Cập nhật các field khác (KHÔNG ghi đè createdBy)
+    const updateData = { ...req.body };
+    delete updateData.existingImages;
+    delete updateData.createdBy; // Không cho phép thay đổi người tạo
+    delete updateData._id; // Không cho phép thay đổi ID
+    delete updateData.createdAt; // Không cho phép thay đổi ngày tạo
+    
+    // Cập nhật từng field
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined && updateData[key] !== null && updateData[key] !== '') {
+        pet[key] = updateData[key];
+      }
+    });
+    
+    pet.images = finalImages;
+
+    console.log('Saving pet...');
     await pet.save();
+    console.log('Pet updated successfully');
 
     res.json({
       success: true,
@@ -151,7 +196,11 @@ exports.updatePet = async (req, res, next) => {
 
   } catch (error) {
     console.error("UPDATE PET ERROR:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Lỗi khi cập nhật thú cưng'
+    });
   }
 };
 

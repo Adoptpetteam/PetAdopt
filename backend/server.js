@@ -33,6 +33,9 @@ const orderRoutes = require('./src/routes/order.routes');
 const statisticsRoutes = require('./statistics.routes');
 const voucherRoutes = require('./src/routes/voucher.routes');
 const vaccinationRoutes = require('./src/routes/vaccination.routes');
+const reviewRoutes = require('./src/routes/review.routes');
+const notificationRoutes = require('./src/routes/notification.routes');
+const healthRecordRoutes = require('./src/routes/healthRecord.routes');
 
 const app = express();
 
@@ -93,6 +96,12 @@ app.use('/api/statistics', statisticsRoutes);
 app.use('/api/vouchers', voucherRoutes);
 
 app.use('/api/vaccinations', vaccinationRoutes);
+
+app.use('/api/reviews', reviewRoutes);
+
+app.use('/api/notifications', notificationRoutes);
+
+app.use('/api/health-records', healthRecordRoutes);
 
 // ===============================
 // HEALTH CHECK

@@ -19,9 +19,9 @@ import AdminLayout from "../pages/Admin/AdminLayout";
 import Dashboard from "../pages/Admin/Dashboard";
 import Adoptions from "../pages/Admin/Adoptions";
 import AdoptionDetail from "../pages/Admin/AdoptionDetail";
-import VolunteerForm from "../pages/VolunteerForm";
-import VolunteerList from "../pages/Admin/VolunteerList";
-import VolunteerDetail from "../pages/Admin/VolunteerDetail";
+import Volunteer from "../pages/Volunteer";
+import Volunteers from "../pages/Admin/Volunteers";
+import Reviews from "../pages/Admin/Reviews";
 
 import Contact from "../pages/Contact";
 import Donate from "../pages/Donate";
@@ -39,26 +39,32 @@ import Favorites from "../pages/Favorites";
 import Post from "../pages/Admin/Post";
 import User from "../pages/Admin/User";
 import ListCategory from "../pages/Admin/Category/ListCategory";
+import PetCategories from "../pages/Admin/Category/PetCategories";
+import ProductCategories from "../pages/Admin/Category/ProductCategories";
 import Pets from "../pages/Admin/Pets";
 import AddPet from "../pages/Admin/AddPet";
 import EditPet from "../pages/Admin/EditPet";
 import AdoptedPets from "../pages/Admin/AdoptedPets";
 import ProductPage from "../pages/Admin/product";
 import OrderPage from "../pages/Admin/order";
-import CustomerPage from "../pages/Admin/CustomerPage"; // thêm dòng này
+import CustomerPage from "../pages/Admin/CustomerPage";
 import Statistics from "../pages/Admin/Statistics";
 import VoucherPage from "../pages/Admin/VoucherPage";
 import VaccinationAdmin from "../pages/Admin/VaccinationAdmin";
+import Supporters from "../pages/Admin/Supporters";
+import Vaccinations from "../pages/Admin/Vaccinations";
 
 import AdminRoute from "../routes/AdminRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
 import ChatBot from "../pages/ChatBot";
 import ProtectedRoute from "./ProtectedRoute";
-import Supporters from "../pages/Admin/Supporters";
 
 import PaymentResult from "../pages/PaymentResult";
 import VaccinationSchedule from "../pages/VaccinationSchedule";
 import MyAdoptions from "../pages/MyAdoptions";
+import Notifications from "../pages/Notifications";
+import PetCare from "../pages/PetCare";
+import MyPets from "../pages/MyPets";
 
 export default function AppRoutes() {
   return (
@@ -78,7 +84,7 @@ export default function AppRoutes() {
           element={<AdoptQR />}
         />
         <Route path="/success" element={<SuccessPage />} />
-        <Route path="/volunteer" element={<VolunteerForm />} />
+        <Route path="/volunteer" element={<Volunteer />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/donate" element={<Donate />} />
         <Route path="/news" element={<News />} />
@@ -91,6 +97,7 @@ export default function AppRoutes() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/orders/:id" element={<Orders />} />
         <Route
           path="/orders/success"
           element={<OrderSuccess />}
@@ -111,6 +118,18 @@ export default function AppRoutes() {
           <Route
             path="/my-adoptions"
             element={<MyAdoptions />}
+          />
+          <Route
+            path="/notifications"
+            element={<Notifications />}
+          />
+          <Route
+            path="/pet-care"
+            element={<PetCare />}
+          />
+          <Route
+            path="/my-pets"
+            element={<MyPets />}
           />
         </Route>
       </Route>
@@ -143,20 +162,30 @@ export default function AppRoutes() {
 
           <Route
             path="volunteers"
-            element={<VolunteerList />}
-          />
-          <Route
-            path="volunteers/:id"
-            element={<VolunteerDetail />}
+            element={<Volunteers />}
           />
 
-          <Route path="/admin/supporters" element={<Supporters />} />
+          <Route
+            path="reviews"
+            element={<Reviews />}
+          />
+
+          <Route path="supporters" element={<Supporters />} />
+          <Route path="vaccinations" element={<Vaccinations />} />
 
           <Route path="post" element={<Post />} />
           <Route path="user" element={<User />} />
           <Route
             path="category"
             element={<ListCategory />}
+          />
+          <Route
+            path="pet-categories"
+            element={<PetCategories />}
+          />
+          <Route
+            path="product-categories"
+            element={<ProductCategories />}
           />
 
           <Route path="pets" element={<Pets />} />

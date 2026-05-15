@@ -1,0 +1,345 @@
+.pet-care-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 40px 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.pet-care-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.pet-care-header h1 {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(135deg, #6272B6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pet-care-header p {
+  color: #666;
+  margin: 8px 0 0 0;
+  font-size: 16px;
+}
+
+/* Loading & Empty */
+.pet-care-loading {
+  text-align: center;
+  padding: 80px 20px;
+  font-size: 18px;
+  color: #666;
+}
+
+.pet-care-empty {
+  text-align: center;
+  padding: 60px 40px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.pet-care-empty h3 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.pet-care-empty p {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+/* Pet Selection */
+.pet-selection {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.pet-card {
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.pet-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.pet-card.active {
+  border-color: #6272B6;
+  box-shadow: 0 8px 24px rgba(98, 114, 182, 0.2);
+}
+
+.pet-card .ant-card-cover img {
+  height: 150px;
+  object-fit: cover;
+}
+
+/* Tabs */
+.pet-care-tabs {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.pet-care-tabs .ant-tabs-tab {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pet-care-tabs .ant-tabs-tab-active {
+  color: #6272B6;
+}
+
+.pet-care-tabs .ant-tabs-ink-bar {
+  background: linear-gradient(135deg, #6272B6, #8b5cf6);
+}
+
+/* Health Card */
+.health-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.health-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.health-item span {
+  font-weight: 600;
+  color: #333;
+  min-width: 100px;
+}
+
+.health-item .ant-progress {
+  flex: 1;
+  margin-left: 16px;
+}
+
+/* Timeline */
+.timeline-content strong {
+  color: #333;
+  font-size: 14px;
+}
+
+.timeline-date {
+  color: #999;
+  font-size: 12px;
+}
+
+/* Guide Cards */
+.guide-card {
+  height: 100%;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.guide-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.guide-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.guide-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guide-card li {
+  padding: 8px 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.guide-card li:last-child {
+  border-bottom: none;
+}
+
+.guide-card li:before {
+  content: "✓";
+  color: #52c41a;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+/* Tips Cards */
+.tips-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  height: 100%;
+}
+
+.tips-card.warning {
+  border-left: 4px solid #ff4d4f;
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tips-list li {
+  padding: 12px 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+  padding-left: 24px;
+}
+
+.tips-list li:last-child {
+  border-bottom: none;
+}
+
+.tips-list li:before {
+  content: "•";
+  color: #6272B6;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.tips-card.warning .tips-list li:before {
+  color: #ff4d4f;
+}
+
+/* Vaccination Integration */
+.vaccination-section {
+  margin-top: 24px;
+}
+
+.vaccination-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.vaccination-item {
+  padding: 12px 0;
+}
+
+.vaccination-item strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 16px;
+}
+
+.vaccination-item p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.vaccination-item .ant-tag {
+  margin-top: 8px;
+}
+
+.vaccination-item .ant-btn {
+  margin-top: 8px;
+  padding: 0;
+  height: auto;
+  font-size: 12px;
+}
+
+.health-item small {
+  display: block;
+  margin-top: 4px;
+  color: #999;
+  font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pet-care-page {
+    padding: 20px 10px;
+  }
+
+  .pet-care-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .pet-care-header h1 {
+    font-size: 24px;
+  }
+
+  .pet-selection {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .pet-card .ant-card-cover img {
+    height: 120px;
+  }
+
+  .health-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .health-item .ant-progress {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pet-care-tabs,
+.pet-selection .pet-card,
+.health-card,
+.guide-card,
+.tips-card {
+  animation: fadeInUp 0.6s ease-out;
+}

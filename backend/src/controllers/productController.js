@@ -1,5 +1,68 @@
 const Product = require('../models/Product');
 
+// GET /api/products/statistics (admin)
+exports.getProductStatistics = async (req, res) => {
+  try {
+    const totalProducts = await Product.countDocuments();
+    const inStockProducts = await Product.countDocuments({ quantity: { $gt: 0 } });
+    const outOfStockProducts = await Product.countDocuments({ quantity: 0 });
+    
+    // Tổng giá trị kho
+    const inventoryValue = await Product.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $multiply: ['$price', '$quantity'] } }
+        }
+      }
+    ]);
+    const totalInventoryValue = inventoryValue.length > 0 ? inventoryValue[0].total : 0;
+
+    // Sản phẩm sắp hết hàng (quantity < 10)
+    const lowStockProducts = await Product.find({ quantity: { $gt: 0, $lt: 10 } })
+      .select('name quantity price image')
+      .limit(10);
+
+    // Sản phẩm theo danh mục
+    const productsByCategory = await Product.aggregate([
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'category'
+        }
+      },
+      { $unwind: { path: '$category', preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: '$category.name',
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        overview: {
+          total: totalProducts,
+          inStock: inStockProducts,
+          outOfStock: outOfStockProducts,
+          totalInventoryValue,
+          lowStockCount: lowStockProducts.length
+        },
+        lowStockProducts,
+        productsByCategory
+      }
+    });
+  } catch (err) {
+    console.error('GET PRODUCT STATISTICS ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // GET /api/products
 exports.listProducts = async (req, res) => {
   try {

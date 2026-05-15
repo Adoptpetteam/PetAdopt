@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const moment = require('moment');
 const { sendDonationThankYou } = require('../utils/donateService');
+const Supporter = require('../models/Supporter');
 
 // ====== In-memory store (thay bằng MongoDB nếu cần) ======
 // Key: orderId, Value: { amount, email, name, createdAt }
@@ -49,14 +50,18 @@ function verifyVNPaySignature(vnp_Params, secretKey) {
 }
 
 // ====== POST /api/donate/create-payment ======
-exports.createPayment = (req, res) => {
+exports.createPayment = async (req, res) => {
     process.env.TZ = 'Asia/Ho_Chi_Minh';
 
-    const { amount, email, name } = req.body;
+    const { amount, email, name, phone, message, isAnonymous } = req.body;
 
     // Validate
     if (!amount || isNaN(amount) || Number(amount) < 1000) {
         return res.status(400).json({ message: 'Số tiền không hợp lệ (tối thiểu 1,000 VND)' });
+    }
+    
+    if (!email || !name) {
+        return res.status(400).json({ message: 'Vui lòng nhập tên và email' });
     }
 
     const date = new Date();
@@ -71,19 +76,45 @@ exports.createPayment = (req, res) => {
     const orderDescription = `Ung ho PawPalace ${Number(amount).toLocaleString('vi-VN')} VND`;
     const orderInfoNoAccent = removeVietnameseTones(orderDescription);
 
-    const vnp_TmnCode = process.env.VNP_TMNCODE;
-    const vnp_HashSecret = process.env.VNP_HASHSECRET;
-    const vnpUrl = process.env.VNP_URL;
-    const returnUrl = process.env.VNP_RETURN_URL;
+    const vnp_TmnCode = process.env.VNP_DONATE_TMNCODE;
+    const vnp_HashSecret = process.env.VNP_DONATE_HASHSECRET;
+    const vnpUrl = process.env.VNP_DONATE_URL;
+    const returnUrl = process.env.VNP_DONATE_RETURN_URL;
 
-    // Lưu đơn chờ để verify IPN (chứa cả email + name để gửi mail cảm ơn)
-    pendingOrders.set(orderId, {
-        amount: Number(amount),
-        email: email || null,
-        name: name || null,
-        orderInfo: orderDescription,
-        createdAt: date,
-    });
+    // Tạo Supporter record với status pending
+    try {
+        const supporter = await Supporter.create({
+            name,
+            email,
+            phone: phone || '',
+            amount: Number(amount),
+            message: message || '',
+            paymentMethod: 'vnpay',
+            transactionId: orderId,
+            status: 'pending',
+            isAnonymous: isAnonymous || false,
+            displayName: name,
+            vnpayData: {
+                orderId
+            }
+        });
+        
+        // Lưu đơn chờ để verify IPN
+        pendingOrders.set(orderId, {
+            amount: Number(amount),
+            email,
+            name,
+            phone,
+            message,
+            isAnonymous,
+            supporterId: supporter._id,
+            orderInfo: orderDescription,
+            createdAt: date,
+        });
+    } catch (error) {
+        console.error('[Donate] Create supporter failed:', error);
+        return res.status(500).json({ message: 'Lỗi khi tạo đơn ủng hộ' });
+    }
 
     const vnp_Params = {
         vnp_Version: '2.1.0',
@@ -126,7 +157,7 @@ exports.createPayment = (req, res) => {
 // Xử lý khi VNPay redirect khách hàng quay về
 exports.vnpayReturn = async (req, res) => {
     const vnp_Params = { ...req.query };
-    const vnp_HashSecret = process.env.VNP_HASHSECRET;
+    const vnp_HashSecret = process.env.VNP_DONATE_HASHSECRET;
     const base = process.env.CLIENT_URL || 'http://localhost:5173';
 
     const isValidSignature = verifyVNPaySignature(vnp_Params, vnp_HashSecret);
@@ -134,24 +165,62 @@ exports.vnpayReturn = async (req, res) => {
     const orderId = vnp_Params['vnp_TxnRef'];
     const amount = vnp_Params['vnp_Amount'];
 
+    console.log('[Donate Return] orderId:', orderId);
+    console.log('[Donate Return] rspCode:', rspCode);
+    console.log('[Donate Return] isValidSignature:', isValidSignature);
+
     if (isValidSignature && rspCode === '00') {
         // Thanh toán thành công
         console.log(`[Donate] Success: Order ${orderId}, Amount ${amount}`);
-        // Lấy thông tin order để gửi mail cảm ơn
-        const order = pendingOrders.get(orderId);
-        if (order) {
-            pendingOrders.delete(orderId);
-            // Gửi email cảm ơn (async, không block redirect)
-            if (order.email) {
-                sendDonationThankYou(order.email, order.name, order.amount)
-                    .catch(err => console.error('[Donate] Send thank-you email failed:', err.message));
+        
+        // Cập nhật Supporter status thành completed
+        const supporter = await Supporter.findOneAndUpdate(
+            { transactionId: orderId },
+            { 
+                status: 'completed',
+                'vnpayData.responseCode': rspCode,
+                'vnpayData.transactionNo': vnp_Params['vnp_TransactionNo'],
+                'vnpayData.bankCode': vnp_Params['vnp_BankCode'],
+                'vnpayData.cardType': vnp_Params['vnp_CardType'],
+                'vnpayData.payDate': vnp_Params['vnp_PayDate']
+            },
+            { new: true }
+        );
+        
+        if (supporter) {
+            // Lấy thông tin order để gửi mail cảm ơn
+            const order = pendingOrders.get(orderId);
+            if (order) {
+                pendingOrders.delete(orderId);
+                // Gửi email cảm ơn (async, không block redirect)
+                if (order.email) {
+                    sendDonationThankYou(order.email, order.name, order.amount)
+                        .catch(err => console.error('[Donate] Send thank-you email failed:', err.message));
+                }
+            } else {
+                // Nếu không có trong Map, gửi email từ DB
+                if (supporter.email) {
+                    sendDonationThankYou(supporter.email, supporter.name, supporter.amount)
+                        .catch(err => console.error('[Donate] Send thank-you email failed:', err.message));
+                }
             }
         }
-        res.redirect(`${base}/donate?status=success&code=${rspCode}&ref=${orderId}`);
+        
+        res.redirect(`${base}/donate?status=success&code=${rspCode}`);
     } else {
         console.log(`[Donate] Failed: Order ${orderId}, Code ${rspCode}`);
+        
+        // Cập nhật Supporter status thành failed
+        await Supporter.findOneAndUpdate(
+            { transactionId: orderId },
+            { 
+                status: 'failed',
+                'vnpayData.responseCode': rspCode
+            }
+        );
+        
         pendingOrders.delete(orderId);
-        res.redirect(`${base}/donate?status=failed&code=${rspCode}&ref=${orderId}`);
+        res.redirect(`${base}/donate?status=failed&code=${rspCode}`);
     }
 };
 
@@ -159,7 +228,7 @@ exports.vnpayReturn = async (req, res) => {
 // VNPay gọi server-to-server (IPN) — cần trả JSON cho VNPay
 exports.vnpayIPN = async (req, res) => {
     const vnp_Params = { ...req.query };
-    const vnp_HashSecret = process.env.VNP_HASHSECRET;
+    const vnp_HashSecret = process.env.VNP_DONATE_HASHSECRET;
 
     const orderId = vnp_Params['vnp_TxnRef'];
     const rspCode = vnp_Params['vnp_ResponseCode'];
@@ -192,6 +261,18 @@ exports.vnpayIPN = async (req, res) => {
     if (rspCode === '00') {
         // ✅ Thành công — gửi email cảm ơn + lưu vào DB (đánh dấu đã thanh toán)
         console.log(`[Donate IPN] Payment SUCCESS: order=${orderId}, amount=${paidAmount}`);
+        
+        // Cập nhật Supporter status
+        await Supporter.findOneAndUpdate(
+            { transactionId: orderId },
+            { 
+                status: 'completed',
+                'vnpayData.responseCode': rspCode,
+                'vnpayData.transactionNo': vnp_Params['vnp_TransactionNo'],
+                'vnpayData.bankCode': vnp_Params['vnp_BankCode']
+            }
+        );
+        
         pendingOrders.delete(orderId);
 
         // Gửi email cảm ơn (async, không block IPN response)
@@ -200,12 +281,160 @@ exports.vnpayIPN = async (req, res) => {
                 .catch(err => console.error('[Donate IPN] Send thank-you email failed:', err.message));
         }
 
-        // TODO: Lưu Donation record vào MongoDB nếu cần
         return res.status(200).json({ RspCode: '00', Message: 'Success' });
     } else {
         // ❌ Thất bại
         console.log(`[Donate IPN] Payment FAILED: order=${orderId}, code=${rspCode}`);
+        
+        // Cập nhật Supporter status
+        await Supporter.findOneAndUpdate(
+            { transactionId: orderId },
+            { 
+                status: 'failed',
+                'vnpayData.responseCode': rspCode
+            }
+        );
+        
         pendingOrders.delete(orderId);
         return res.status(200).json({ RspCode: '00', Message: 'Success' });
+    }
+};
+
+
+// ====== GET /api/donate/supporters (admin) ======
+exports.getSupporters = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+
+        const skip = (Number(page) - 1) * Number(limit);
+        const total = await Supporter.countDocuments(filter);
+        const supporters = await Supporter.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit));
+
+        return res.status(200).json({
+            success: true,
+            data: supporters,
+            pagination: { 
+                page: Number(page), 
+                limit: Number(limit), 
+                total, 
+                pages: Math.ceil(total / Number(limit)) 
+            }
+        });
+    } catch (err) {
+        console.error('[Donate] Get supporters error:', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ====== GET /api/donate/top-supporters ======
+exports.getTopSupporters = async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+        
+        // Kiểm tra xem có supporter nào không
+        const count = await Supporter.countDocuments({ status: 'completed' });
+        
+        if (count === 0) {
+            return res.status(200).json({
+                success: true,
+                data: []
+            });
+        }
+        
+        // Top supporters theo tổng số tiền ủng hộ
+        const topSupporters = await Supporter.aggregate([
+            { $match: { status: 'completed' } },
+            {
+                $group: {
+                    _id: '$email',
+                    name: { $first: '$name' },
+                    displayName: { $first: '$displayName' },
+                    isAnonymous: { $first: '$isAnonymous' },
+                    totalAmount: { $sum: '$amount' },
+                    donationCount: { $sum: 1 },
+                    lastDonation: { $max: '$createdAt' }
+                }
+            },
+            { $sort: { totalAmount: -1 } },
+            { $limit: Number(limit) }
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: topSupporters
+        });
+    } catch (err) {
+        console.error('[Donate] Get top supporters error:', err);
+        console.error('[Donate] Error stack:', err.stack);
+        return res.status(500).json({ 
+            success: false, 
+            message: err.message,
+            error: 'Lỗi khi lấy danh sách người ủng hộ'
+        });
+    }
+};
+
+// ====== GET /api/donate/statistics (admin) ======
+exports.getDonationStatistics = async (req, res) => {
+    try {
+        const totalDonations = await Supporter.countDocuments({ status: 'completed' });
+        const pendingDonations = await Supporter.countDocuments({ status: 'pending' });
+        const failedDonations = await Supporter.countDocuments({ status: 'failed' });
+        
+        // Tổng số tiền đã nhận
+        const totalAmountResult = await Supporter.aggregate([
+            { $match: { status: 'completed' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        const totalAmount = totalAmountResult.length > 0 ? totalAmountResult[0].total : 0;
+        
+        // Số tiền trung bình mỗi đơn
+        const avgAmount = totalDonations > 0 ? Math.round(totalAmount / totalDonations) : 0;
+        
+        // Thống kê theo tháng (6 tháng gần nhất)
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        
+        const monthlyStats = await Supporter.aggregate([
+            {
+                $match: {
+                    status: 'completed',
+                    createdAt: { $gte: sixMonthsAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$createdAt' },
+                        month: { $month: '$createdAt' }
+                    },
+                    amount: { $sum: '$amount' },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                overview: {
+                    total: totalDonations,
+                    pending: pendingDonations,
+                    failed: failedDonations,
+                    totalAmount,
+                    avgAmount
+                },
+                monthlyStats
+            }
+        });
+    } catch (err) {
+        console.error('[Donate] Get statistics error:', err);
+        return res.status(500).json({ success: false, message: err.message });
     }
 };

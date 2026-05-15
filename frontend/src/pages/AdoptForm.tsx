@@ -133,18 +133,15 @@ export default function AdoptForm() {
   const steps = [
     {
       title: 'Thông tin cá nhân',
-      icon: <UserOutlined />,
-      description: 'Thông tin liên hệ của bạn'
+      icon: <UserOutlined />
     },
     {
       title: 'Điều kiện sống',
-      icon: <HomeOutlined />,
-      description: 'Môi trường nuôi dưỡng'
+      icon: <HomeOutlined />
     },
     {
       title: 'Cam kết',
-      icon: <HeartOutlined />,
-      description: 'Lý do và cam kết nhận nuôi'
+      icon: <HeartOutlined />
     }
   ];
 

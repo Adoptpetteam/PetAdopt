@@ -1,30 +1,87 @@
 const Pet = require('../models/Pet');
 const User = require('../models/User');
 const AdoptionRequest = require('../models/AdoptionRequest');
+const Supporter = require('../models/Supporter');
+const mongoose = require('mongoose');
+
+// Get Volunteer model
+const Volunteer = mongoose.models.Volunteer || mongoose.model('Volunteer', new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  phone: { type: String, required: true },
+  age: { type: Number },
+  experience: { type: String },
+  availability: { type: String },
+  reason: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  adminNote: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+}, { timestamps: true }));
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
     const stats = await Promise.all([
+      // Thú cưng
       Pet.countDocuments({ status: 'available' }),
       Pet.countDocuments({ status: { $in: ['pending', 'reserved'] } }),
+      Pet.countDocuments(),
+      
+      // Người dùng
       User.countDocuments(),
+      User.countDocuments({ role: 'admin' }),
+      
+      // Nhận nuôi
       AdoptionRequest.countDocuments({ status: 'pending' }),
       AdoptionRequest.countDocuments({ status: 'approved' }),
-      User.countDocuments({ role: 'admin' })
+      AdoptionRequest.countDocuments(),
+      
+      // Tình nguyện viên
+      Volunteer.countDocuments({ status: 'approved' }),
+      Volunteer.countDocuments({ status: 'pending' }),
+      Volunteer.countDocuments(),
+      
+      // Người ủng hộ
+      Supporter.countDocuments({ status: 'completed' }),
+      Supporter.countDocuments({ status: 'pending' }),
+      Supporter.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
     ]);
+
+    const totalDonationAmount = stats[13].length > 0 ? stats[13][0].total : 0;
 
     res.status(200).json({
       success: true,
       data: {
+        // Thú cưng
         availablePets: stats[0],
         pendingPets: stats[1],
-        totalUsers: stats[2],
-        pendingRequests: stats[3],
-        approvedRequests: stats[4],
-        totalAdmins: stats[5]
+        totalPets: stats[2],
+        
+        // Người dùng
+        totalUsers: stats[3],
+        totalAdmins: stats[4],
+        
+        // Nhận nuôi
+        pendingAdoptions: stats[5],
+        approvedAdoptions: stats[6],
+        totalAdoptions: stats[7],
+        
+        // Tình nguyện viên
+        approvedVolunteers: stats[8],
+        pendingVolunteers: stats[9],
+        totalVolunteers: stats[10],
+        
+        // Người ủng hộ
+        totalSupporters: stats[11],
+        pendingSupporters: stats[12],
+        totalDonationAmount: totalDonationAmount
       }
     });
   } catch (error) {
+    console.error('[Dashboard Stats] Error:', error);
     next(error);
   }
 };

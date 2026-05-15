@@ -6,6 +6,7 @@ const { isAdmin } = require('../middleware/adminMiddleware');
 const productController = require('../controllers/productController');
 
 // public
+router.get('/statistics', authenticate, isAdmin, productController.getProductStatistics);
 router.get('/', productController.listProducts);
 router.get('/:id', productController.getProductById);
 

@@ -44,7 +44,7 @@ const adoptionRequestSchema = new mongoose.Schema({
 
   experience: {
     type: String,
-    enum: ['none', 'beginner', 'intermediate', 'expert'],
+    enum: ['none', 'basic', 'experienced', 'expert'],
     default: 'none'
   },
   
@@ -55,7 +55,7 @@ const adoptionRequestSchema = new mongoose.Schema({
 
   housingType: {
     type: String,
-    enum: ['apartment', 'house', 'farm', 'other'],
+    enum: ['apartment', 'house', 'dorm', 'farm', 'other'],
     required: [true, 'Loại nhà ở là bắt buộc']
   },
   
@@ -65,8 +65,7 @@ const adoptionRequestSchema = new mongoose.Schema({
   },
   
   familyMembers: {
-    type: Number,
-    min: 1,
+    type: String,
     required: [true, 'Số thành viên gia đình là bắt buộc']
   },
   

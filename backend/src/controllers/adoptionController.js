@@ -1,13 +1,18 @@
 const AdoptionRequest = require('../models/AdoptionRequest');
 const Pet = require('../models/Pet');
 const { sendEmail } = require('../utils/emailService');
+const { notifyAdoptionApproved, notifyAdoptionRejected } = require('../utils/notificationService');
 const mongoose = require('mongoose');
 
 // @desc    Tạo đơn nhận nuôi mới
 // @route   POST /api/adoption
-// @access  Public (hoặc Private tùy yêu cầu)
+// @access  Private
 const createAdoptionRequest = async (req, res) => {
   try {
+    console.log('=== CREATE ADOPTION REQUEST ===');
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('User from token:', req.user);
+    
     const {
       pet,
       fullName,
@@ -27,67 +32,83 @@ const createAdoptionRequest = async (req, res) => {
       commitment
     } = req.body;
 
-    // Lấy user từ authentication
-    const user = req.user?.userId;
+    // Lấy user ID
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    console.log('Extracted userId:', userId);
     
-    if (!user) {
+    if (!userId) {
+      console.log('No user ID found');
       return res.status(401).json({
         success: false,
-        message: 'Người dùng chưa đăng nhập'
-      });
-    }
-
-    // Validate user ID
-    if (!mongoose.Types.ObjectId.isValid(user)) {
-      return res.status(400).json({
-        success: false,
-        message: 'User ID không hợp lệ'
+        message: 'Vui lòng đăng nhập để gửi đơn nhận nuôi'
       });
     }
 
     // Validate required fields
-    if (!fullName || !phone || !address || !reason || !housingType || !familyMembers || !monthlyIncome) {
+    const missingFields = [];
+    if (!fullName) missingFields.push('fullName');
+    if (!phone) missingFields.push('phone');
+    if (!address) missingFields.push('address');
+    if (!reason) missingFields.push('reason');
+    if (!housingType) missingFields.push('housingType');
+    if (!familyMembers) missingFields.push('familyMembers');
+    if (!monthlyIncome) missingFields.push('monthlyIncome');
+    
+    if (missingFields.length > 0) {
+      console.log('Missing fields:', missingFields);
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng điền đầy đủ thông tin bắt buộc'
+        message: 'Vui lòng điền đầy đủ thông tin bắt buộc',
+        missingFields
       });
     }
 
     if (!commitment) {
+      console.log('Commitment not checked');
       return res.status(400).json({
         success: false,
         message: 'Bạn phải đồng ý với cam kết nhận nuôi'
       });
     }
 
-    // Kiểm tra pet có tồn tại không
+    // Kiểm tra pet nếu có
     if (pet) {
+      console.log('Checking pet:', pet);
+      
+      if (!mongoose.Types.ObjectId.isValid(pet)) {
+        console.log('Invalid pet ID');
+        return res.status(400).json({
+          success: false,
+          message: 'Pet ID không hợp lệ'
+        });
+      }
+
       const petExists = await Pet.findById(pet);
       if (!petExists) {
+        console.log('Pet not found');
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy thú cưng'
         });
       }
 
-      // Kiểm tra pet có sẵn sàng nhận nuôi không
       if (petExists.status !== 'available') {
+        console.log('Pet not available, status:', petExists.status);
         return res.status(400).json({
           success: false,
           message: 'Thú cưng này hiện không có sẵn để nhận nuôi'
         });
       }
-    }
 
-    // Kiểm tra user đã gửi đơn pending cho pet này chưa
-    if (pet && user) {
+      // Kiểm tra đơn trùng
       const existingRequest = await AdoptionRequest.findOne({
         pet,
-        user,
+        user: userId,
         status: 'pending'
       });
 
       if (existingRequest) {
+        console.log('Duplicate request found');
         return res.status(400).json({
           success: false,
           message: 'Bạn đã gửi đơn nhận nuôi cho thú cưng này rồi'
@@ -95,25 +116,28 @@ const createAdoptionRequest = async (req, res) => {
       }
     }
 
+    console.log('Creating adoption request...');
+
     // Tạo đơn
     const adoptionRequest = new AdoptionRequest({
-      pet,
-      user: user || null,
+      pet: pet || null,
+      user: userId,
       fullName,
       phone,
       address,
       reason,
       experience: experience || 'none',
-      experienceDetails,
+      experienceDetails: experienceDetails || '',
       housingType,
       hasYard: hasYard || false,
       familyMembers,
       hasChildren: hasChildren || false,
-      childrenAges,
+      childrenAges: childrenAges || '',
       hasOtherPets: hasOtherPets || false,
-      otherPetsDetails,
+      otherPetsDetails: otherPetsDetails || '',
       monthlyIncome,
       commitment: true,
+      status: 'pending',
       statusHistory: [{
         status: 'pending',
         timestamp: new Date(),
@@ -121,12 +145,14 @@ const createAdoptionRequest = async (req, res) => {
       }]
     });
 
+    console.log('Saving adoption request...');
     await adoptionRequest.save();
+    console.log('Adoption request saved:', adoptionRequest._id);
 
-    // Gửi email xác nhận cho user
+    // Gửi email (không block nếu lỗi)
     if (req.user?.email) {
       try {
-        const petInfo = await Pet.findById(pet);
+        const petInfo = pet ? await Pet.findById(pet) : null;
         const subject = 'Xác nhận đơn nhận nuôi đã được gửi';
         const html = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -145,11 +171,13 @@ const createAdoptionRequest = async (req, res) => {
           </div>
         `;
         await sendEmail(req.user.email, subject, html);
+        console.log('Email sent successfully');
       } catch (emailError) {
-        console.error('Lỗi gửi email xác nhận:', emailError);
+        console.error('Email error (non-blocking):', emailError.message);
       }
     }
 
+    console.log('Sending success response');
     res.status(201).json({
       success: true,
       message: 'Đơn nhận nuôi đã được gửi thành công! Chúng tôi sẽ liên hệ với bạn sớm.',
@@ -157,10 +185,14 @@ const createAdoptionRequest = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating adoption request:', error);
+    console.error('=== ERROR IN CREATE ADOPTION ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi gửi đơn nhận nuôi'
+      message: 'Lỗi server khi gửi đơn nhận nuôi',
+      error: error.message
     });
   }
 };
@@ -180,11 +212,20 @@ const getAdoptionRequests = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const requests = await AdoptionRequest.find(query)
-      .populate('pet', 'name images species')
-      .populate('user', 'name email phone')
+      .populate({
+        path: 'pet',
+        select: 'name images species',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'user',
+        select: 'name email phone',
+        options: { strictPopulate: false }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
     const total = await AdoptionRequest.countDocuments(query);
 
@@ -203,7 +244,8 @@ const getAdoptionRequests = async (req, res) => {
     console.error('Error getting adoption requests:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi lấy danh sách đơn nhận nuôi'
+      message: 'Lỗi server khi lấy danh sách đơn nhận nuôi',
+      error: error.message
     });
   }
 };
@@ -328,6 +370,14 @@ const approveAdoptionRequest = async (req, res) => {
       }
     }
 
+    // Tạo notification
+    try {
+      const userId = request.user._id || request.user;
+      await notifyAdoptionApproved(userId, request._id, request.pet?.name || 'thú cưng');
+    } catch (notifError) {
+      console.error('Notification error (non-blocking):', notifError.message);
+    }
+
     res.json({
       success: true,
       message: 'Đơn nhận nuôi đã được duyệt thành công!',
@@ -388,6 +438,14 @@ const rejectAdoptionRequest = async (req, res) => {
       } catch (emailError) {
         console.error('Lỗi gửi email từ chối đơn nhận nuôi:', emailError.message || emailError);
       }
+    }
+
+    // Tạo notification
+    try {
+      const userId = request.user._id || request.user;
+      await notifyAdoptionRejected(userId, request._id, request.pet?.name || 'thú cưng', adminNote || '');
+    } catch (notifError) {
+      console.error('Notification error (non-blocking):', notifError.message);
     }
 
     res.json({
@@ -556,34 +614,51 @@ const getAdoptionStatistics = async (req, res) => {
     ]);
 
     // Top pets được nhận nuôi nhiều nhất
-    const topPets = await AdoptionRequest.aggregate([
-      {
-        $match: { status: 'approved' }
-      },
-      {
-        $group: {
-          _id: '$pet',
-          count: { $sum: 1 }
+    let topPets = [];
+    try {
+      topPets = await AdoptionRequest.aggregate([
+        {
+          $match: { 
+            status: 'approved',
+            pet: { $ne: null }
+          }
+        },
+        {
+          $group: {
+            _id: '$pet',
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'pets',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'petInfo'
+          }
+        },
+        {
+          $unwind: {
+            path: '$petInfo',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $match: {
+            petInfo: { $ne: null }
+          }
+        },
+        {
+          $sort: { count: -1 }
+        },
+        {
+          $limit: 5
         }
-      },
-      {
-        $lookup: {
-          from: 'pets',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'petInfo'
-        }
-      },
-      {
-        $unwind: '$petInfo'
-      },
-      {
-        $sort: { count: -1 }
-      },
-      {
-        $limit: 5
-      }
-    ]);
+      ]);
+    } catch (aggError) {
+      console.error('Error in topPets aggregation:', aggError);
+      topPets = [];
+    }
 
     res.json({
       success: true,

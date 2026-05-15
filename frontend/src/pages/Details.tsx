@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { getPetById } from "../api/petApi"
+import ReviewSection from "../components/ReviewSection"
 
 export default function PetDetail() {
   const navigate = useNavigate()
@@ -25,13 +26,10 @@ export default function PetDetail() {
     return <div className="text-center py-40">Không tìm thấy thú cưng</div>
   }
 
-  // const petImage = pet.image || (pet.images?.[0]) || "/images/Jack.png"
-  const petImage =
-  pet.image
-    ? `http://localhost:5000${pet.image}`
-    : pet.images?.[0]
-      ? `http://localhost:5000${pet.images[0]}`
-      : "/images/Jack.png";
+  const imagePath = pet.image || pet.images?.[0];
+  const petImage = imagePath
+    ? (imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`)
+    : "/images/Jack.png";
   const petId = pet._id || id
 
   return (
@@ -111,6 +109,9 @@ export default function PetDetail() {
         </div>
 
       </div>
+
+      {/* Review Section */}
+      {petId && <ReviewSection type="pet" id={petId} />}
 
     </div>
   );

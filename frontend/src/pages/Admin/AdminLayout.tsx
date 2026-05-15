@@ -16,7 +16,8 @@ import {
   DollarOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  StarOutlined
 } from "@ant-design/icons";
 import { useState } from "react";
 
@@ -29,10 +30,12 @@ export default function AdminLayout() {
     { path: "/admin", icon: <DashboardOutlined />, label: "Dashboard", color: "#6366f1" },
     { path: "/admin/adoptions", icon: <HeartOutlined />, label: "Nhận nuôi", color: "#ec4899" },
     { path: "/admin/volunteers", icon: <TeamOutlined />, label: "Tình nguyện", color: "#10b981" },
+    { path: "/admin/reviews", icon: <StarOutlined />, label: "Đánh giá", color: "#f59e0b" },
     { path: "/admin/post", icon: <FileTextOutlined />, label: "Bài viết", color: "#f59e0b" },
     { path: "/admin/user", icon: <UserOutlined />, label: "Người dùng", color: "#8b5cf6" },
-    { path: "/admin/category", icon: <AppstoreOutlined />, label: "Danh mục", color: "#06b6d4" },
-    { path: "/admin/pets", icon: <BugOutlined />, label: "Thú cưng", color: "#f97316" },
+    { path: "/admin/pet-categories", icon: <BugOutlined />, label: "DM Thú cưng", color: "#06b6d4" },
+    { path: "/admin/product-categories", icon: <AppstoreOutlined />, label: "DM Sản phẩm", color: "#14b8a6" },
+    { path: "/admin/pets", icon: <HeartOutlined />, label: "Thú cưng", color: "#f97316" },
     { path: "/admin/product", icon: <ShoppingOutlined />, label: "Sản phẩm", color: "#84cc16" },
     { path: "/admin/order", icon: <ShoppingCartOutlined />, label: "Đơn hàng", color: "#ef4444" },
     { path: "/admin/statistics", icon: <BarChartOutlined />, label: "Thống kê", color: "#6366f1" },

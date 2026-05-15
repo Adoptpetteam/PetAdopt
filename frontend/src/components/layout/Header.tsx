@@ -1,6 +1,8 @@
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { message, Badge } from "antd"
+import { apiClient } from "../../api/http"
+import NotificationBell from "../NotificationBell"
 
 function getCartCount(): number {
   try {
@@ -16,6 +18,14 @@ export default function Header() {
   const location = useLocation()
   const [user, setUser] = useState<any>(null)
   const [cartCount, setCartCount] = useState(0)
+  const [supporters, setSupporters] = useState<any[]>([])
+
+  // Fetch top supporters
+  useEffect(() => {
+    apiClient.get('/donate/top-supporters?limit=20')
+      .then(res => setSupporters(res.data.data || []))
+      .catch(() => setSupporters([]))
+  }, [])
 
   const readUser = () => {
     const stored = localStorage.getItem("user")
@@ -122,6 +132,10 @@ export default function Header() {
                 Đơn nhận nuôi
               </Link>
               <span className="opacity-50">|</span>
+              <Link to="/my-pets" className="hover:underline font-medium">
+                Thú cưng của tôi
+              </Link>
+              <span className="opacity-50">|</span>
               <button onClick={handleLogout} className="hover:underline cursor-pointer">Đăng xuất</button>
             </>
           ) : (
@@ -211,6 +225,9 @@ export default function Header() {
         {/* Icons */}
         <div className="flex items-center gap-6">
           
+          {/* Notification Bell - Only show when logged in */}
+          {user && <NotificationBell />}
+          
           {/* Cart */}
         <Link to="/cart">
         <Badge count={cartCount} size="small" color="#6272B6" offset={[-4, 4]}>
@@ -248,20 +265,41 @@ export default function Header() {
         <Link to="/products" className={navItemClass("/products")}>Sản phẩm</Link>
         <Link to="/orders" className={navItemClass("/orders")}>Đơn hàng</Link>
         {user && (
-          <Link to="/vaccination-schedule" className={navItemClass("/vaccination-schedule")}>Lịch tiêm phòng</Link>
+          <>
+            <Link to="/pet-care" className={navItemClass("/pet-care")}>Chăm sóc</Link>
+            <Link to="/vaccination-schedule" className={navItemClass("/vaccination-schedule")}>Lịch tiêm</Link>
+          </>
         )}
         <Link to="/contact" className={navItemClass("/contact")}>Liên hệ</Link>
       </nav>
 
       {/* ===== DONORS MARQUEE ===== */}
       <div className="bg-[#FFF5E1] text-[#D48B3B] h-10 flex items-center overflow-hidden border-t border-b border-[#F3E0C0]">
-        <div className="animate-marquee font-medium text-sm">
-          <span className="mx-10">❤️ Cảm ơn bạn Nguyễn Văn A đã ủng hộ 500,000đ</span>
-          <span className="mx-10">❤️ Cảm ơn bạn Trần Thị B đã ủng hộ 200,000đ</span>
-          <span className="mx-10">❤️ Cảm ơn bạn Lê Hoàng C đã ủng hộ 1,000,000đ</span>
-          <span className="mx-10">❤️ Cảm ơn bạn Phạm D đã ủng hộ 100,000đ</span>
-          <span className="mx-10">❤️ Cảm ơn bạn Vũ E đã ủng hộ 50,000đ</span>
-          <span className="mx-10">❤️ Cảm ơn bạn Đỗ Văn Kiên đã ủng hộ 2,000,000đ</span>
+        <div className="animate-marquee font-medium text-sm whitespace-nowrap">
+          {supporters.length > 0 ? (
+            <>
+              {/* Duplicate 2 lần để chạy liền mạch */}
+              {supporters.map((supporter, index) => (
+                <span key={`first-${index}`} className="mx-8">
+                  ❤️ Cảm ơn bạn {supporter.isAnonymous ? 'Ẩn danh' : supporter.name} đã ủng hộ {supporter.totalAmount.toLocaleString('vi-VN')}đ
+                </span>
+              ))}
+              {supporters.map((supporter, index) => (
+                <span key={`second-${index}`} className="mx-8">
+                  ❤️ Cảm ơn bạn {supporter.isAnonymous ? 'Ẩn danh' : supporter.name} đã ủng hộ {supporter.totalAmount.toLocaleString('vi-VN')}đ
+                </span>
+              ))}
+            </>
+          ) : (
+            <>
+              <span className="mx-8">❤️ Cảm ơn bạn Nguyễn Văn A đã ủng hộ 500,000đ</span>
+              <span className="mx-8">❤️ Cảm ơn bạn Trần Thị B đã ủng hộ 200,000đ</span>
+              <span className="mx-8">❤️ Cảm ơn bạn Lê Hoàng C đã ủng hộ 1,000,000đ</span>
+              <span className="mx-8">❤️ Cảm ơn bạn Nguyễn Văn A đã ủng hộ 500,000đ</span>
+              <span className="mx-8">❤️ Cảm ơn bạn Trần Thị B đã ủng hộ 200,000đ</span>
+              <span className="mx-8">❤️ Cảm ơn bạn Lê Hoàng C đã ủng hộ 1,000,000đ</span>
+            </>
+          )}
         </div>
       </div>
 

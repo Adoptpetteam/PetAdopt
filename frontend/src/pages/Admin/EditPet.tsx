@@ -1,83 +1,92 @@
-import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-
-import { useListCategory, useUpdatePet, usePetDetail } from "../../hook/huyHook";
-
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Card, Form, Input, Select, InputNumber, Checkbox, Button, Upload, message, Spin } from "antd";
+import { UploadOutlined, PlusOutlined } from "@ant-design/icons";
+import { apiClient } from "../../api/http";
 
 export default function EditPet() {
-  const navigate = useNavigate()
-  const { id } = useParams()
-  const { data: categories } = useListCategory({ resource: "category" });
-  const { data: pet, isLoading, error } = usePetDetail({ resource: "pets", id: id! });
-  const { mutate: updatePet } = useUpdatePet({ resource: "pets" });
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    }
-  }, [navigate]);
-
-  const [form, setForm] = useState({
-    name: "",
-    species: "",
-    breed: "",
-    age: 0,
-    gender: "unknown",
-    size: "medium",
-    color: "",
-    description: "",
-    healthStatus: "good",
-    vaccinated: false,
-    neutered: false,
-    adoptionFee: 0,
-    location: "",
-    categoryId: "",
-  })
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [form] = Form.useForm();
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [fileList, setFileList] = useState<any[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
 
   useEffect(() => {
-    if (pet) {
-      setForm({
-        name: pet.name || "",
-        species: pet.species || "",
-        breed: pet.breed || "",
-        age: pet.age || 0,
-        gender: pet.gender || "unknown",
-        size: pet.size || "medium",
-        color: pet.color || "",
-        description: pet.description || "",
-        healthStatus: pet.healthStatus || "good",
-        vaccinated: pet.vaccinated || false,
-        neutered: pet.neutered || false,
-        adoptionFee: pet.adoptionFee || 0,
-        location: pet.location || "",
-        categoryId: pet.categoryId || "",
-      })
+    fetchData();
+  }, [id]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [petRes, categoriesRes] = await Promise.all([
+        apiClient.get(`/pets/${id}`),
+        apiClient.get("/category?type=pet")
+      ]);
+
+      const pet = petRes.data.data;
+      setCategories(categoriesRes.data.data || []);
       setExistingImages(pet.images || []);
-      setNewImages([]);
+
+      form.setFieldsValue({
+        name: pet.name,
+        species: pet.species,
+        breed: pet.breed,
+        age: pet.age,
+        gender: pet.gender,
+        size: pet.size,
+        color: pet.color,
+        description: pet.description,
+        healthStatus: pet.healthStatus,
+        adoptionFee: pet.adoptionFee,
+        location: pet.location,
+        categoryId: typeof pet.categoryId === 'object' ? pet.categoryId?._id : pet.categoryId,
+        vaccinated: pet.vaccinated,
+        neutered: pet.neutered,
+        status: pet.status
+      });
+    } catch (error: any) {
+      message.error(error.response?.data?.message || "Không thể tải dữ liệu");
+      navigate("/admin/pets");
+    } finally {
+      setLoading(false);
     }
-  }, [pet])
+  };
 
-  const handleChange = (e: any) => {
-    const { name, value, type, checked } = e.target
+  const handleSubmit = async (values: any) => {
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      
+      // Append all form fields
+      Object.keys(values).forEach(key => {
+        if (values[key] !== undefined && values[key] !== null && key !== 'images') {
+          formData.append(key, values[key]);
+        }
+      });
 
-    setForm({
-      ...form,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : name === "age" || name === "adoptionFee"
-          ? Number(value)
-          : value,
-    })
-  }
+      // Append existing images
+      formData.append('existingImages', JSON.stringify(existingImages));
 
-  const handleImageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setNewImages(Array.from(files));
+      // Append new images
+      fileList.forEach(file => {
+        if (file.originFileObj) {
+          formData.append('images', file.originFileObj);
+        }
+      });
+
+      await apiClient.put(`/pets/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      message.success("Cập nhật thú cưng thành công!");
+      navigate("/admin/pets");
+    } catch (error: any) {
+      message.error(error.response?.data?.message || "Cập nhật thất bại");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -85,112 +94,151 @@ export default function EditPet() {
     setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const removeNewImage = (index: number) => {
-    setNewImages(prev => prev.filter((_, i) => i !== index));
+  const getImageUrl = (imagePath: string) => {
+    if (imagePath.startsWith('http')) return imagePath;
+    return `http://localhost:5000${imagePath}`;
   };
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
-
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      formData.append(key, String(value ?? ""));
-    });
-    formData.append('existingImages', JSON.stringify(existingImages));
-    newImages.forEach((file) => formData.append('images', file));
-
-    updatePet({ id: id!, values: formData }, {
-      onSuccess: () => navigate("/admin/pets"),
-      onError: (error: any) => {
-        console.error("Error updating pet:", error);
-        alert("Lỗi cập nhật pet: " + error.message);
-      }
-    });
+  const uploadProps = {
+    fileList,
+    onChange: ({ fileList: newFileList }: any) => setFileList(newFileList),
+    beforeUpload: () => false,
+    listType: "picture-card" as const,
+    multiple: true,
   };
 
-  if (isLoading) {
-    return <p className="text-center mt-10">Đang tải dữ liệu...</p>;
-  }
-
-  if (error) {
-    return <p className="text-center mt-10 text-red-500">Lỗi tải dữ liệu: {error.message}</p>;
-  }
-
-  if (!pet) {
-    return <p className="text-center mt-10">Không tìm thấy thú cưng</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-150 mx-auto py-20 px-6">
-      <h1 className="text-3xl font-bold text-center text-[#6272B6] mb-10">
-        Chỉnh sửa thú cưng
-      </h1>
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 min-h-screen">
+      <Card className="max-w-3xl mx-auto border-0 shadow-lg rounded-2xl">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 mb-6">
+          ✏️ Chỉnh sửa thú cưng
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-xl shadow">
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="name"
+              label="Tên thú cưng"
+              rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+            >
+              <Input size="large" placeholder="Ví dụ: Lucky" />
+            </Form.Item>
 
-        <input name="name" placeholder="Tên" value={form.name} onChange={handleChange} className="input" required />
-        
-        <select name="species" value={form.species} onChange={handleChange} className="input" required>
-          <option value="">-- Chọn loài --</option>
-          <option value="dog">Chó</option>
-          <option value="cat">Mèo</option>
-          <option value="bird">Chim</option>
-          <option value="rabbit">Thỏ</option>
-          <option value="hamster">Hamster</option>
-          <option value="other">Khác</option>
-        </select>
+            <Form.Item
+              name="species"
+              label="Loài"
+              rules={[{ required: true, message: "Vui lòng chọn loài" }]}
+            >
+              <Select size="large" placeholder="Chọn loài">
+                <Select.Option value="dog">🐕 Chó</Select.Option>
+                <Select.Option value="cat">🐱 Mèo</Select.Option>
+                <Select.Option value="bird">🐦 Chim</Select.Option>
+                <Select.Option value="rabbit">🐰 Thỏ</Select.Option>
+                <Select.Option value="hamster">🐹 Hamster</Select.Option>
+                <Select.Option value="other">🐾 Khác</Select.Option>
+              </Select>
+            </Form.Item>
 
-        <select name="categoryId" value={form.categoryId} onChange={handleChange} className="input">
-          <option value="">-- Chọn danh mục --</option>
-          {categories?.map((c: any) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        
-        <input name="breed" placeholder="Giống" value={form.breed} onChange={handleChange} className="input" />
-        
-        <input name="age" type="number" placeholder="Tuổi" value={form.age} onChange={handleChange} className="input" />
-        
-        <select name="gender" value={form.gender} onChange={handleChange} className="input">
-          <option value="unknown">-- Giới tính --</option>
-          <option value="male">Đực</option>
-          <option value="female">Cái</option>
-        </select>
-        
-        <select name="size" value={form.size} onChange={handleChange} className="input">
-          <option value="small">Nhỏ</option>
-          <option value="medium">Trung bình</option>
-          <option value="large">Lớn</option>
-        </select>
-        
-        <div className="space-y-4">
-          <label className="block text-sm font-medium">Hình ảnh</label>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageInput}
-            className="input"
-          />
+            <Form.Item name="categoryId" label="Danh mục">
+              <Select size="large" placeholder="Chọn danh mục" allowClear>
+                {categories.map((cat) => (
+                  <Select.Option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
 
+            <Form.Item name="breed" label="Giống">
+              <Input size="large" placeholder="Ví dụ: Golden Retriever" />
+            </Form.Item>
+
+            <Form.Item name="age" label="Tuổi">
+              <InputNumber size="large" min={0} className="w-full" placeholder="0" />
+            </Form.Item>
+
+            <Form.Item name="gender" label="Giới tính">
+              <Select size="large">
+                <Select.Option value="male">♂ Đực</Select.Option>
+                <Select.Option value="female">♀ Cái</Select.Option>
+                <Select.Option value="unknown">❓ Không rõ</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="size" label="Kích thước">
+              <Select size="large">
+                <Select.Option value="small">Nhỏ</Select.Option>
+                <Select.Option value="medium">Trung bình</Select.Option>
+                <Select.Option value="large">Lớn</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="color" label="Màu sắc">
+              <Input size="large" placeholder="Ví dụ: Vàng" />
+            </Form.Item>
+
+            <Form.Item name="healthStatus" label="Tình trạng sức khỏe">
+              <Select size="large">
+                <Select.Option value="excellent">Xuất sắc</Select.Option>
+                <Select.Option value="good">Tốt</Select.Option>
+                <Select.Option value="fair">Bình thường</Select.Option>
+                <Select.Option value="needs_care">Cần chăm sóc</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="adoptionFee" label="Phí nhận nuôi (VNĐ)">
+              <InputNumber size="large" min={0} className="w-full" placeholder="0" />
+            </Form.Item>
+
+            <Form.Item name="location" label="Địa điểm">
+              <Input size="large" placeholder="Ví dụ: Hà Nội" />
+            </Form.Item>
+
+            <Form.Item name="status" label="Trạng thái">
+              <Select size="large">
+                <Select.Option value="available">Sẵn sàng nhận nuôi</Select.Option>
+                <Select.Option value="pending">Chờ duyệt</Select.Option>
+                <Select.Option value="reserved">Đã đặt</Select.Option>
+                <Select.Option value="adopted">Đã nhận nuôi</Select.Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item name="description" label="Mô tả">
+            <Input.TextArea rows={4} placeholder="Mô tả về thú cưng..." />
+          </Form.Item>
+
+          {/* Existing Images */}
           {existingImages.length > 0 && (
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Ảnh hiện tại</p>
-              <div className="flex flex-wrap gap-3">
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Ảnh hiện tại</label>
+              <div className="flex flex-wrap gap-2">
                 {existingImages.map((img, index) => (
                   <div key={index} className="relative">
                     <img
-                      // src={`http://localhost:5000/uploads/${img}`}
-                      src={`http://localhost:5000${img}`}
+                      src={getImageUrl(img)}
                       alt={`Existing ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded"
+                      className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=Error";
+                      }}
                     />
                     <button
                       type="button"
                       onClick={() => removeExistingImage(index)}
-                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 text-xs"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
                     >
                       ×
                     </button>
@@ -200,67 +248,47 @@ export default function EditPet() {
             </div>
           )}
 
-          {newImages.length > 0 && (
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Ảnh mới</p>
-              <div className="flex flex-wrap gap-3">
-                {newImages.map((file, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`New ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeNewImage(index)}
-                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 text-xs"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+          {/* New Images Upload */}
+          <Form.Item label="Thêm ảnh mới">
+            <Upload {...uploadProps}>
+              <div>
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>Upload</div>
               </div>
-            </div>
-          )}
-        </div>
-        
-        <input name="color" placeholder="Màu sắc" value={form.color} onChange={handleChange} className="input" />
-        
-        <select name="healthStatus" value={form.healthStatus} onChange={handleChange} className="input">
-          <option value="excellent">Xuất sắc</option>
-          <option value="good">Tốt</option>
-          <option value="fair">Bình thường</option>
-          <option value="needs_care">Cần chăm sóc</option>
-        </select>
-        
-        <input name="adoptionFee" type="number" placeholder="Phí nhận nuôi" value={form.adoptionFee} onChange={handleChange} className="input" />
-        
-        <input name="location" placeholder="Địa điểm" value={form.location} onChange={handleChange} className="input" />
-        
-        <textarea
-        name="description"
-        placeholder="Mô tả thú cưng"
-        value={form.description}
-        onChange={handleChange}
-        className="w-full h-24 bg-[#DDEDFF] rounded-2xl px-4 py-2 outline-none"
-        />
+            </Upload>
+          </Form.Item>
 
-        {/* checkbox */}
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="vaccinated" checked={form.vaccinated} onChange={handleChange} />
-          Đã tiêm phòng
-        </label>
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item name="vaccinated" valuePropName="checked">
+              <Checkbox>💉 Đã tiêm phòng</Checkbox>
+            </Form.Item>
 
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="neutered" checked={form.neutered} onChange={handleChange} />
-          Đã triệt sản
-        </label>
+            <Form.Item name="neutered" valuePropName="checked">
+              <Checkbox>✂️ Đã triệt sản</Checkbox>
+            </Form.Item>
+          </div>
 
-        <button className="w-full bg-[#6272B6] text-white py-3 rounded-full">
-          Cập nhật
-        </button>
-      </form>
+          <div className="flex gap-4 mt-6">
+            <Button
+              type="default"
+              size="large"
+              onClick={() => navigate("/admin/pets")}
+              className="flex-1"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              loading={submitting}
+              className="flex-1 bg-gradient-to-r from-[#6272B6] to-purple-600 border-0"
+            >
+              Cập nhật
+            </Button>
+          </div>
+        </Form>
+      </Card>
     </div>
-  )
+  );
 }

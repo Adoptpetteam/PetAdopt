@@ -4,6 +4,8 @@ const authenticate = (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
     
+    console.log('Auth Header:', authHeader ? 'Present' : 'Missing');
+    
     if (!authHeader) {
       return res.status(401).json({ 
         success: false,
@@ -12,10 +14,15 @@ const authenticate = (req, res, next) => {
     }
     const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    console.log('Decoded user:', decoded);
+    
     req.user = decoded;
     next();
 
   } catch (error) {
+    console.error('Auth error:', error.message);
+    
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 
         success: false,

@@ -1,0 +1,67 @@
+.marquee-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.marquee-content {
+  display: flex;
+  gap: 1.5rem;
+  animation: marquee 60s linear infinite;
+  width: fit-content;
+}
+
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+
+.supporter-card {
+  min-width: 400px;
+  max-width: 400px;
+  border-radius: 1rem;
+  padding: 1rem;
+  flex-shrink: 0;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .supporter-card {
+    min-width: 320px;
+    max-width: 320px;
+  }
+  
+  .marquee-content {
+    animation: marquee 40s linear infinite;
+  }
+}
+
+/* Gradient overlay để tạo hiệu ứng fade ở 2 bên */
+.marquee-container::before,
+.marquee-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.marquee-container::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(249, 250, 251, 1), rgba(249, 250, 251, 0));
+}
+
+.marquee-container::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(249, 250, 251, 1), rgba(249, 250, 251, 0));
+}

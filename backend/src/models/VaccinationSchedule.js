@@ -28,7 +28,7 @@ const vaccinationScheduleSchema = new mongoose.Schema({
   },
   ownerPhone: {
     type: String,
-    required: true
+    default: ''
   },
   
   // Thông tin vaccine

@@ -11,6 +11,7 @@ import {
   UndoOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
+import ReviewSection from "../components/ReviewSection";
 
 interface Product {
   _id: string;
@@ -252,6 +253,12 @@ export default function ProductDetail() {
           </div>
 
         </div>
+
+        {/* Review Section */}
+        <div className="mt-12">
+          <ReviewSection type="product" id={product._id} />
+        </div>
+
       </div>
     </div>
   );

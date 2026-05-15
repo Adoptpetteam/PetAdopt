@@ -9,6 +9,20 @@ const productSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     category: { type: String, trim: true },
     brand: { type: String, trim: true },
+    
+    // Rating & Reviews
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
+    },
+    
+    totalReviews: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
   },
   { timestamps: true }
 );

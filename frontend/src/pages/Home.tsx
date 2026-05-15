@@ -4,10 +4,12 @@ import pic2 from "../assets/images/pic2.png"
 import pic3 from "../assets/images/pic3.png"
 import PetCard from "../components/PetCard"
 import { listPets } from "../api/petApi"
+import { apiClient } from "../api/http"
 import { useEffect, useState, useRef } from "react"
 
 export default function Home() {
   const [pets, setPets] = useState<any[]>([])
+  const [supporters, setSupporters] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -18,6 +20,11 @@ export default function Home() {
     listPets({ limit: 8 })
       .then(res => setPets(res.data || []))
       .catch(() => setPets([]))
+    
+    // Fetch top supporters
+    apiClient.get('/donate/top-supporters?limit=20')
+      .then(res => setSupporters(res.data.data || []))
+      .catch(() => setSupporters([]))
   }, [])
 
   // Hàm dọn dẹp timeout cũ tránh chạy loạn nhịp
@@ -226,6 +233,71 @@ export default function Home() {
                 Nhận nuôi ngay
               </button>
             </a>
+          </div>
+        </section>
+
+        {/* ===== STATISTICS & ACHIEVEMENTS SECTION ===== */}
+        <section className="py-20 bg-gradient-to-br from-[#6272B6] via-purple-600 to-indigo-700 -mx-[130px] px-[130px] relative overflow-hidden">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-48 translate-x-48"></div>
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/5 rounded-full translate-y-36 -translate-x-36"></div>
+          
+          <div className="relative z-10">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-white mb-4">
+                🎉 Thành Tựu Của Chúng Tôi
+              </h2>
+              <p className="text-white/80 text-lg">
+                Cảm ơn sự đồng hành của cộng đồng yêu thú cưng
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              {/* Stat 1 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
+                <div className="text-5xl mb-4">🐾</div>
+                <div className="text-5xl font-bold text-white mb-2">
+                  {supporters.reduce((sum, s) => sum + s.donationCount, 0)}
+                </div>
+                <div className="text-white/80 text-lg">Lượt ủng hộ</div>
+              </div>
+
+              {/* Stat 2 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
+                <div className="text-5xl mb-4">💰</div>
+                <div className="text-5xl font-bold text-white mb-2">
+                  {(supporters.reduce((sum, s) => sum + s.totalAmount, 0) / 1000000).toFixed(1)}M
+                </div>
+                <div className="text-white/80 text-lg">Tổng ủng hộ (VNĐ)</div>
+              </div>
+
+              {/* Stat 3 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
+                <div className="text-5xl mb-4">❤️</div>
+                <div className="text-5xl font-bold text-white mb-2">
+                  {supporters.length}
+                </div>
+                <div className="text-white/80 text-lg">Người ủng hộ</div>
+              </div>
+
+              {/* Stat 4 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 border border-white/20">
+                <div className="text-5xl mb-4">🏆</div>
+                <div className="text-5xl font-bold text-white mb-2">
+                  {pets.length}+
+                </div>
+                <div className="text-white/80 text-lg">Thú cưng được cứu</div>
+              </div>
+            </div>
+
+            {/* Call to action */}
+            <div className="text-center mt-16">
+              <a href="/donate">
+                <button className="bg-white text-[#6272B6] px-12 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all duration-300 shadow-2xl hover:shadow-white/50 hover:scale-105">
+                  💝 Ủng hộ ngay
+                </button>
+              </a>
+            </div>
           </div>
         </section>
       </div>
