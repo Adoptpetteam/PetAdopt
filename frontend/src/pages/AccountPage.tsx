@@ -9,6 +9,7 @@ import {
   type ProfileUser,
 } from "../api/authApi";
 
+// Account page: profile + change password
 function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { message?: string } | undefined;
@@ -67,6 +68,7 @@ export default function AccountPage() {
       const res = await updateProfile({ name: name.trim() });
       message.success(res.message);
       setProfile((p) => (p ? { ...p, name: res.user.name } : null));
+
       const prev = localStorage.getItem("user");
       if (prev) {
         try {
@@ -75,7 +77,7 @@ export default function AccountPage() {
           localStorage.setItem("user", JSON.stringify(u));
           window.dispatchEvent(new Event("auth-change"));
         } catch {
-          /* ignore */
+          // ignore
         }
       }
     } catch (err) {
@@ -87,24 +89,30 @@ export default function AccountPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!oldPassword || !newPassword) {
       message.warning("Nhập đủ mật khẩu cũ và mật khẩu mới.");
       return;
     }
+
     if (newPassword.length < 6) {
       message.warning("Mật khẩu mới ít nhất 6 ký tự.");
       return;
     }
+
     if (newPassword !== confirmPassword) {
       message.warning("Mật khẩu mới nhập lại không khớp.");
       return;
     }
+
     setSavingPwd(true);
+
     try {
       const res = await changePassword({
         oldPassword,
         newPassword,
       });
+
       message.success(res.message);
       setOldPassword("");
       setNewPassword("");
@@ -119,7 +127,7 @@ export default function AccountPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white px-6 py-20 text-center text-gray-600">
-        Đang tải…
+        Đang tải dữ liệu...
       </div>
     );
   }
@@ -129,11 +137,12 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-6 py-12 sm:px-10 lg:px-[130px]">
+    <div className="min-h-screen bg-white px-6 py-14 sm:px-10 lg:px-[130px]">
       <div className="mx-auto max-w-[640px]">
         <h1 className="mb-2 text-2xl font-bold text-[#6272B6]">
-          Tài khoản của tôi
+          Thông tin tài khoản
         </h1>
+
         <p className="mb-8 text-sm text-gray-600">
           <Link to="/" className="text-[#6272B6] hover:underline">
             ← Về trang chủ
@@ -142,14 +151,17 @@ export default function AccountPage() {
 
         <section className="mb-10 rounded-2xl border border-gray-100 bg-[#F8FAFC] p-6">
           <h2 className="mb-4 text-lg font-semibold text-[#6272B6]">
-            Thông tin
+            Thông tin cá nhân
           </h2>
+
           <p className="mb-1 text-sm text-gray-600">
             Email: <strong>{profile.email}</strong>
           </p>
+
           <p className="mb-1 text-sm text-gray-600">
             Vai trò: <strong>{profile.role}</strong>
           </p>
+
           <p className="mb-6 text-sm text-gray-600">
             Ngày tạo:{" "}
             <strong>
@@ -158,7 +170,10 @@ export default function AccountPage() {
           </p>
 
           <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
-            <label className="text-sm font-medium text-[#6272B6]">Họ tên</label>
+            <label className="text-sm font-medium text-[#6272B6]">
+              Họ tên
+            </label>
+
             <input
               type="text"
               value={name}
@@ -166,24 +181,27 @@ export default function AccountPage() {
               className={inputClass}
               autoComplete="name"
             />
+
             <button
               type="submit"
               disabled={savingProfile}
               className="rounded-full bg-[#6272B6] py-3 font-medium text-white transition hover:bg-[#4e5fa8] disabled:opacity-60"
             >
-              {savingProfile ? "Đang lưu…" : "Lưu thông tin"}
+              {savingProfile ? "Đang lưu..." : "Cập nhật thông tin"}
             </button>
           </form>
         </section>
 
         <section className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-6">
           <h2 className="mb-4 text-lg font-semibold text-[#6272B6]">
-            Đổi mật khẩu
+            Cập nhật mật khẩu
           </h2>
+
           <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
             <label className="text-sm font-medium text-[#6272B6]">
               Mật khẩu hiện tại
             </label>
+
             <input
               type="password"
               value={oldPassword}
@@ -191,9 +209,11 @@ export default function AccountPage() {
               className={inputClass}
               autoComplete="current-password"
             />
+
             <label className="text-sm font-medium text-[#6272B6]">
               Mật khẩu mới
             </label>
+
             <input
               type="password"
               value={newPassword}
@@ -201,9 +221,11 @@ export default function AccountPage() {
               className={inputClass}
               autoComplete="new-password"
             />
+
             <label className="text-sm font-medium text-[#6272B6]">
               Nhập lại mật khẩu mới
             </label>
+
             <input
               type="password"
               value={confirmPassword}
@@ -211,14 +233,16 @@ export default function AccountPage() {
               className={inputClass}
               autoComplete="new-password"
             />
+
             <button
               type="submit"
               disabled={savingPwd}
               className="rounded-full bg-[#6272B6] py-3 font-medium text-white transition hover:bg-[#4e5fa8] disabled:opacity-60"
             >
-              {savingPwd ? "Đang đổi…" : "Đổi mật khẩu"}
+              {savingPwd ? "Đang cập nhật..." : "Đổi mật khẩu"}
             </button>
           </form>
+
           <p className="mt-4 text-xs text-gray-500">
             Quên mật khẩu?{" "}
             <Link
