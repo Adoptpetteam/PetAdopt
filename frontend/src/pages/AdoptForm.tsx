@@ -86,7 +86,6 @@ export default function AdoptForm() {
       navigate("/login");
       return;
     }
-
     setSubmitting(true);
     try {
       await createAdoptionRequest({
@@ -113,13 +112,12 @@ export default function AdoptForm() {
       setSubmitting(false);
     }
   };
-
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-12 h-12 border-4 border-[#6272B6] border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Đang tải thông tin thú cưng...</p>
+          <p className="text-gray-500">Đang tải thông tin của thú cưng...</p>
         </div>
       </div>
     );
@@ -157,7 +155,7 @@ export default function AdoptForm() {
               </label>
               <Input
                 size="large"
-                placeholder="Nguyễn Văn A"
+                placeholder="Nguyễn Văn huy"
                 value={form.fullName}
                 onChange={(e) => handleChange('fullName', e.target.value)}
                 className="rounded-xl border-2 border-gray-200 hover:border-[#6272B6] focus:border-[#6272B6]"
@@ -209,9 +207,9 @@ export default function AdoptForm() {
                 onChange={(value) => handleChange('housingType', value)}
                 className="w-full"
               >
-                <Option value="house">🏠 Nhà riêng</Option>
-                <Option value="apartment">🏢 Căn hộ chung cư</Option>
-                <Option value="dorm">🏫 Ký túc xá</Option>
+                <Option value="house"> Nhà riêng</Option>
+                <Option value="apartment"> Căn hộ chung cư</Option>
+                <Option value="dorm"> Ký túc xá</Option>
               </Select>
             </div>
 
