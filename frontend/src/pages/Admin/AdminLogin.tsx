@@ -72,7 +72,7 @@ export default function AdminLogin() {
       <div className="bg-white p-10 rounded-lg shadow-lg w-[450px]">
         <div className="flex flex-col items-center mb-8">
           <h2 className="text-2xl font-bold text-[#6272B6]">ADMIN LOGIN</h2>
-          <p className="text-gray-500 text-sm mt-2">Dành riêng cho Quản trị viên</p>
+          <p className="text-gray-500 text-sm mt-2">Dành riêng cho Quản trị viên.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
