@@ -285,34 +285,6 @@ export default function Header() {
 
       {/* ===== DONORS MARQUEE ===== */}
       <div className="bg-[#FFF5E1] text-[#D48B3B] h-10 flex items-center overflow-hidden border-t border-b border-[#F3E0C0]">
-<<<<<<< HEAD
-        <div className="animate-marquee font-medium text-sm whitespace-nowrap">
-          {supporters.length > 0 ? (
-            <>
-              {/* Duplicate 2 lần để chạy liền mạch */}
-              {supporters.map((supporter, index) => (
-                <span key={`first-${index}`} className="mx-8">
-                  ❤️ Cảm ơn bạn {supporter.isAnonymous ? 'Ẩn danh' : supporter.name} đã ủng hộ {supporter.totalAmount.toLocaleString('vi-VN')}đ
-                </span>
-              ))}
-              {supporters.map((supporter, index) => (
-                <span key={`second-${index}`} className="mx-8">
-                  ❤️ Cảm ơn bạn {supporter.isAnonymous ? 'Ẩn danh' : supporter.name} đã ủng hộ {supporter.totalAmount.toLocaleString('vi-VN')}đ
-                </span>
-              ))}
-            </>
-          ) : (
-            <>
-              <span className="mx-8">❤️ Cảm ơn bạn Nguyễn Văn A đã ủng hộ 500,000đ</span>
-              <span className="mx-8">❤️ Cảm ơn bạn Trần Thị B đã ủng hộ 200,000đ</span>
-              <span className="mx-8">❤️ Cảm ơn bạn Lê Hoàng C đã ủng hộ 1,000,000đ</span>
-              <span className="mx-8">❤️ Cảm ơn bạn Nguyễn Văn A đã ủng hộ 500,000đ</span>
-              <span className="mx-8">❤️ Cảm ơn bạn Trần Thị B đã ủng hộ 200,000đ</span>
-              <span className="mx-8">❤️ Cảm ơn bạn Lê Hoàng C đã ủng hộ 1,000,000đ</span>
-            </>
-          )}
-        </div>
-=======
         {supporters.length > 0 ? (
           <div
             className="flex whitespace-nowrap font-medium text-sm"
@@ -338,7 +310,6 @@ export default function Header() {
             100% { transform: translateX(-50%); }
           }
         `}</style>
->>>>>>> 18e2d00a5209c25c7802923905918c9d4ecb2989
       </div>
 
     </header>
