@@ -345,18 +345,32 @@ export default function Orders() {
     // Tìm order để kiểm tra
     const order = orders.find(o => o._id === orderId);
     
-    // Nếu đơn đã thanh toán VNPay, mở form hoàn tiền thay vì hủy trực tiếp
-    if (order && order.paymentMethod === 'vnpay' && ['paid', 'confirmed'].includes(order.status)) {
+    // Nếu đơn đã thanh toán VNPay ở trạng thái pending/confirmed/paid
+    if (order && order.paymentMethod === 'vnpay' && ['pending', 'confirmed', 'paid'].includes(order.status)) {
       Modal.confirm({
         title: "Hủy đơn hàng đã thanh toán",
         icon: <DollarOutlined style={{ color: "#1890ff" }} />,
-        content: "Đơn hàng này đã thanh toán qua VNPay. Bạn cần cung cấp thông tin tài khoản để nhận hoàn tiền.",
-        okText: "Tiếp tục",
+        content: (
+          <div>
+            <p>Đơn hàng này đã thanh toán qua VNPay.</p>
+            <p className="mt-2 text-gray-600">
+              Yêu cầu hủy đơn sẽ được gửi đến admin để xét duyệt. 
+              Sau khi được chấp thuận, bạn sẽ nhận được thông báo và form để điền thông tin tài khoản nhận hoàn tiền.
+            </p>
+          </div>
+        ),
+        okText: "Gửi yêu cầu hủy",
         cancelText: "Hủy bỏ",
-        onOk: () => {
-          // Mở modal hoàn tiền
-          setSelectedOrderForAction(order);
-          setRefundModalVisible(true);
+        onOk: async () => {
+          try {
+            // Gửi yêu cầu hủy đơn - chuyển sang refund_pending
+            await apiClient.put(`/orders/me/${orderId}/request-cancel`);
+            message.success("Đã gửi yêu cầu hủy đơn. Vui lòng chờ admin xét duyệt.");
+            loadOrders();
+            if (selected?._id === orderId) setSelected(null);
+          } catch (e: any) {
+            message.error(e?.response?.data?.message || "Không thể gửi yêu cầu hủy đơn");
+          }
         },
       });
       return;

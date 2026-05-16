@@ -583,6 +583,65 @@ exports.updateOrderStatus = async (req, res) => {
 };
 
 // ===============================
+// PUT /api/orders/me/:id/request-cancel (user yêu cầu hủy đơn VNPay)
+// Chuyển sang refund_pending để admin xét duyệt
+// ===============================
+exports.requestCancelOrder = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const order = await Order.findOne({ _id: req.params.id, user: userId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Chỉ cho phép yêu cầu hủy đơn VNPay đã thanh toán
+    if (order.paymentMethod !== 'vnpay') {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ áp dụng cho đơn hàng thanh toán qua VNPay',
+      });
+    }
+
+    // Chỉ cho hủy khi ở trạng thái pending, confirmed, paid
+    const cancellableStatuses = ['pending', 'confirmed', 'paid'];
+    if (!cancellableStatuses.includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể hủy đơn hàng ở trạng thái ${order.status}`,
+      });
+    }
+
+    // Chuyển sang refund_pending
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      {
+        status: 'refund_pending',
+        $push: { 
+          statusHistory: { 
+            status: 'refund_pending', 
+            note: 'Khách hàng yêu cầu hủy đơn và hoàn tiền' 
+          } 
+        },
+      },
+      { new: true }
+    ).populate('user', 'name email');
+
+    console.log('[Order] Refund request created:', updated._id);
+
+    res.json({
+      success: true,
+      message: 'Đã gửi yêu cầu hủy đơn. Vui lòng chờ admin xét duyệt.',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('[Order] Request cancel error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
+// ===============================
 // PUT /api/orders/:id/cancel (user tự hủy)
 // Chỉ hủy được khi đơn còn pending hoặc confirmed
 // ===============================

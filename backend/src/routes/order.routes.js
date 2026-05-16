@@ -9,6 +9,7 @@ const orderController = require('../controllers/orderController');
 router.post('/checkout', authenticate, orderController.checkoutOrder);
 router.get('/me', authenticate, orderController.listMyOrders);
 router.get('/me/:id', authenticate, orderController.getMyOrderById);
+router.put('/me/:id/request-cancel', authenticate, orderController.requestCancelOrder);
 router.put('/me/:id/cancel', authenticate, orderController.cancelMyOrder);
 
 // User refund/return/exchange routes
