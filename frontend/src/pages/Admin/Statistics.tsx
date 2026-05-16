@@ -120,7 +120,7 @@ export default function Statistics() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-3xl font-bold text-[#6272B6]">Thống kê</h1>
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">Thống kê</h1>
         <div className="flex items-center gap-3">
           {lastUpdated && (
             <span className="text-xs text-gray-400">
