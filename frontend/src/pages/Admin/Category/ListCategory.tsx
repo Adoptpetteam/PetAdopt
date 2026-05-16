@@ -265,8 +265,8 @@ const ListCategory: React.FC = () => {
     <div className="p-6 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 min-h-screen">
       <Card className="border-0 shadow-lg rounded-2xl">
         <Typography.Title level={3} className="!mb-6">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600">
-            📋 Quản lý Danh mục
+          <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
+            Quản lý Danh mục
           </span>
         </Typography.Title>
         
