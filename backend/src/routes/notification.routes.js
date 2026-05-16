@@ -24,6 +24,9 @@ router.put('/read-all', notificationController.markAllAsRead);
 // PUT /api/notifications/:id/read - Đánh dấu 1 thông báo đã đọc
 router.put('/:id/read', notificationController.markAsRead);
 
+// POST /api/notifications/:id/refund-info - Cập nhật thông tin hoàn tiền
+router.post('/:id/refund-info', notificationController.updateRefundInfo);
+
 // DELETE /api/notifications/clear-all - Xóa tất cả thông báo đã đọc
 router.delete('/clear-all', notificationController.clearAllRead);
 

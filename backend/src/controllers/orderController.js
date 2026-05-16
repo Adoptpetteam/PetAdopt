@@ -1567,3 +1567,127 @@ exports.updateReturnStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+
+// ===============================
+// POST /api/orders/:id/admin-cancel
+// Admin hủy đơn với lý do
+// ===============================
+exports.adminCancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập lý do hủy đơn'
+      });
+    }
+
+    const order = await Order.findById(id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn hàng'
+      });
+    }
+
+    // Không cho hủy đơn đã giao hoặc đã hủy
+    const currentStatus = order.orderStatus || order.status;
+    if (currentStatus === 'delivered' || currentStatus === 'completed' || currentStatus === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể hủy đơn hàng này'
+      });
+    }
+
+    // Hoàn kho
+    for (const item of order.items) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.quantity += item.quantity;
+        await product.save();
+      }
+    }
+
+    // Hoàn voucher nếu đã được tính
+    const voucherWasUsed = ['confirmed', 'paid', 'shipping', 'completed'].includes(order.status) ||
+                           ['confirmed', 'shipping', 'delivered'].includes(order.orderStatus);
+    if (voucherWasUsed) {
+      await releaseVoucher(order);
+    }
+
+    // Cập nhật trạng thái đơn hàng
+    order.orderStatus = 'cancelled';
+    order.status = 'cancelled';
+    
+    // Kiểm tra xem đơn đã thanh toán VNPay chưa
+    const isVNPayPaid = order.paymentMethod === 'vnpay' && 
+                        (order.paymentStatus === 'paid' || order.status === 'paid');
+    
+    if (isVNPayPaid) {
+      order.paymentStatus = 'refunding';
+    }
+    
+    await order.save();
+
+    // Tạo notification cho khách hàng
+    const Notification = require('../models/Notification');
+    const userId = order.user._id || order.user;
+    const orderCode = order._id.toString().slice(-8).toUpperCase();
+
+    if (isVNPayPaid) {
+      // Trường hợp 1: VNPay - Cần form hoàn tiền
+      await Notification.create({
+        user: userId,
+        type: 'order_refund_required',
+        title: `Đơn hàng #${orderCode} đã bị hủy - Cần cập nhật thông tin hoàn tiền`,
+        message: `Lý do hủy: ${reason}\n\nĐơn hàng của bạn đã được thanh toán qua VNPay. Vui lòng cập nhật thông tin ngân hàng để chúng tôi hoàn tiền cho bạn.`,
+        order: order._id,
+        metadata: {
+          reason,
+          orderCode,
+          amount: order.totals.total,
+          paymentMethod: 'vnpay',
+          requiresRefundInfo: true
+        },
+        actionUrl: `/notifications`,
+        actionLabel: 'Cập nhật thông tin hoàn tiền'
+      });
+
+      console.log('[Admin Cancel] VNPay order cancelled, refund notification created');
+    } else {
+      // Trường hợp 2: COD - Chỉ thông báo lý do hủy
+      await Notification.create({
+        user: userId,
+        type: 'order_cancelled',
+        title: `Đơn hàng #${orderCode} đã bị hủy`,
+        message: `Lý do hủy: ${reason}\n\nĐơn hàng của bạn đã được hủy bởi quản trị viên. Nếu có thắc mắc, vui lòng liên hệ với chúng tôi.`,
+        order: order._id,
+        metadata: {
+          reason,
+          orderCode,
+          paymentMethod: 'cod'
+        },
+        actionUrl: `/orders`,
+        actionLabel: 'Xem đơn hàng'
+      });
+
+      console.log('[Admin Cancel] COD order cancelled, notification created');
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã hủy đơn hàng và gửi thông báo cho khách hàng',
+      data: order
+    });
+
+  } catch (error) {
+    console.error('[Admin Cancel Order] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi server'
+    });
+  }
+};

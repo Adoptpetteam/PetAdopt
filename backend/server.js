@@ -135,6 +135,10 @@ app.use('/api/health-records', healthRecordRoutes);
 
 app.use('/api/refunds', refundRoutes);
 
+// Upload route
+const uploadRoutes = require('./src/routes/upload.routes');
+app.use('/api/upload', uploadRoutes);
+
 // ===============================
 // HEALTH CHECK
 // ===============================

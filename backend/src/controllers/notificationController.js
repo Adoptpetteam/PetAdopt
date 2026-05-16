@@ -130,3 +130,66 @@ exports.createNotification = async ({ userId, type, title, message, orderId, ref
     return null;
   }
 };
+
+
+// ===============================
+// POST /api/notifications/:id/refund-info
+// Cập nhật thông tin hoàn tiền từ khách hàng
+// ===============================
+exports.updateRefundInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bankName, accountNumber, accountHolder, qrImage } = req.body;
+    const userId = req.user?.userId || req.user?.id;
+
+    const notification = await Notification.findOne({ _id: id, user: userId });
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông báo'
+      });
+    }
+
+    // Cập nhật metadata với thông tin ngân hàng
+    notification.metadata = {
+      ...notification.metadata,
+      bankName,
+      accountNumber,
+      accountHolder,
+      qrImage,
+      refundInfoUpdated: true,
+      refundInfoUpdatedAt: new Date()
+    };
+
+    // Đánh dấu đã đọc
+    notification.isRead = true;
+    notification.readAt = new Date();
+
+    await notification.save();
+
+    // Cập nhật thông tin hoàn tiền vào Order nếu có
+    if (notification.order) {
+      const Order = require('../models/Order');
+      await Order.findByIdAndUpdate(notification.order, {
+        'refund.bankName': bankName,
+        'refund.accountNumber': accountNumber,
+        'refund.accountHolder': accountHolder,
+        'refund.qrImage': qrImage,
+        'refund.infoUpdatedAt': new Date()
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã cập nhật thông tin hoàn tiền thành công',
+      data: notification
+    });
+
+  } catch (error) {
+    console.error('[Update Refund Info] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi server'
+    });
+  }
+};

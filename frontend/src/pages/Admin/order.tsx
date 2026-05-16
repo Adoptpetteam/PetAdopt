@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { Table, Tag, Space, Select, message, Button, Input, Modal, Card, Statistic, Row, Col, Divider, Avatar, Typography, Badge, Popconfirm, Alert } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, TruckOutlined, GiftOutlined, DeleteOutlined, BoxPlotOutlined, SwapOutlined } from "@ant-design/icons";
+import { ReloadOutlined, EyeOutlined, SearchOutlined, ShoppingOutlined, DollarOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, CarOutlined, BankOutlined, UserOutlined, TruckOutlined, GiftOutlined, DeleteOutlined, BoxPlotOutlined, SwapOutlined, StopOutlined } from "@ant-design/icons";
 import { apiClient } from "../../api/http";
 
-const { Text, Title } = Typography;
+const { Text, Title, Paragraph } = Typography;
+const { TextArea } = Input;
 
 interface OrderItem {
   product: string;
@@ -73,6 +74,9 @@ const OrderPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     try {
@@ -126,6 +130,38 @@ const OrderPage = () => {
     }
   };
 
+  // Hàm hủy đơn hàng với lý do
+  const handleCancelOrder = (record: Order) => {
+    setCancelingOrderId(record._id);
+    setCancelReason("");
+    setCancelModalVisible(true);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelReason || cancelReason.trim().length === 0) {
+      message.error("Vui lòng nhập lý do hủy đơn");
+      return;
+    }
+
+    try {
+      await apiClient.post(`/orders/${cancelingOrderId}/admin-cancel`, {
+        reason: cancelReason.trim()
+      });
+      
+      message.success("Đã hủy đơn hàng và gửi thông báo cho khách hàng");
+      setCancelModalVisible(false);
+      setCancelReason("");
+      setCancelingOrderId(null);
+      loadOrders();
+      
+      if (detailOrder?._id === cancelingOrderId) {
+        setDetailOrder(null);
+      }
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Hủy đơn thất bại");
+    }
+  };
+
   // Hàm duyệt đơn hàng (pending → confirmed)
   const handleApproveOrder = async (record: Order) => {
     Modal.confirm({
@@ -135,7 +171,7 @@ const OrderPage = () => {
         <div>
           <p>Bạn có chắc muốn duyệt đơn hàng này?</p>
           <Alert
-            message="Lưu ý"
+            title="Lưu ý"
             description="Sau khi duyệt, voucher (nếu có) sẽ được tính vào số lần sử dụng và đơn hàng sẽ chuyển sang trạng thái 'Đã xác nhận'."
             type="info"
             showIcon
@@ -286,6 +322,7 @@ const OrderPage = () => {
       render: (_, record) => {
         const orderSt = record.orderStatus || 'pending';
         const isPending = orderSt === 'pending';
+        const canCancel = !['delivered', 'cancelled'].includes(orderSt);
         
         return (
           <Space orientation="vertical" size="small">
@@ -308,6 +345,18 @@ const OrderPage = () => {
                 className="w-full"
               >
                 Duyệt đơn
+              </Button>
+            )}
+            
+            {canCancel && (
+              <Button 
+                danger
+                size="small"
+                icon={<StopOutlined />}
+                onClick={() => handleCancelOrder(record)}
+                className="w-full"
+              >
+                Hủy đơn
               </Button>
             )}
             
@@ -585,7 +634,7 @@ const OrderPage = () => {
               {/* Nút duyệt đơn nếu đang pending */}
               {detailOrder.orderStatus === 'pending' && (
                 <Alert
-                  message="Đơn hàng chờ duyệt"
+                  title="Đơn hàng chờ duyệt"
                   description={
                     <div>
                       <p>Đơn hàng này đang chờ bạn xác nhận. Sau khi duyệt, voucher (nếu có) sẽ được tính vào số lần sử dụng.</p>
@@ -657,6 +706,64 @@ const OrderPage = () => {
               </Popconfirm>
               <Button type="primary" onClick={() => setDetailOrder(null)}>Đóng</Button>
             </Space>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal hủy đơn hàng */}
+      <Modal
+        open={cancelModalVisible}
+        onCancel={() => {
+          setCancelModalVisible(false);
+          setCancelReason("");
+          setCancelingOrderId(null);
+        }}
+        onOk={confirmCancelOrder}
+        title={
+          <Space>
+            <StopOutlined className="text-red-500" />
+            <span>Hủy đơn hàng</span>
+          </Space>
+        }
+        okText="Xác nhận hủy"
+        cancelText="Quay lại"
+        okButtonProps={{ danger: true }}
+        width={600}
+      >
+        <Alert
+          title="Lưu ý quan trọng"
+          description={
+            <div>
+              <p className="mb-2">• Đơn hàng sẽ bị hủy và hoàn kho tự động</p>
+              <p className="mb-2">• Nếu khách đã thanh toán VNPay, họ sẽ nhận được thông báo yêu cầu cập nhật thông tin ngân hàng để hoàn tiền</p>
+              <p>• Nếu là đơn COD, khách sẽ nhận được thông báo với lý do hủy</p>
+            </div>
+          }
+          type="warning"
+          showIcon
+          className="mb-4"
+        />
+
+        <div className="mb-4">
+          <Text strong className="text-red-500">* Lý do hủy đơn:</Text>
+          <Paragraph className="text-sm text-gray-500 mt-1">
+            Lý do này sẽ được gửi đến khách hàng qua thông báo
+          </Paragraph>
+          <TextArea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="VD: Sản phẩm hết hàng, Khách yêu cầu hủy, Địa chỉ giao hàng không hợp lệ..."
+            rows={4}
+            maxLength={500}
+            showCount
+            className="mt-2"
+          />
+        </div>
+
+        {cancelingOrderId && (
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <Text strong>Mã đơn hàng: </Text>
+            <Text code>#{cancelingOrderId.slice(-8).toUpperCase()}</Text>
           </div>
         )}
       </Modal>

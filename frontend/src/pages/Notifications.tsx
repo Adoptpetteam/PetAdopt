@@ -9,6 +9,7 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { apiClient } from "../api/http";
+import { RefundInfoModal } from "../components/RefundInfoModal";
 
 interface Notification {
   _id: string;
@@ -27,6 +28,8 @@ interface Notification {
 export default function Notifications() {
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refundModalVisible, setRefundModalVisible] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const navigate = useNavigate();
 
   const load = async () => {
@@ -83,6 +86,14 @@ export default function Notifications() {
 
   const handleAction = (n: Notification) => {
     if (!n.isRead) handleMarkRead(n._id);
+    
+    // Nếu là notification cần form hoàn tiền
+    if (n.type === 'order_refund_required' && n.metadata?.requiresRefundInfo) {
+      setSelectedNotification(n);
+      setRefundModalVisible(true);
+      return;
+    }
+    
     if (n.actionUrl) navigate(n.actionUrl);
   };
 
@@ -160,7 +171,20 @@ export default function Notifications() {
                     <p className="text-gray-600 text-sm whitespace-pre-line">
                       {n.message}
                     </p>
-                    {n.actionUrl && n.actionLabel && (
+                    {n.type === 'order_refund_required' && n.metadata?.requiresRefundInfo && (
+                      <Button
+                        type="primary"
+                        className="mt-3 bg-orange-500 border-0 rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedNotification(n);
+                          setRefundModalVisible(true);
+                        }}
+                      >
+                        📝 Cập nhật thông tin hoàn tiền →
+                      </Button>
+                    )}
+                    {n.actionUrl && n.actionLabel && n.type !== 'order_refund_required' && (
                       <Button
                         type="primary"
                         className="mt-3 bg-[#6272B6] border-0 rounded-full"
@@ -189,6 +213,24 @@ export default function Notifications() {
           </div>
         )}
       </div>
+
+      {/* Refund Info Modal */}
+      {selectedNotification && (
+        <RefundInfoModal
+          visible={refundModalVisible}
+          notificationId={selectedNotification._id}
+          orderId={selectedNotification.order?._id || selectedNotification.metadata?.orderId}
+          amount={selectedNotification.metadata?.amount || 0}
+          reason={selectedNotification.metadata?.reason || ""}
+          onClose={() => {
+            setRefundModalVisible(false);
+            setSelectedNotification(null);
+          }}
+          onSuccess={() => {
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }

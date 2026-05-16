@@ -22,13 +22,18 @@ router.get('/vnpay-return', orderController.vnpayReturn);
 // Admin routes
 router.get('/statistics', authenticate, isAdmin, orderController.getOrderStatistics);
 router.get('/', authenticate, isAdmin, orderController.listAllOrders);
-router.put('/:id/status', authenticate, isAdmin, orderController.updateOrderStatus);
-router.delete('/:id', authenticate, isAdmin, orderController.deleteOrder);
 
-// Admin refund/return/exchange processing routes
+// Admin cancel order - ĐẶT TRƯỚC các route động khác
+router.post('/:id/admin-cancel', authenticate, isAdmin, orderController.adminCancelOrder);
+
+// Admin refund/return/exchange processing routes - ĐẶT TRƯỚC route status
 router.post('/:id/process-refund', authenticate, isAdmin, orderController.processRefund);
 router.post('/:id/process-return', authenticate, isAdmin, orderController.processReturn);
 router.post('/:id/process-exchange', authenticate, isAdmin, orderController.processExchange);
 router.post('/:id/update-return-status', authenticate, isAdmin, orderController.updateReturnStatus);
+
+// Admin update status và delete - ĐẶT SAU
+router.put('/:id/status', authenticate, isAdmin, orderController.updateOrderStatus);
+router.delete('/:id', authenticate, isAdmin, orderController.deleteOrder);
 
 module.exports = router;
