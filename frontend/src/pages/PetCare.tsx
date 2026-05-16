@@ -246,7 +246,7 @@ export default function PetCare() {
         {/* Header */}
         <div className="pet-care-header">
           <div>
-            <h1>🐾 Chăm Sóc Thú Cưng</h1>
+            <h1>Chăm Sóc Thú Cưng</h1>
             <p>Quản lý sức khỏe và chăm sóc thú cưng của bạn</p>
           </div>
           <Button

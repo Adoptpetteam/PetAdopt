@@ -4,6 +4,7 @@ import { message, Badge } from "antd"
 import { apiClient } from "../../api/http"
 import NotificationBell from "../NotificationBell"
 
+
 interface Supporter {
   _id: string
   name: string
@@ -170,7 +171,8 @@ export default function Header() {
       <div className="h-[100px] flex items-center justify-between px-[130px]">
         
         {/* Logo */}
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
+
 
           <svg xmlns="http://www.w3.org/2000/svg" width="180" height="54" viewBox="0 0 180 54" fill="none">
 <g clipPath="url(#clip0_33_482)">
@@ -196,7 +198,7 @@ export default function Header() {
 </clipPath>
 </defs>
 </svg>
-        </div>
+        </Link>
 
         {/* Search */}
         {/* <div className="w-[400px]">

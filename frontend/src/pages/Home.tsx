@@ -5,6 +5,9 @@ import pic3 from "../assets/images/pic3.png"
 import PetCard from "../components/PetCard"
 import { listPets } from "../api/petApi"
 import { apiClient } from "../api/http"
+import Banner2 from "../assets/images/Banner2.png"
+import Banner3 from "../assets/images/Banner3.jpg"
+import Banner4 from "../assets/images/Banner4.jpg"
 import { useEffect, useState, useRef } from "react"
 
 export default function Home() {
@@ -14,7 +17,7 @@ export default function Home() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Danh sách ảnh chạy trong Slideshow (Bạn hãy thay thế bằng các ảnh Banner khác)
-  const bannerImages = [Banner, pic1, pic2, pic3]
+  const bannerImages = [Banner, Banner2, Banner3, Banner4]
 
   useEffect(() => {
     listPets({ limit: 8 })
