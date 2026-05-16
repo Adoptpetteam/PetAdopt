@@ -227,7 +227,7 @@ export default function Dashboard() {
       icon: <UserOutlined />, 
       color: "#6366f1", 
       trend: "+12%",
-      link: "/admin/users"
+      link: "/admin/user"
     },
     { 
       title: "Thú cưng", 
@@ -243,7 +243,7 @@ export default function Dashboard() {
       icon: <ShoppingCartOutlined />, 
       color: "#10b981", 
       trend: "+18%",
-      link: "/admin/orders"
+      link: "/admin/order"
     },
     { 
       title: "Doanh thu", 
@@ -251,7 +251,7 @@ export default function Dashboard() {
       icon: <TrophyOutlined />, 
       color: "#f59e0b", 
       trend: "+25%",
-      link: "/admin/orders"
+      link: "/admin/statistics"
     },
     { 
       title: "Nhận nuôi", 
@@ -275,7 +275,7 @@ export default function Dashboard() {
       icon: <ShoppingCartOutlined />, 
       color: "#06b6d4", 
       trend: "+10%",
-      link: "/admin/products"
+      link: "/admin/product"
     },
     { 
       title: "Người ủng hộ", 
