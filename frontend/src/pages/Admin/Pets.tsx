@@ -48,7 +48,7 @@ export default function Pets() {
     try {
       const [petsRes, categoriesRes] = await Promise.all([
         apiClient.get("/pets?limit=100"),
-        apiClient.get("/category?type=pet")
+        apiClient.get("/category", { params: { type: 'pet' } })
       ]);
       setPets(petsRes.data.data || []);
       setCategories(categoriesRes.data.data || []);
@@ -259,7 +259,7 @@ export default function Pets() {
                   )}
                 </div>
 
-                <Space className="w-full" direction="vertical">
+                <Space className="w-full" orientation="vertical">
                   <Button
                     type="primary"
                     icon={<EditOutlined />}

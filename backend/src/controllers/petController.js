@@ -28,7 +28,8 @@ exports.createPet = async (req, res, next) => {
     // ✅ handle images
     let images = [];
     if (req.files && req.files.length > 0) {
-      images = req.files.map(file => `/uploads/${file.filename}`);
+      images = req.files.map(file => `/uploads/pets/${file.filename}`);
+      console.log('[Pet Create] Uploaded images:', images);
     }
 
     const pet = new Pet({
@@ -163,9 +164,10 @@ exports.updatePet = async (req, res, next) => {
 
     // Thêm ảnh mới nếu có
     if (req.files && req.files.length > 0) {
-      const uploadedImages = req.files.map(file => `/uploads/${file.filename}`);
+      const uploadedImages = req.files.map(file => `/uploads/pets/${file.filename}`);
       finalImages = [...finalImages, ...uploadedImages];
-      console.log('New images added:', uploadedImages.length);
+      console.log('[Pet Update] New images added:', uploadedImages.length);
+      console.log('[Pet Update] New image paths:', uploadedImages);
     }
 
     // Cập nhật các field khác (KHÔNG ghi đè createdBy)

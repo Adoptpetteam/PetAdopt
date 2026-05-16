@@ -17,7 +17,7 @@ export default function AddPet() {
 
   const fetchCategories = async () => {
     try {
-      const res = await apiClient.get("/category?type=pet");
+      const res = await apiClient.get("/category", { params: { type: 'pet' } });
       setCategories(res.data.data || []);
     } catch (error) {
       message.error("Không thể tải danh mục");
@@ -27,6 +27,9 @@ export default function AddPet() {
   const handleSubmit = async (values: any) => {
     setLoading(true);
     try {
+      console.log('[AddPet] Form values:', values);
+      console.log('[AddPet] File list:', fileList);
+      
       const formData = new FormData();
       
       // Append all form fields
@@ -37,19 +40,29 @@ export default function AddPet() {
       });
 
       // Append images
+      if (fileList.length === 0) {
+        message.warning("Vui lòng thêm ít nhất 1 ảnh cho thú cưng");
+        setLoading(false);
+        return;
+      }
+
       fileList.forEach(file => {
         if (file.originFileObj) {
           formData.append('images', file.originFileObj);
         }
       });
 
-      await apiClient.post("/pets", formData, {
+      console.log('[AddPet] Submitting form data...');
+      const response = await apiClient.post("/pets", formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      console.log('[AddPet] Response:', response.data);
       message.success("Thêm thú cưng thành công!");
       navigate("/admin/pets");
     } catch (error: any) {
+      console.error('[AddPet] Error:', error);
+      console.error('[AddPet] Error response:', error.response?.data);
       message.error(error.response?.data?.message || "Thêm thú cưng thất bại");
     } finally {
       setLoading(false);
@@ -177,13 +190,20 @@ export default function AddPet() {
             <Input.TextArea rows={4} placeholder="Mô tả về thú cưng..." />
           </Form.Item>
 
-          <Form.Item label="Hình ảnh">
+          <Form.Item label="📷 Hình ảnh" required>
             <Upload {...uploadProps}>
-              <div>
-                <PlusOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#6272B6] transition-colors cursor-pointer">
+                <PlusOutlined className="text-3xl text-gray-400" />
+                <div className="mt-2 text-base text-gray-600 font-medium">Click để upload ảnh</div>
+                <div className="text-sm text-gray-400 mt-1">PNG, JPG, GIF (Max 5MB mỗi ảnh)</div>
+                <div className="text-xs text-gray-500 mt-2">📌 Có thể chọn nhiều ảnh cùng lúc</div>
               </div>
             </Upload>
+            {fileList.length > 0 && (
+              <div className="mt-2 text-sm text-green-600">
+                ✅ Đã chọn {fileList.length} ảnh
+              </div>
+            )}
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">

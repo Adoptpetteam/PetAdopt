@@ -23,12 +23,18 @@ export default function EditPet() {
     try {
       const [petRes, categoriesRes] = await Promise.all([
         apiClient.get(`/pets/${id}`),
-        apiClient.get("/category?type=pet")
+        apiClient.get("/category", { params: { type: 'pet' } })
       ]);
 
       const pet = petRes.data.data;
       setCategories(categoriesRes.data.data || []);
-      setExistingImages(pet.images || []);
+      
+      // Set existing images
+      const images = pet.images || [];
+      setExistingImages(images);
+      
+      console.log('[EditPet] Pet data:', pet);
+      console.log('[EditPet] Images:', images);
 
       form.setFieldsValue({
         name: pet.name,
@@ -48,6 +54,7 @@ export default function EditPet() {
         status: pet.status
       });
     } catch (error: any) {
+      console.error('[EditPet] Error:', error);
       message.error(error.response?.data?.message || "Không thể tải dữ liệu");
       navigate("/admin/pets");
     } finally {
@@ -95,8 +102,11 @@ export default function EditPet() {
   };
 
   const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return "https://placehold.co/100x100?text=No+Image";
     if (imagePath.startsWith('http')) return imagePath;
-    return `http://localhost:5000${imagePath}`;
+    // Đảm bảo path bắt đầu với /
+    const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    return `http://localhost:5000${path}`;
   };
 
   const uploadProps = {
@@ -222,40 +232,57 @@ export default function EditPet() {
 
           {/* Existing Images */}
           {existingImages.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Ảnh hiện tại</label>
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-3 text-gray-700">
+                📷 Ảnh hiện tại ({existingImages.length})
+              </label>
+              <div className="flex flex-wrap gap-3">
                 {existingImages.map((img, index) => (
-                  <div key={index} className="relative">
+                  <div key={index} className="relative group">
                     <img
                       src={getImageUrl(img)}
-                      alt={`Existing ${index + 1}`}
-                      className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
+                      alt={`Ảnh ${index + 1}`}
+                      className="w-28 h-28 object-cover rounded-xl border-2 border-gray-300 shadow-sm hover:shadow-md transition-all"
                       onError={(e) => {
+                        console.error('[EditPet] Image load error:', img);
                         (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=Error";
+                      }}
+                      onLoad={() => {
+                        console.log('[EditPet] Image loaded successfully:', img);
                       }}
                     />
                     <button
                       type="button"
                       onClick={() => removeExistingImage(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                      title="Xóa ảnh"
                     >
                       ×
                     </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                      Ảnh {index + 1}
+                    </div>
                   </div>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Click vào dấu × để xóa ảnh không muốn giữ lại
+              </p>
             </div>
           )}
 
           {/* New Images Upload */}
-          <Form.Item label="Thêm ảnh mới">
+          <Form.Item label="➕ Thêm ảnh mới">
             <Upload {...uploadProps}>
-              <div>
-                <PlusOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+              <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#6272B6] transition-colors">
+                <PlusOutlined className="text-2xl text-gray-400" />
+                <div className="mt-2 text-sm text-gray-600">Click để upload</div>
+                <div className="text-xs text-gray-400">PNG, JPG, GIF (Max 5MB)</div>
               </div>
             </Upload>
+            <p className="text-xs text-gray-500 mt-2">
+              📌 Có thể upload nhiều ảnh cùng lúc
+            </p>
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">

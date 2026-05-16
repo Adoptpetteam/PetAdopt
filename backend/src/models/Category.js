@@ -16,24 +16,24 @@ const categorySchema = new mongoose.Schema({
     required: true,
     default: 'product'
   },
+  image: {
+    type: String,
+    trim: true
+  },
+  icon: {
+    type: String,
+    trim: true
+  },
+  color: {
+    type: String,
+    trim: true
+  },
   isActive: {
     type: Boolean,
     default: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
-});
-
-// Update updatedAt before saving
-categorySchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
+}, {
+  timestamps: true // Tự động tạo createdAt và updatedAt
 });
 
 // Index for better performance

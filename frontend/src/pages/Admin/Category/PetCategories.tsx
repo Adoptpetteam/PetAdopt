@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Space, Popconfirm, Typography, Tag, Modal, Form, Input, message, Card, Upload } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
+import { Table, Button, Space, Popconfirm, Typography, Tag, Modal, Form, Input, message, Card } from "antd";
+import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../api/http";
@@ -10,6 +10,8 @@ interface IPetCategory {
   name: string;
   description?: string;
   image?: string;
+  icon?: string;
+  color?: string;
   type: 'pet';
 }
 
@@ -25,7 +27,7 @@ const PetCategories: React.FC = () => {
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get("/category?type=pet");
+      const res = await apiClient.get("/category", { params: { type: 'pet' } });
       setData(res.data.data || []);
     } catch (error) {
       message.error("Không thể tải danh mục");
@@ -50,7 +52,9 @@ const PetCategories: React.FC = () => {
     form.setFieldsValue({
       name: record.name,
       description: record.description,
-      image: record.image
+      image: record.image,
+      icon: record.icon,
+      color: record.color
     });
   };
 
@@ -114,6 +118,22 @@ const PetCategories: React.FC = () => {
       title: "Mô tả",
       dataIndex: "description",
       render: (text) => text || <span className="text-gray-400">Chưa có mô tả</span>
+    },
+    {
+      title: "Icon",
+      dataIndex: "icon",
+      width: 80,
+      render: (icon) => <span className="text-2xl">{icon || '🐾'}</span>
+    },
+    {
+      title: "Màu",
+      dataIndex: "color",
+      width: 100,
+      render: (color) => (
+        <Tag color={color || 'default'}>
+          {color ? color : 'Mặc định'}
+        </Tag>
+      )
     },
     {
       title: "Loại",
@@ -205,6 +225,20 @@ const PetCategories: React.FC = () => {
             <Input.TextArea 
               rows={3} 
               placeholder="Mô tả về loại thú cưng này..."
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item name="icon" label="Icon">
+            <Input 
+              placeholder="Ví dụ: 🐕, 🐈, 🐦" 
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item name="color" label="Màu chủ đề">
+            <Input 
+              placeholder="Ví dụ: #6272B6" 
               size="large"
             />
           </Form.Item>

@@ -62,7 +62,23 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'paid', 'shipping', 'completed', 'cancelled'],
+      enum: [
+        'pending', 
+        'confirmed', 
+        'paid', 
+        'shipping', 
+        'completed', 
+        'cancelled',
+        'refund_pending',
+        'refund_processing', 
+        'refund_completed',
+        'return_requested',
+        'return_shipping',
+        'return_received',
+        'exchange_requested',
+        'exchange_shipping',
+        'exchange_completed'
+      ],
       default: 'pending',
     },
 
@@ -140,6 +156,44 @@ const orderSchema = new mongoose.Schema(
     voucher: {
       code: { type: String, default: null },
       discount: { type: Number, default: 0 },
+    },
+
+    // Thông tin hoàn trả/đổi hàng
+    refund: {
+      reason: { type: String, trim: true },
+      requestedAt: { type: Date },
+      requestedBy: { 
+        type: String, 
+        enum: ['user', 'admin'],
+      },
+      bankAccount: { type: String, trim: true },
+      bankName: { type: String, trim: true },
+      accountHolder: { type: String, trim: true },
+      qrCodeImage: { type: String }, // URL ảnh QR code
+      processedAt: { type: Date },
+      processedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      amount: { type: Number, min: 0 },
+      note: { type: String, trim: true }
+    },
+
+    returnExchange: {
+      type: { 
+        type: String, 
+        enum: ['return', 'exchange'],
+      },
+      reason: { type: String, trim: true },
+      requestedAt: { type: Date },
+      images: [{ type: String }], // Ảnh chứng minh sản phẩm lỗi
+      trackingNumber: { type: String, trim: true }, // Mã vận đơn trả hàng
+      receivedAt: { type: Date },
+      inspectionNote: { type: String, trim: true }, // Ghi chú kiểm tra hàng
+      newOrderId: { // Đơn hàng mới khi đổi hàng
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Order'
+      }
     },
   },
   {
