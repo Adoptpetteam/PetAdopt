@@ -29,12 +29,12 @@ export default function Header() {
 
   const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n)
 
-  // Fetch top supporters
+  // Fetch supporters cho marquee (refetch khi đổi route, đặc biệt sau khi donate xong quay về)
   useEffect(() => {
-    apiClient.get('/donate/top-supporters?limit=20')
+    apiClient.get("/donate/supporters", { params: { limit: 50 } })
       .then(res => setSupporters(res.data.data || []))
       .catch(() => setSupporters([]))
-  }, [])
+  }, [location.pathname, location.search])
 
   const readUser = () => {
     const stored = localStorage.getItem("user")
@@ -82,13 +82,6 @@ export default function Header() {
       window.removeEventListener("cart-change", handleCartChange)
     }
   }, [location.pathname])
-
-  // Fetch supporters 1 lần khi mount
-  useEffect(() => {
-    apiClient.get("/donate/supporters", { params: { limit: 50 } })
-      .then(res => setSupporters(res.data.data || []))
-      .catch(() => {})
-  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
