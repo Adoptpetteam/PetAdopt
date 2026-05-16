@@ -431,9 +431,9 @@ const VaccinationSchedule = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <MedicineBoxOutlined className="text-[#6272B6]" />
-              Lịch Tiêm Phòng 💉
+            <h1 className="!text-[#6272B6] text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <MedicineBoxOutlined className="!text-[#6272B6]" />
+              Lịch Tiêm Phòng 
             </h1>
             <p className="text-gray-600 mt-2">Quản lý lịch tiêm phòng cho thú cưng của bạn</p>
           </div>
@@ -443,7 +443,7 @@ const VaccinationSchedule = () => {
             size="large"
             icon={<PlusOutlined />}
             onClick={() => openModal()}
-            className="bg-[#6272B6] hover:bg-[#4a569d] rounded-xl"
+            className="!bg-[#6272B6] hover:bg-[#4a569d] rounded-xl"
           >
             Thêm lịch tiêm
           </Button>
@@ -620,8 +620,7 @@ const VaccinationSchedule = () => {
           margin-right: 8px !important;
         }
         .vaccination-tabs .ant-tabs-tab-active {
-          background: #6272B6 !important;
-          color: white !important;
+
         }
       `}</style>
     </div>
