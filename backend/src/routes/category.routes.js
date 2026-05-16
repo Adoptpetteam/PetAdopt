@@ -71,9 +71,13 @@ router.get('/:id', async (req, res) => {
 // ====== POST /api/category - Tạo danh mục mới (Admin) ======
 router.post('/', authenticate, isAdmin, async (req, res) => {
   try {
-    const { name, description, type } = req.body;
+    console.log('[Category POST] Request body:', req.body);
+    console.log('[Category POST] User:', req.user);
+    
+    const { name, description, type, image, icon, color, isActive } = req.body;
     
     if (!name || !type) {
+      console.log('[Category POST] Validation failed: missing name or type');
       return res.status(400).json({
         success: false,
         message: 'Tên và loại danh mục là bắt buộc'
@@ -83,17 +87,26 @@ router.post('/', authenticate, isAdmin, async (req, res) => {
     // Kiểm tra trùng tên
     const existingCategory = await Category.findOne({ name, type });
     if (existingCategory) {
+      console.log('[Category POST] Duplicate category:', { name, type });
       return res.status(400).json({
         success: false,
         message: 'Danh mục này đã tồn tại'
       });
     }
     
+    console.log('[Category POST] Creating category:', { name, type, isActive });
+    
     const category = await Category.create({
       name,
       description,
-      type
+      type,
+      image,
+      icon,
+      color,
+      isActive
     });
+    
+    console.log('[Category POST] Category created successfully:', category._id);
     
     res.status(201).json({
       success: true,
@@ -101,10 +114,13 @@ router.post('/', authenticate, isAdmin, async (req, res) => {
       message: 'Tạo danh mục thành công'
     });
   } catch (error) {
-    console.error('[Category] Create category error:', error);
+    console.error('[Category POST] ERROR:', error);
+    console.error('[Category POST] Error message:', error.message);
+    console.error('[Category POST] Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi tạo danh mục'
+      message: 'Lỗi khi tạo danh mục',
+      error: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 });
@@ -112,7 +128,7 @@ router.post('/', authenticate, isAdmin, async (req, res) => {
 // ====== PUT /api/category/:id - Cập nhật danh mục (Admin) ======
 router.put('/:id', authenticate, isAdmin, async (req, res) => {
   try {
-    const { name, description, isActive } = req.body;
+    const { name, description, isActive, image, icon, color } = req.body;
     
     const category = await Category.findById(req.params.id);
     if (!category) {
@@ -142,6 +158,9 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
       {
         ...(name && { name }),
         ...(description !== undefined && { description }),
+        ...(image !== undefined && { image }),
+        ...(icon !== undefined && { icon }),
+        ...(color !== undefined && { color }),
         ...(isActive !== undefined && { isActive }),
         updatedAt: Date.now()
       },

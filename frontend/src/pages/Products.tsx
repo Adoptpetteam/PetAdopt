@@ -19,10 +19,25 @@ interface Product {
 interface Category {
   _id: string;
   name: string;
-  description: string;
-  icon: string;
-  color: string;
+  description?: string;
+  icon?: string;
+  color?: string;
 }
+
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  "Thức ăn & Dinh dưỡng": "#f97316",
+  "Chăm sóc sức khỏe & Y tế": "#10b981",
+  "Vệ sinh & Làm sạch": "#0ea5e9",
+  "Chăm sóc sắc đẹp": "#a855f7",
+  "Đồ dùng sinh hoạt & Chỗ ở": "#facc15",
+  "Phụ kiện đi dạo & Vận chuyển": "#3b82f6",
+  "Đồ chơi & Huấn luyện": "#8b5cf6"
+};
+
+const getCategoryColor = (categoryName?: string): string => {
+  if (!categoryName) return "#6272B6";
+  return CATEGORY_COLOR_MAP[categoryName] || "#6272B6";
+};
 
 export default function Products() {
   const [data, setData] = useState<Product[]>([]);
@@ -157,13 +172,14 @@ export default function Products() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
               {categories.map((cat, index) => {
                 const count = productsByCategory[cat.name]?.length || 0;
+                const categoryColor = cat.color || getCategoryColor(cat.name);
                 return (
                   <div
                     key={cat._id}
                     className="group relative bg-white rounded-2xl p-6 text-center shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 cursor-pointer border border-gray-100 overflow-hidden"
                     style={{ 
                       animationDelay: `${index * 100}ms`,
-                      background: `linear-gradient(135deg, ${cat.color}15, white)`
+                      background: `linear-gradient(135deg, ${categoryColor}20, white)`
                     }}
                     onClick={() => setSelectedCategory(cat.name)}
                   >
@@ -172,7 +188,7 @@ export default function Products() {
                     
                     {/* Icon với animation */}
                     <div className="text-4xl mb-3 group-hover:scale-125 transition-transform duration-300 relative z-10">
-                      {cat.icon}
+                      {cat.icon || getCategoryIcon(cat.name)}
                     </div>
                     
                     {/* Tên danh mục */}

@@ -565,7 +565,7 @@ export default function Orders() {
     {
       title: "",
       render: (_, record) => (
-        <Space direction="vertical" size="small">
+        <Space orientation="vertical" size="small">
           <Button
             type="primary"
             size="small"

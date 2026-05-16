@@ -9,6 +9,8 @@ interface IProductCategory {
   name: string;
   description?: string;
   image?: string;
+  icon?: string;
+  color?: string;
   type: 'product';
 }
 
@@ -23,7 +25,7 @@ const ProductCategories: React.FC = () => {
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get("/category?type=product");
+      const res = await apiClient.get("/category", { params: { type: 'product' } });
       setData(res.data.data || []);
     } catch (error) {
       message.error("Không thể tải danh mục");
@@ -48,7 +50,9 @@ const ProductCategories: React.FC = () => {
     form.setFieldsValue({
       name: record.name,
       description: record.description,
-      image: record.image
+      image: record.image,
+      icon: record.icon,
+      color: record.color
     });
   };
 
@@ -112,6 +116,22 @@ const ProductCategories: React.FC = () => {
       title: "Mô tả",
       dataIndex: "description",
       render: (text) => text || <span className="text-gray-400">Chưa có mô tả</span>
+    },
+    {
+      title: "Icon",
+      dataIndex: "icon",
+      width: 80,
+      render: (icon) => <span className="text-2xl">{icon || '📦'}</span>
+    },
+    {
+      title: "Màu",
+      dataIndex: "color",
+      width: 100,
+      render: (color) => (
+        <Tag color={color || 'default'}>
+          {color ? color : 'Mặc định'}
+        </Tag>
+      )
     },
     {
       title: "Loại",
@@ -203,6 +223,20 @@ const ProductCategories: React.FC = () => {
             <Input.TextArea 
               rows={3} 
               placeholder="Mô tả về loại sản phẩm này..."
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item name="icon" label="Icon">
+            <Input 
+              placeholder="Ví dụ: 📦, 🧸, 🐾" 
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item name="color" label="Màu chủ đề">
+            <Input 
+              placeholder="Ví dụ: #3b82f6" 
               size="large"
             />
           </Form.Item>

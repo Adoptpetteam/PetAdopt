@@ -23,7 +23,7 @@ export default function EditPet() {
     try {
       const [petRes, categoriesRes] = await Promise.all([
         apiClient.get(`/pets/${id}`),
-        apiClient.get("/category?type=pet")
+        apiClient.get("/category", { params: { type: 'pet' } })
       ]);
 
       const pet = petRes.data.data;

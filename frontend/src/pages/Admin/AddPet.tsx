@@ -17,7 +17,7 @@ export default function AddPet() {
 
   const fetchCategories = async () => {
     try {
-      const res = await apiClient.get("/category?type=pet");
+      const res = await apiClient.get("/category", { params: { type: 'pet' } });
       setCategories(res.data.data || []);
     } catch (error) {
       message.error("Không thể tải danh mục");

@@ -162,7 +162,7 @@ export const ReturnExchangeModal: React.FC<ReturnExchangeModalProps> = ({
             onChange={(e) => setType(e.target.value)}
             className="w-full"
           >
-            <Space direction="vertical" className="w-full">
+            <Space orientation="vertical" className="w-full">
               <Radio value="return" className="w-full">
                 <div className="flex items-center gap-2">
                   <RollbackOutlined className="text-orange-500" />

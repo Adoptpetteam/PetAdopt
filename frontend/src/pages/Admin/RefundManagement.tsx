@@ -274,7 +274,7 @@ export default function RefundManagement() {
     {
       title: 'Thao tác',
       render: (_, record) => (
-        <Space direction="vertical" size="small">
+        <Space orientation="vertical" size="small">
           <Button
             size="small"
             icon={<EyeOutlined />}
