@@ -271,9 +271,9 @@ export default function Products() {
             <div className="md:col-span-4">
               <div className="flex justify-between items-center mb-3">
                 <label className="text-sm font-bold text-gray-600 flex items-center gap-2">
-                  💰 Khoảng giá
+                   Khoảng giá
                 </label>
-                <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600">
+                <span className="text-sm font-bold text-[#6272B6]">
                   {priceRange[0].toLocaleString()}đ - {priceRange[1].toLocaleString()}đ
                 </span>
               </div>
