@@ -355,8 +355,12 @@ const ProductPage = () => {
 
   return (
     <div style={{ padding: "24px" }}>
-      <div style={{ marginBottom: 16 }}>
-        <Title level={4}>Quản lý sản phẩm</Title>
+      <div style={{ marginBottom: 16 }} >
+        <Title level={4} >
+          <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
+          Quản lý sản phẩm
+          </div>
+          </Title>
         <Button type="primary" onClick={() => handleOpenModal()}>
           Thêm sản phẩm
         </Button>
