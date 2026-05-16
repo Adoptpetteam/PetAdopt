@@ -17,7 +17,8 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  StarOutlined
+  StarOutlined,
+  RollbackOutlined
 } from "@ant-design/icons";
 import { useState } from "react";
 
@@ -38,6 +39,7 @@ export default function AdminLayout() {
     { path: "/admin/pets", icon: <HeartOutlined />, label: "Thú cưng", color: "#f97316" },
     { path: "/admin/product", icon: <ShoppingOutlined />, label: "Sản phẩm", color: "#84cc16" },
     { path: "/admin/order", icon: <ShoppingCartOutlined />, label: "Đơn hàng", color: "#ef4444" },
+    { path: "/admin/refund-management", icon: <RollbackOutlined />, label: "Hoàn hủy", color: "#f97316" },
     { path: "/admin/statistics", icon: <BarChartOutlined />, label: "Thống kê", color: "#3538e2" },
     { path: "/admin/vouchers", icon: <GiftOutlined />, label: "Voucher", color: "#f59e0b" },
     { path: "/admin/vaccinations", icon: <MedicineBoxOutlined />, label: "Lịch tiêm", color: "#10b981" },

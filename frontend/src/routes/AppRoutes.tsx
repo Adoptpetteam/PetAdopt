@@ -47,6 +47,7 @@ import EditPet from "../pages/Admin/EditPet";
 import AdoptedPets from "../pages/Admin/AdoptedPets";
 import ProductPage from "../pages/Admin/product";
 import OrderPage from "../pages/Admin/order";
+import RefundManagement from "../pages/Admin/RefundManagement";
 import CustomerPage from "../pages/Admin/CustomerPage";
 import Statistics from "../pages/Admin/Statistics";
 import VoucherPage from "../pages/Admin/VoucherPage";
@@ -205,6 +206,12 @@ export default function AppRoutes() {
           <Route
             path="order"
             element={<OrderPage />}
+          />
+
+          {/* HOÀN HỦY ĐƠN HÀNG */}
+          <Route
+            path="refund-management"
+            element={<RefundManagement />}
           />
 
           {/* THỐNG KÊ */}

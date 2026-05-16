@@ -492,7 +492,14 @@ exports.listAllOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
-    if (!['pending', 'confirmed', 'paid', 'shipping', 'completed', 'cancelled'].includes(status)) {
+    const validStatuses = [
+      'pending', 'confirmed', 'paid', 'shipping', 'completed', 'cancelled',
+      'refund_pending', 'refund_processing', 'refund_completed',
+      'return_requested', 'return_shipping', 'return_received',
+      'exchange_requested', 'exchange_shipping', 'exchange_completed'
+    ];
+    
+    if (!validStatuses.includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
@@ -785,6 +792,607 @@ exports.getOrderStatistics = async (req, res) => {
     });
   } catch (err) {
     console.error('GET ORDER STATISTICS ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// ===============================
+// POST /api/orders/:id/request-refund (user yêu cầu hoàn tiền)
+// Dùng khi user muốn hủy đơn đã thanh toán hoặc yêu cầu hoàn tiền sau khi nhận hàng
+// ===============================
+exports.requestRefund = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const { reason, bankAccount, bankName, accountHolder, qrCodeImage } = req.body;
+
+    const order = await Order.findOne({ _id: req.params.id, user: userId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Chỉ cho phép yêu cầu hoàn tiền với các trạng thái phù hợp
+    const refundableStatuses = ['paid', 'confirmed', 'shipping', 'completed'];
+    if (!refundableStatuses.includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể yêu cầu hoàn tiền cho đơn hàng này',
+      });
+    }
+
+    // Kiểm tra thời hạn hoàn tiền (3 ngày sau khi completed)
+    if (order.status === 'completed') {
+      const completedDate = order.statusHistory.find(h => h.status === 'completed')?.changedAt;
+      if (completedDate) {
+        const daysSinceCompleted = (Date.now() - new Date(completedDate).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceCompleted > 3) {
+          return res.status(400).json({
+            success: false,
+            message: 'Đã quá thời hạn yêu cầu hoàn tiền (3 ngày sau khi nhận hàng)',
+          });
+        }
+      }
+    }
+
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      {
+        status: 'refund_pending',
+        $push: { 
+          statusHistory: { 
+            status: 'refund_pending', 
+            note: `Khách hàng yêu cầu hoàn tiền: ${reason || 'Không có lý do'}` 
+          } 
+        },
+        refund: {
+          reason,
+          requestedAt: new Date(),
+          requestedBy: 'user',
+          bankAccount,
+          bankName,
+          accountHolder,
+          qrCodeImage,
+          amount: order.totals.total
+        }
+      },
+      { new: true }
+    ).populate('user', 'name email');
+
+    // Gửi email thông báo
+    if (updated && updated.user?.email) {
+      try {
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status: 'refund_pending',
+          note: 'Yêu cầu hoàn tiền của bạn đang được xử lý',
+          items: updated.items,
+          totals: updated.totals
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Yêu cầu hoàn tiền đã được gửi, vui lòng chờ admin xử lý',
+      data: updated 
+    });
+  } catch (err) {
+    console.error('REQUEST REFUND ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// POST /api/orders/:id/process-refund (admin xử lý hoàn tiền)
+// ===============================
+exports.processRefund = async (req, res) => {
+  try {
+    const adminId = req.user?.userId || req.user?.id;
+    const { status, note, bankAccount, bankName, accountHolder, qrCodeImage } = req.body;
+
+    if (!['refund_processing', 'refund_completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid refund status' });
+    }
+
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.status !== 'refund_pending' && order.status !== 'refund_processing') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn hàng không ở trạng thái chờ hoàn tiền',
+      });
+    }
+
+    const updateData = {
+      status,
+      $push: { 
+        statusHistory: { 
+          status, 
+          note: note || `Admin ${status === 'refund_completed' ? 'hoàn thành' : 'xử lý'} hoàn tiền` 
+        } 
+      },
+      'refund.processedAt': new Date(),
+      'refund.processedBy': adminId,
+      'refund.note': note
+    };
+
+    // Cập nhật thông tin ngân hàng nếu có
+    if (bankAccount) updateData['refund.bankAccount'] = bankAccount;
+    if (bankName) updateData['refund.bankName'] = bankName;
+    if (accountHolder) updateData['refund.accountHolder'] = accountHolder;
+    if (qrCodeImage) updateData['refund.qrCodeImage'] = qrCodeImage;
+
+    // Hoàn kho nếu hoàn tiền thành công
+    if (status === 'refund_completed') {
+      await Product.bulkWrite(
+        order.items.map((item) => ({
+          updateOne: {
+            filter: { _id: item.product },
+            update: { $inc: { quantity: item.quantity } },
+          },
+        }))
+      );
+      // Hoàn voucher
+      await releaseVoucher(order);
+    }
+
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      updateData,
+      { new: true }
+    ).populate('user', 'name email');
+
+    // Gửi email thông báo
+    if (updated && updated.user?.email) {
+      try {
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status,
+          note: note || `Hoàn tiền ${status === 'refund_completed' ? 'thành công' : 'đang xử lý'}`,
+          items: updated.items,
+          totals: updated.totals,
+          refundInfo: updated.refund
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: status === 'refund_completed' ? 'Hoàn tiền thành công' : 'Đã cập nhật trạng thái hoàn tiền',
+      data: updated 
+    });
+  } catch (err) {
+    console.error('PROCESS REFUND ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// POST /api/orders/:id/request-return-exchange (user yêu cầu trả/đổi hàng)
+// Chỉ áp dụng sau khi đơn hàng completed (trong vòng 3 ngày)
+// ===============================
+exports.requestReturnExchange = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const { type, reason, images, bankAccount, bankName, accountHolder, qrCodeImage } = req.body; // type: 'return' hoặc 'exchange'
+
+    if (!['return', 'exchange'].includes(type)) {
+      return res.status(400).json({ success: false, message: 'Invalid type. Must be "return" or "exchange"' });
+    }
+
+    const order = await Order.findOne({ _id: req.params.id, user: userId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Chỉ cho phép với đơn đã completed
+    if (order.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể yêu cầu trả/đổi hàng sau khi đơn hàng đã hoàn thành',
+      });
+    }
+
+    // Kiểm tra thời hạn (3 ngày)
+    const completedDate = order.statusHistory.find(h => h.status === 'completed')?.changedAt;
+    if (completedDate) {
+      const daysSinceCompleted = (Date.now() - new Date(completedDate).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceCompleted > 3) {
+        return res.status(400).json({
+          success: false,
+          message: 'Đã quá thời hạn yêu cầu trả/đổi hàng (3 ngày sau khi nhận hàng)',
+        });
+      }
+    }
+
+    const newStatus = type === 'return' ? 'return_requested' : 'exchange_requested';
+
+    // Prepare update data
+    const updateData = {
+      status: newStatus,
+      $push: { 
+        statusHistory: { 
+          status: newStatus, 
+          note: `Khách hàng yêu cầu ${type === 'return' ? 'trả hàng' : 'đổi hàng'}: ${reason || 'Không có lý do'}` 
+        } 
+      },
+      returnExchange: {
+        type,
+        reason,
+        requestedAt: new Date(),
+        images: images || []
+      }
+    };
+
+    // Nếu là trả hàng VÀ có thông tin tài khoản, lưu luôn vào refund
+    if (type === 'return' && bankAccount && bankName && accountHolder) {
+      updateData.refund = {
+        reason: reason || 'Trả hàng',
+        requestedAt: new Date(),
+        requestedBy: 'user',
+        bankAccount,
+        bankName,
+        accountHolder,
+        qrCodeImage: qrCodeImage || null,
+        amount: order.totals.total
+      };
+    }
+
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      updateData,
+      { new: true }
+    ).populate('user', 'name email');
+
+    // Gửi email thông báo
+    if (updated && updated.user?.email) {
+      try {
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status: newStatus,
+          note: `Yêu cầu ${type === 'return' ? 'trả hàng' : 'đổi hàng'} của bạn đang được xử lý`,
+          items: updated.items,
+          totals: updated.totals
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `Yêu cầu ${type === 'return' ? 'trả hàng' : 'đổi hàng'} đã được gửi`,
+      data: updated 
+    });
+  } catch (err) {
+    console.error('REQUEST RETURN/EXCHANGE ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// POST /api/orders/:id/process-return (admin xử lý trả hàng)
+// ===============================
+exports.processReturn = async (req, res) => {
+  try {
+    const { action, note, trackingNumber, inspectionNote, bankAccount, bankName, accountHolder, qrCodeImage } = req.body;
+    // action: 'approve_refund' hoặc 'reject'
+
+    if (!['approve_refund', 'reject'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (!['return_requested', 'return_shipping', 'return_received'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn hàng không ở trạng thái yêu cầu trả hàng',
+      });
+    }
+
+    let newStatus;
+    let statusNote;
+
+    if (action === 'approve_refund') {
+      // Chuyển sang trạng thái hoàn tiền
+      newStatus = 'refund_pending';
+      statusNote = 'Admin chấp nhận trả hàng, chuyển sang xử lý hoàn tiền';
+      
+      const updateData = {
+        status: newStatus,
+        $push: { statusHistory: { status: newStatus, note: statusNote } },
+        'returnExchange.inspectionNote': inspectionNote || note,
+        'returnExchange.receivedAt': new Date(),
+        refund: {
+          reason: order.returnExchange?.reason || 'Trả hàng',
+          requestedAt: new Date(),
+          requestedBy: 'admin',
+          bankAccount,
+          bankName,
+          accountHolder,
+          qrCodeImage,
+          amount: order.totals.total
+        }
+      };
+
+      if (trackingNumber) {
+        updateData['returnExchange.trackingNumber'] = trackingNumber;
+      }
+
+      const updated = await Order.findByIdAndUpdate(order._id, updateData, { new: true })
+        .populate('user', 'name email');
+
+      // Gửi email
+      if (updated && updated.user?.email) {
+        try {
+          await sendOrderStatusUpdate(updated.user.email, {
+            customerName: updated.customer.name,
+            orderId: updated._id,
+            status: newStatus,
+            note: 'Yêu cầu trả hàng đã được chấp nhận, chúng tôi sẽ hoàn tiền cho bạn',
+            items: updated.items,
+            totals: updated.totals
+          });
+        } catch (emailError) {
+          console.error('Email error (non-blocking):', emailError.message);
+        }
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Đã chấp nhận trả hàng và chuyển sang xử lý hoàn tiền',
+        data: updated 
+      });
+    } else {
+      // Từ chối trả hàng
+      newStatus = 'completed';
+      statusNote = `Admin từ chối trả hàng: ${note || 'Không đủ điều kiện'}`;
+
+      const updated = await Order.findByIdAndUpdate(
+        order._id,
+        {
+          status: newStatus,
+          $push: { statusHistory: { status: newStatus, note: statusNote } },
+          'returnExchange.inspectionNote': note
+        },
+        { new: true }
+      ).populate('user', 'name email');
+
+      // Gửi email
+      if (updated && updated.user?.email) {
+        try {
+          await sendOrderStatusUpdate(updated.user.email, {
+            customerName: updated.customer.name,
+            orderId: updated._id,
+            status: newStatus,
+            note: `Yêu cầu trả hàng bị từ chối: ${note || 'Không đủ điều kiện'}`,
+            items: updated.items,
+            totals: updated.totals
+          });
+        } catch (emailError) {
+          console.error('Email error (non-blocking):', emailError.message);
+        }
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Đã từ chối yêu cầu trả hàng',
+        data: updated 
+      });
+    }
+  } catch (err) {
+    console.error('PROCESS RETURN ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// POST /api/orders/:id/process-exchange (admin xử lý đổi hàng)
+// ===============================
+exports.processExchange = async (req, res) => {
+  try {
+    const { action, note, trackingNumber, inspectionNote } = req.body;
+    // action: 'approve' hoặc 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (!['exchange_requested', 'exchange_shipping'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn hàng không ở trạng thái yêu cầu đổi hàng',
+      });
+    }
+
+    if (action === 'approve') {
+      // Tạo đơn hàng mới với giá 0đ (ship COD)
+      const newOrder = await Order.create({
+        user: order.user._id || order.user,
+        status: 'confirmed',
+        paymentMethod: 'cod',
+        customer: order.customer,
+        items: order.items.map(item => ({
+          ...item,
+          price: 0 // Giá 0đ
+        })),
+        totals: {
+          subtotal: 0,
+          discount: 0,
+          total: 0
+        },
+        voucher: { code: null, discount: 0 }
+      });
+
+      const updated = await Order.findByIdAndUpdate(
+        order._id,
+        {
+          status: 'exchange_completed',
+          $push: { 
+            statusHistory: { 
+              status: 'exchange_completed', 
+              note: `Admin chấp nhận đổi hàng, đơn mới: ${newOrder._id}` 
+            } 
+          },
+          'returnExchange.inspectionNote': inspectionNote || note,
+          'returnExchange.receivedAt': new Date(),
+          'returnExchange.newOrderId': newOrder._id
+        },
+        { new: true }
+      ).populate('user', 'name email');
+
+      if (trackingNumber) {
+        await Order.findByIdAndUpdate(order._id, {
+          'returnExchange.trackingNumber': trackingNumber
+        });
+      }
+
+      // Gửi email
+      if (updated && updated.user?.email) {
+        try {
+          await sendOrderStatusUpdate(updated.user.email, {
+            customerName: updated.customer.name,
+            orderId: updated._id,
+            status: 'exchange_completed',
+            note: `Yêu cầu đổi hàng đã được chấp nhận. Đơn hàng mới: ${newOrder._id.toString().slice(-8).toUpperCase()}`,
+            items: updated.items,
+            totals: updated.totals
+          });
+        } catch (emailError) {
+          console.error('Email error (non-blocking):', emailError.message);
+        }
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Đã chấp nhận đổi hàng và tạo đơn mới',
+        data: { originalOrder: updated, newOrder } 
+      });
+    } else {
+      // Từ chối đổi hàng
+      const updated = await Order.findByIdAndUpdate(
+        order._id,
+        {
+          status: 'completed',
+          $push: { 
+            statusHistory: { 
+              status: 'completed', 
+              note: `Admin từ chối đổi hàng: ${note || 'Không đủ điều kiện'}` 
+            } 
+          },
+          'returnExchange.inspectionNote': note
+        },
+        { new: true }
+      ).populate('user', 'name email');
+
+      // Gửi email
+      if (updated && updated.user?.email) {
+        try {
+          await sendOrderStatusUpdate(updated.user.email, {
+            customerName: updated.customer.name,
+            orderId: updated._id,
+            status: 'completed',
+            note: `Yêu cầu đổi hàng bị từ chối: ${note || 'Không đủ điều kiện'}`,
+            items: updated.items,
+            totals: updated.totals
+          });
+        } catch (emailError) {
+          console.error('Email error (non-blocking):', emailError.message);
+        }
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Đã từ chối yêu cầu đổi hàng',
+        data: updated 
+      });
+    }
+  } catch (err) {
+    console.error('PROCESS EXCHANGE ERROR:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ===============================
+// POST /api/orders/:id/update-return-status (admin cập nhật trạng thái vận chuyển trả hàng)
+// ===============================
+exports.updateReturnStatus = async (req, res) => {
+  try {
+    const { status, trackingNumber, note } = req.body;
+    // status: 'return_shipping' hoặc 'return_received'
+
+    if (!['return_shipping', 'return_received'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid return status' });
+    }
+
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const updateData = {
+      status,
+      $push: { statusHistory: { status, note: note || `Cập nhật: ${status}` } }
+    };
+
+    if (trackingNumber) {
+      updateData['returnExchange.trackingNumber'] = trackingNumber;
+    }
+
+    if (status === 'return_received') {
+      updateData['returnExchange.receivedAt'] = new Date();
+    }
+
+    const updated = await Order.findByIdAndUpdate(order._id, updateData, { new: true })
+      .populate('user', 'name email');
+
+    // Gửi email
+    if (updated && updated.user?.email) {
+      try {
+        const statusText = status === 'return_shipping' ? 'đang được vận chuyển về' : 'đã được nhận';
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status,
+          note: `Hàng trả ${statusText}`,
+          items: updated.items,
+          totals: updated.totals
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Đã cập nhật trạng thái trả hàng',
+      data: updated 
+    });
+  } catch (err) {
+    console.error('UPDATE RETURN STATUS ERROR:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

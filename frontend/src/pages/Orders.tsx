@@ -14,8 +14,11 @@ import {
   GiftOutlined, PhoneOutlined, HomeOutlined, EyeOutlined,
   ReloadOutlined, BoxPlotOutlined, SearchOutlined, CalendarOutlined,
   DollarOutlined, ShoppingCartOutlined, DownloadOutlined,
+  RollbackOutlined, SwapOutlined,
 } from "@ant-design/icons";
 import dayjs from 'dayjs';
+import { RefundModal } from '../components/RefundModal';
+import { ReturnExchangeModal } from '../components/ReturnExchangeModal';
 
 const { Text, Title } = Typography;
 
@@ -31,7 +34,10 @@ interface OrderData {
   _id: string;
   createdAt: string;
   updatedAt: string;
-  status: "pending" | "confirmed" | "paid" | "shipping" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "paid" | "shipping" | "completed" | "cancelled" | 
+           "refund_pending" | "refund_processing" | "refund_completed" |
+           "return_requested" | "return_shipping" | "return_received" |
+           "exchange_requested" | "exchange_shipping" | "exchange_completed";
   paymentMethod: "cod" | "vnpay";
   customer: { name: string; phone: string; address: string };
   items: OrderItem[];
@@ -39,12 +45,21 @@ interface OrderData {
 }
 
 const statusConfig = {
-  pending:   { color: "orange",  label: "Chờ xử lý",         icon: <ClockCircleOutlined />,  desc: "Đơn hàng đang chờ xác nhận" },
-  confirmed: { color: "cyan",    label: "Đã xác nhận",        icon: <CheckCircleOutlined />,  desc: "Đơn COD đã xác nhận, thanh toán khi nhận hàng" },
-  paid:      { color: "blue",    label: "Đã thanh toán",      icon: <CheckCircleOutlined />,  desc: "Đã thanh toán, đang chuẩn bị hàng" },
-  shipping:  { color: "purple",  label: "Đang giao hàng",     icon: <TruckOutlined />,        desc: "Đơn hàng đang trên đường giao đến bạn" },
-  completed: { color: "green",   label: "Hoàn thành",         icon: <GiftOutlined />,         desc: "Đơn hàng đã giao thành công" },
-  cancelled: { color: "red",     label: "Đã hủy",             icon: <CloseCircleOutlined />,  desc: "Đơn hàng đã bị hủy" },
+  pending:             { color: "orange",  label: "Chờ xử lý",           icon: <ClockCircleOutlined />,  desc: "Đơn hàng đang chờ xác nhận" },
+  confirmed:           { color: "cyan",    label: "Đã xác nhận",         icon: <CheckCircleOutlined />,  desc: "Đơn COD đã xác nhận, thanh toán khi nhận hàng" },
+  paid:                { color: "blue",    label: "Đã thanh toán",       icon: <CheckCircleOutlined />,  desc: "Đã thanh toán, đang chuẩn bị hàng" },
+  shipping:            { color: "purple",  label: "Đang giao hàng",      icon: <TruckOutlined />,        desc: "Đơn hàng đang trên đường giao đến bạn" },
+  completed:           { color: "green",   label: "Hoàn thành",          icon: <GiftOutlined />,         desc: "Đơn hàng đã giao thành công" },
+  cancelled:           { color: "red",     label: "Đã hủy",              icon: <CloseCircleOutlined />,  desc: "Đơn hàng đã bị hủy" },
+  refund_pending:      { color: "orange",  label: "Chờ hoàn tiền",       icon: <DollarOutlined />,       desc: "Yêu cầu hoàn tiền đang chờ xử lý" },
+  refund_processing:   { color: "blue",    label: "Đang hoàn tiền",      icon: <DollarOutlined />,       desc: "Đang xử lý hoàn tiền" },
+  refund_completed:    { color: "green",   label: "Đã hoàn tiền",        icon: <CheckCircleOutlined />,  desc: "Hoàn tiền thành công" },
+  return_requested:    { color: "orange",  label: "Yêu cầu trả hàng",    icon: <RollbackOutlined />,     desc: "Yêu cầu trả hàng đang chờ xử lý" },
+  return_shipping:     { color: "purple",  label: "Đang trả hàng",       icon: <TruckOutlined />,        desc: "Hàng đang được gửi về" },
+  return_received:     { color: "blue",    label: "Đã nhận hàng trả",    icon: <CheckCircleOutlined />,  desc: "Đã nhận hàng trả về" },
+  exchange_requested:  { color: "orange",  label: "Yêu cầu đổi hàng",    icon: <SwapOutlined />,         desc: "Yêu cầu đổi hàng đang chờ xử lý" },
+  exchange_shipping:   { color: "purple",  label: "Đang đổi hàng",       icon: <TruckOutlined />,        desc: "Đang xử lý đổi hàng" },
+  exchange_completed:  { color: "green",   label: "Đã đổi hàng",         icon: <CheckCircleOutlined />,  desc: "Đổi hàng thành công" },
 };
 
 const paymentConfig = {
@@ -61,7 +76,36 @@ const getSteps = (order: OrderData) =>
   order.paymentMethod === "cod" ? COD_STEPS : VNPAY_STEPS;
 
 const getProgress = (order: OrderData) => {
-  if (order.status === "cancelled") return { percent: 100, status: "exception" as const };
+  // Cancelled
+  if (order.status === "cancelled") {
+    return { percent: 100, status: "exception" as const };
+  }
+  
+  // Refund flow
+  if (order.status.startsWith("refund")) {
+    const refundSteps = ["refund_pending", "refund_processing", "refund_completed"];
+    const idx = refundSteps.indexOf(order.status);
+    const pct = idx < 0 ? 10 : Math.round(((idx + 1) / refundSteps.length) * 100);
+    return { percent: pct, status: "active" as const };
+  }
+  
+  // Return flow
+  if (order.status.startsWith("return")) {
+    const returnSteps = ["return_requested", "return_shipping", "return_received"];
+    const idx = returnSteps.indexOf(order.status);
+    const pct = idx < 0 ? 10 : Math.round(((idx + 1) / returnSteps.length) * 100);
+    return { percent: pct, status: "active" as const };
+  }
+  
+  // Exchange flow
+  if (order.status.startsWith("exchange")) {
+    const exchangeSteps = ["exchange_requested", "exchange_completed"];
+    const idx = exchangeSteps.indexOf(order.status);
+    const pct = idx < 0 ? 50 : 100;
+    return { percent: pct, status: "active" as const };
+  }
+  
+  // Normal flow
   const steps = getSteps(order);
   const idx = steps.indexOf(order.status);
   const pct = idx < 0 ? 10 : Math.round(((idx + 1) / steps.length) * 100);
@@ -70,23 +114,8 @@ const getProgress = (order: OrderData) => {
 
 const getTimelineItems = (order: OrderData) => {
   const isCOD = order.paymentMethod === "cod";
-  const steps = isCOD
-    ? [
-        { key: "pending",   title: "Đặt hàng thành công",  desc: "Đơn hàng đã được tạo",                        time: order.createdAt },
-        { key: "confirmed", title: "Đã xác nhận",           desc: "Đơn COD đã xác nhận, thanh toán khi nhận",    time: order.updatedAt },
-        { key: "shipping",  title: "Đang giao hàng",        desc: "Đơn hàng đang được vận chuyển",               time: order.updatedAt },
-        { key: "completed", title: "Giao hàng thành công",  desc: "Đã giao và thu tiền COD thành công",          time: order.updatedAt },
-      ]
-    : [
-        { key: "pending",   title: "Đặt hàng thành công",  desc: "Đơn hàng đã được tạo",                        time: order.createdAt },
-        { key: "paid",      title: "Đã thanh toán VNPay",  desc: "Thanh toán online thành công",                time: order.updatedAt },
-        { key: "shipping",  title: "Đang giao hàng",        desc: "Đơn hàng đang được vận chuyển",               time: order.updatedAt },
-        { key: "completed", title: "Giao hàng thành công",  desc: "Đơn hàng đã được giao đến bạn",              time: order.updatedAt },
-      ];
-
-  const currentSteps = getSteps(order);
-  const currentIdx = currentSteps.indexOf(order.status);
-
+  
+  // Timeline cho trạng thái cancelled
   if (order.status === "cancelled") {
     return [
       {
@@ -111,6 +140,125 @@ const getTimelineItems = (order: OrderData) => {
       },
     ];
   }
+  
+  // Timeline cho trạng thái refund
+  if (order.status.startsWith("refund")) {
+    const refundSteps = [
+      { key: "refund_pending", title: "Yêu cầu hoàn tiền", desc: "Đang chờ admin xử lý" },
+      { key: "refund_processing", title: "Đang xử lý hoàn tiền", desc: "Admin đang xử lý yêu cầu" },
+      { key: "refund_completed", title: "Hoàn tiền thành công", desc: "Đã hoàn tiền vào tài khoản" },
+    ];
+    
+    const currentIdx = refundSteps.findIndex(s => s.key === order.status);
+    
+    return refundSteps.map((step, i) => {
+      const done = i <= currentIdx;
+      const active = i === currentIdx;
+      const cfg = statusConfig[step.key as keyof typeof statusConfig];
+      
+      return {
+        dot: React.cloneElement(cfg.icon, {
+          style: { fontSize: 16, color: done ? (active ? "#1890ff" : "#52c41a") : "#d9d9d9" },
+        }),
+        children: (
+          <div>
+            <Text strong className={done ? (active ? "text-blue-600" : "text-green-600") : "text-gray-300"}>
+              {step.title}
+            </Text>
+            <div className={`text-xs mt-1 ${done ? "text-gray-500" : "text-gray-300"}`}>{step.desc}</div>
+            {done && (
+              <div className="text-xs text-gray-400">{new Date(order.updatedAt).toLocaleString("vi-VN")}</div>
+            )}
+          </div>
+        ),
+      };
+    });
+  }
+  
+  // Timeline cho trạng thái return
+  if (order.status.startsWith("return")) {
+    const returnSteps = [
+      { key: "return_requested", title: "Yêu cầu trả hàng", desc: "Đang chờ admin xác nhận" },
+      { key: "return_shipping", title: "Đang gửi hàng về", desc: "Hàng đang được vận chuyển về kho" },
+      { key: "return_received", title: "Đã nhận hàng trả", desc: "Kho đã nhận hàng, chờ hoàn tiền" },
+    ];
+    
+    const currentIdx = returnSteps.findIndex(s => s.key === order.status);
+    
+    return returnSteps.map((step, i) => {
+      const done = i <= currentIdx;
+      const active = i === currentIdx;
+      const cfg = statusConfig[step.key as keyof typeof statusConfig];
+      
+      return {
+        dot: React.cloneElement(cfg.icon, {
+          style: { fontSize: 16, color: done ? (active ? "#1890ff" : "#52c41a") : "#d9d9d9" },
+        }),
+        children: (
+          <div>
+            <Text strong className={done ? (active ? "text-blue-600" : "text-green-600") : "text-gray-300"}>
+              {step.title}
+            </Text>
+            <div className={`text-xs mt-1 ${done ? "text-gray-500" : "text-gray-300"}`}>{step.desc}</div>
+            {done && (
+              <div className="text-xs text-gray-400">{new Date(order.updatedAt).toLocaleString("vi-VN")}</div>
+            )}
+          </div>
+        ),
+      };
+    });
+  }
+  
+  // Timeline cho trạng thái exchange
+  if (order.status.startsWith("exchange")) {
+    const exchangeSteps = [
+      { key: "exchange_requested", title: "Yêu cầu đổi hàng", desc: "Đang chờ admin xác nhận" },
+      { key: "exchange_completed", title: "Đổi hàng thành công", desc: "Đã tạo đơn hàng mới (giá 0đ)" },
+    ];
+    
+    const currentIdx = exchangeSteps.findIndex(s => s.key === order.status);
+    
+    return exchangeSteps.map((step, i) => {
+      const done = i <= currentIdx;
+      const active = i === currentIdx;
+      const cfg = statusConfig[step.key as keyof typeof statusConfig];
+      
+      return {
+        dot: React.cloneElement(cfg.icon, {
+          style: { fontSize: 16, color: done ? (active ? "#1890ff" : "#52c41a") : "#d9d9d9" },
+        }),
+        children: (
+          <div>
+            <Text strong className={done ? (active ? "text-blue-600" : "text-green-600") : "text-gray-300"}>
+              {step.title}
+            </Text>
+            <div className={`text-xs mt-1 ${done ? "text-gray-500" : "text-gray-300"}`}>{step.desc}</div>
+            {done && (
+              <div className="text-xs text-gray-400">{new Date(order.updatedAt).toLocaleString("vi-VN")}</div>
+            )}
+          </div>
+        ),
+      };
+    });
+  }
+  
+  // Timeline cho flow bình thường (pending → completed)
+  const steps = isCOD
+    ? [
+        { key: "pending",   title: "Đặt hàng thành công",  desc: "Đơn hàng đã được tạo",                        time: order.createdAt },
+        { key: "confirmed", title: "Đã xác nhận",           desc: "Đơn COD đã xác nhận, thanh toán khi nhận",    time: order.updatedAt },
+        { key: "shipping",  title: "Đang giao hàng",        desc: "Đơn hàng đang được vận chuyển",               time: order.updatedAt },
+        { key: "completed", title: "Giao hàng thành công",  desc: "Đã giao và thu tiền COD thành công",          time: order.updatedAt },
+      ]
+    : [
+        { key: "pending",   title: "Đặt hàng thành công",  desc: "Đơn hàng đã được tạo",                        time: order.createdAt },
+        { key: "paid",      title: "Đã thanh toán VNPay",  desc: "Thanh toán online thành công",                time: order.updatedAt },
+        { key: "shipping",  title: "Đang giao hàng",        desc: "Đơn hàng đang được vận chuyển",               time: order.updatedAt },
+        { key: "completed", title: "Giao hàng thành công",  desc: "Đơn hàng đã được giao đến bạn",              time: order.updatedAt },
+      ];
+
+  const currentSteps = getSteps(order);
+  const currentIdx = currentSteps.indexOf(order.status);
 
   return steps.map((step, i) => {
     const done = i <= currentIdx;
@@ -153,6 +301,9 @@ export default function Orders() {
   const [searchText, setSearchText] = useState("");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [refundModalVisible, setRefundModalVisible] = useState(false);
+  const [returnExchangeModalVisible, setReturnExchangeModalVisible] = useState(false);
+  const [selectedOrderForAction, setSelectedOrderForAction] = useState<OrderData | null>(null);
   const navigate = useNavigate();
 
   // Thống kê tổng quan
@@ -191,6 +342,27 @@ export default function Orders() {
   };
 
   const handleCancelOrder = (orderId: string) => {
+    // Tìm order để kiểm tra
+    const order = orders.find(o => o._id === orderId);
+    
+    // Nếu đơn đã thanh toán VNPay, mở form hoàn tiền thay vì hủy trực tiếp
+    if (order && order.paymentMethod === 'vnpay' && ['paid', 'confirmed'].includes(order.status)) {
+      Modal.confirm({
+        title: "Hủy đơn hàng đã thanh toán",
+        icon: <DollarOutlined style={{ color: "#1890ff" }} />,
+        content: "Đơn hàng này đã thanh toán qua VNPay. Bạn cần cung cấp thông tin tài khoản để nhận hoàn tiền.",
+        okText: "Tiếp tục",
+        cancelText: "Hủy bỏ",
+        onOk: () => {
+          // Mở modal hoàn tiền
+          setSelectedOrderForAction(order);
+          setRefundModalVisible(true);
+        },
+      });
+      return;
+    }
+    
+    // Đơn COD hoặc chưa thanh toán - hủy bình thường
     Modal.confirm({
       title: "Xác nhận hủy đơn",
       icon: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
@@ -209,6 +381,50 @@ export default function Orders() {
         }
       },
     });
+  };
+
+  const handleOpenRefundModal = (order: OrderData) => {
+    setSelectedOrderForAction(order);
+    setRefundModalVisible(true);
+  };
+
+  const handleOpenReturnExchangeModal = (order: OrderData) => {
+    setSelectedOrderForAction(order);
+    setReturnExchangeModalVisible(true);
+  };
+
+  const handleModalSuccess = () => {
+    loadOrders();
+    if (selected) {
+      // Reload selected order details
+      apiClient.get(`/orders/me/${selected._id}`)
+        .then(res => setSelected(res.data.data))
+        .catch(() => setSelected(null));
+    }
+  };
+
+  // Kiểm tra xem đơn hàng có thể yêu cầu hoàn tiền không
+  const canRequestRefund = (order: OrderData) => {
+    const refundableStatuses = ['paid', 'confirmed', 'shipping', 'completed'];
+    if (!refundableStatuses.includes(order.status)) return false;
+    
+    // Nếu completed, kiểm tra thời hạn 3 ngày
+    if (order.status === 'completed') {
+      const completedDate = new Date(order.updatedAt);
+      const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince <= 3;
+    }
+    
+    return true;
+  };
+
+  // Kiểm tra xem đơn hàng có thể yêu cầu trả/đổi hàng không
+  const canRequestReturnExchange = (order: OrderData) => {
+    if (order.status !== 'completed') return false;
+    
+    const completedDate = new Date(order.updatedAt);
+    const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince <= 3;
   };
 
   const filtered = orders.filter((order) => {
@@ -349,13 +565,13 @@ export default function Orders() {
     {
       title: "",
       render: (_, record) => (
-        <Space>
+        <Space direction="vertical" size="small">
           <Button
             type="primary"
             size="small"
             icon={<EyeOutlined />}
             onClick={() => setSelected(record)}
-            className="bg-[#6272B6] border-0 rounded-full"
+            className="bg-[#6272B6] border-0 rounded-full w-full"
           >
             Chi tiết
           </Button>
@@ -365,14 +581,35 @@ export default function Orders() {
               size="small"
               icon={<CloseCircleOutlined />}
               onClick={() => handleCancelOrder(record._id)}
-              className="rounded-full"
+              className="rounded-full w-full"
             >
-              Hủy
+              Hủy đơn
+            </Button>
+          )}
+          {canRequestRefund(record) && (
+            <Button
+              size="small"
+              icon={<DollarOutlined />}
+              onClick={() => handleOpenRefundModal(record)}
+              className="rounded-full w-full bg-blue-50 text-blue-600 border-blue-300"
+            >
+              Hoàn tiền
+            </Button>
+          )}
+          {canRequestReturnExchange(record) && (
+            <Button
+              size="small"
+              icon={<SwapOutlined />}
+              onClick={() => handleOpenReturnExchangeModal(record)}
+              className="rounded-full w-full bg-green-50 text-green-600 border-green-300"
+            >
+              Trả/Đổi
             </Button>
           )}
         </Space>
       ),
-      width: 160,
+      width: 120,
+      fixed: 'right' as const,
     },
   ];
 
@@ -588,13 +825,34 @@ export default function Orders() {
                   className="mb-2"
                 />
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>🛒 Đặt hàng</span>
-                  {selected.paymentMethod === "cod"
-                    ? <span>✅ Xác nhận</span>
-                    : <span>💳 Thanh toán</span>
-                  }
-                  <span>🚚 Vận chuyển</span>
-                  <span>✅ Hoàn thành</span>
+                  {selected.status.startsWith("refund") ? (
+                    <>
+                      <span>💰 Yêu cầu</span>
+                      <span>⏳ Xử lý</span>
+                      <span>✅ Hoàn tiền</span>
+                    </>
+                  ) : selected.status.startsWith("return") ? (
+                    <>
+                      <span>📦 Yêu cầu</span>
+                      <span>🚚 Gửi về</span>
+                      <span>✅ Đã nhận</span>
+                    </>
+                  ) : selected.status.startsWith("exchange") ? (
+                    <>
+                      <span>🔄 Yêu cầu</span>
+                      <span>✅ Đổi hàng</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🛒 Đặt hàng</span>
+                      {selected.paymentMethod === "cod"
+                        ? <span>✅ Xác nhận</span>
+                        : <span>💳 Thanh toán</span>
+                      }
+                      <span>🚚 Vận chuyển</span>
+                      <span>✅ Hoàn thành</span>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -694,11 +952,63 @@ export default function Orders() {
                   Hủy đơn hàng
                 </Button>
               )}
+              {canRequestRefund(selected) && (
+                <Button
+                  icon={<DollarOutlined />}
+                  onClick={() => {
+                    handleOpenRefundModal(selected);
+                    setSelected(null);
+                  }}
+                  className="rounded-full px-6 bg-blue-50 text-blue-600 border-blue-300"
+                >
+                  Yêu cầu hoàn tiền
+                </Button>
+              )}
+              {canRequestReturnExchange(selected) && (
+                <Button
+                  icon={<SwapOutlined />}
+                  onClick={() => {
+                    handleOpenReturnExchangeModal(selected);
+                    setSelected(null);
+                  }}
+                  className="rounded-full px-6 bg-green-50 text-green-600 border-green-300"
+                >
+                  Trả/Đổi hàng
+                </Button>
+              )}
               <Button onClick={() => setSelected(null)} className="rounded-full px-8">Đóng</Button>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Refund Modal */}
+      {selectedOrderForAction && (
+        <RefundModal
+          visible={refundModalVisible}
+          orderId={selectedOrderForAction._id}
+          orderTotal={selectedOrderForAction.totals.total}
+          onClose={() => {
+            setRefundModalVisible(false);
+            setSelectedOrderForAction(null);
+          }}
+          onSuccess={handleModalSuccess}
+        />
+      )}
+
+      {/* Return/Exchange Modal */}
+      {selectedOrderForAction && (
+        <ReturnExchangeModal
+          visible={returnExchangeModalVisible}
+          orderId={selectedOrderForAction._id}
+          orderItems={selectedOrderForAction.items}
+          onClose={() => {
+            setReturnExchangeModalVisible(false);
+            setSelectedOrderForAction(null);
+          }}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </div>
   );
 }
