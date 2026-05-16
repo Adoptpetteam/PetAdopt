@@ -22,6 +22,7 @@ import {
   SendOutlined,
   DollarOutlined,
   TeamOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { getPetById } from "../api/petApi";
 import { createAdoptionRequest } from "../api/adoptionApi";
@@ -54,6 +55,34 @@ export default function AdoptForm() {
     monthlyIncome: "",
     commitment: false,
   });
+
+  // Add animation styles
+  const animationStyles = `
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-out;
+    }
+  `;
+
+  useEffect(() => {
+    // Inject animation styles
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = animationStyles;
+    document.head.appendChild(styleSheet);
+    
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -185,8 +214,8 @@ export default function AdoptForm() {
     switch (currentStep) {
       case 0:
         return (
-          <div className="space-y-6">
-            <div>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="transform transition-all duration-300 hover:scale-[1.02]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <UserOutlined className="mr-2 text-[#6272B6]" />
                 Họ và tên <span className="text-red-500">*</span>
@@ -196,10 +225,12 @@ export default function AdoptForm() {
                 placeholder="Nguyễn Trung Huy"
                 value={form.fullName}
                 onChange={(e) => handleChange("fullName", e.target.value)}
+                className="rounded-xl border-2 hover:border-[#6272B6] focus:border-[#6272B6] transition-all"
+                prefix={<UserOutlined className="text-gray-400" />}
               />
             </div>
 
-            <div>
+            <div className="transform transition-all duration-300 hover:scale-[1.02]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <PhoneOutlined className="mr-2 text-[#6272B6]" />
                 Số điện thoại <span className="text-red-500">*</span>
@@ -209,10 +240,12 @@ export default function AdoptForm() {
                 placeholder="09xxxxxxxx"
                 value={form.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
+                className="rounded-xl border-2 hover:border-[#6272B6] focus:border-[#6272B6] transition-all"
+                prefix={<PhoneOutlined className="text-gray-400" />}
               />
             </div>
 
-            <div>
+            <div className="transform transition-all duration-300 hover:scale-[1.02]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <HomeOutlined className="mr-2 text-[#6272B6]" />
                 Địa chỉ <span className="text-red-500">*</span>
@@ -222,6 +255,7 @@ export default function AdoptForm() {
                 placeholder="Nhập địa chỉ đầy đủ của bạn"
                 value={form.address}
                 onChange={(e) => handleChange("address", e.target.value)}
+                className="rounded-xl border-2 hover:border-[#6272B6] focus:border-[#6272B6] transition-all"
               />
             </div>
           </div>
@@ -229,17 +263,207 @@ export default function AdoptForm() {
 
       case 1:
         return (
-          <div className="space-y-6">
-            <p className="text-gray-500">Thông tin điều kiện sống của bạn.</p>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="transform transition-all duration-300 hover:scale-[1.02]">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <HomeOutlined className="mr-2 text-[#6272B6]" />
+                  Loại nhà ở <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  size="large"
+                  placeholder="Chọn loại nhà ở"
+                  value={form.housingType}
+                  onChange={(value) => handleChange("housingType", value)}
+                  className="w-full rounded-xl"
+                >
+                  <Option value="apartment">🏢 Chung cư</Option>
+                  <Option value="house">🏠 Nhà riêng</Option>
+                  <Option value="farm">🌾 Trang trại</Option>
+                  <Option value="other">🏘️ Khác</Option>
+                </Select>
+              </div>
+
+              <div className="transform transition-all duration-300 hover:scale-[1.02]">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <TeamOutlined className="mr-2 text-[#6272B6]" />
+                  Số thành viên gia đình <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  size="large"
+                  type="number"
+                  placeholder="VD: 4"
+                  value={form.familyMembers}
+                  onChange={(e) => handleChange("familyMembers", e.target.value)}
+                  className="rounded-xl border-2 hover:border-[#6272B6] focus:border-[#6272B6] transition-all"
+                  prefix={<TeamOutlined className="text-gray-400" />}
+                />
+              </div>
+            </div>
+
+            <div className="transform transition-all duration-300 hover:scale-[1.02]">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <DollarOutlined className="mr-2 text-[#6272B6]" />
+                Thu nhập hàng tháng <span className="text-red-500">*</span>
+              </label>
+              <Select
+                size="large"
+                placeholder="Chọn mức thu nhập"
+                value={form.monthlyIncome}
+                onChange={(value) => handleChange("monthlyIncome", value)}
+                className="w-full rounded-xl"
+              >
+                <Option value="under_5m">💰 Dưới 5 triệu</Option>
+                <Option value="5m_10m">💵 5-10 triệu</Option>
+                <Option value="10m_20m">💸 10-20 triệu</Option>
+                <Option value="over_20m">💎 Trên 20 triệu</Option>
+              </Select>
+            </div>
+
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-2xl border-2 border-blue-100 space-y-4">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center">
+                <HomeOutlined className="mr-2 text-[#6272B6]" />
+                Thông tin thêm
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all">
+                  <Checkbox
+                    checked={form.hasYard}
+                    onChange={(e) => handleChange("hasYard", e.target.checked)}
+                    className="text-base"
+                  >
+                    <span className="font-medium">🌳 Có sân vườn</span>
+                  </Checkbox>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all">
+                  <Checkbox
+                    checked={form.hasChildren}
+                    onChange={(e) => handleChange("hasChildren", e.target.checked)}
+                    className="text-base"
+                  >
+                    <span className="font-medium">👶 Có trẻ em trong nhà</span>
+                  </Checkbox>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all">
+                  <Checkbox
+                    checked={form.hasOtherPets}
+                    onChange={(e) => handleChange("hasOtherPets", e.target.checked)}
+                    className="text-base"
+                  >
+                    <span className="font-medium">🐾 Đã nuôi thú cưng khác</span>
+                  </Checkbox>
+                </div>
+              </div>
+
+              {form.hasChildren && (
+                <div className="mt-4 animate-fadeIn">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Độ tuổi trẻ em
+                  </label>
+                  <Input
+                    size="large"
+                    placeholder="VD: 5, 8 tuổi"
+                    value={form.childrenAges}
+                    onChange={(e) => handleChange("childrenAges", e.target.value)}
+                    className="rounded-xl border-2 hover:border-[#6272B6] focus:border-[#6272B6] transition-all"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-6">
-            <p className="text-gray-500">
-              Vui lòng xác nhận cam kết trước khi gửi đơn.
-            </p>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="transform transition-all duration-300 hover:scale-[1.02]">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <FormOutlined className="mr-2 text-[#6272B6]" />
+                Lý do muốn nhận nuôi <span className="text-red-500">*</span>
+              </label>
+              <TextArea
+                rows={5}
+                placeholder="Chia sẻ lý do bạn muốn nhận nuôi thú cưng này... Hãy cho chúng tôi biết tại sao bạn nghĩ mình phù hợp để chăm sóc bé ❤️"
+                value={form.reason}
+                onChange={(e) => handleChange("reason", e.target.value)}
+                className="rounded-xl border-2 hover:border-[#6272B6] focus:border-[#6272B6] transition-all"
+                showCount
+                maxLength={1000}
+              />
+            </div>
+
+            <div className="transform transition-all duration-300 hover:scale-[1.02]">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <SafetyOutlined className="mr-2 text-[#6272B6]" />
+                Kinh nghiệm nuôi thú cưng
+              </label>
+              <Select
+                size="large"
+                placeholder="Chọn mức độ kinh nghiệm"
+                value={form.experience}
+                onChange={(value) => handleChange("experience", value)}
+                className="w-full rounded-xl"
+              >
+                <Option value="none">🌱 Chưa có kinh nghiệm</Option>
+                <Option value="basic">🌿 Mới bắt đầu (dưới 1 năm)</Option>
+                <Option value="experienced">🌳 Trung bình (1-3 năm)</Option>
+                <Option value="expert">🏆 Có kinh nghiệm (trên 3 năm)</Option>
+              </Select>
+            </div>
+
+            <div className="bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 p-8 rounded-3xl border-4 border-pink-200 shadow-xl">
+              <Checkbox
+                checked={form.commitment}
+                onChange={(e) => handleChange("commitment", e.target.checked)}
+                className="items-start"
+              >
+                <div className="ml-2">
+                  <p className="font-bold text-xl text-gray-800 mb-4 flex items-center">
+                    <HeartOutlined className="mr-3 text-red-500 text-2xl animate-pulse" />
+                    Cam kết nhận nuôi <span className="text-red-500 ml-2">*</span>
+                  </p>
+                  <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl">
+                    <p className="text-sm text-gray-600 mb-4 italic">
+                      Bằng việc đánh dấu vào ô này, tôi cam kết:
+                    </p>
+                    <ul className="space-y-3">
+                      <li className="flex items-start text-sm text-gray-700">
+                        <span className="text-green-500 mr-3 text-lg">✓</span>
+                        <span><strong>Chăm sóc chu đáo:</strong> Đảm bảo thú cưng được chăm sóc đầy đủ về sức khỏe, dinh dưỡng và tinh thần</span>
+                      </li>
+                      <li className="flex items-start text-sm text-gray-700">
+                        <span className="text-green-500 mr-3 text-lg">✓</span>
+                        <span><strong>Y tế định kỳ:</strong> Đưa thú cưng đi khám sức khỏe, tiêm phòng và điều trị khi cần thiết</span>
+                      </li>
+                      <li className="flex items-start text-sm text-gray-700">
+                        <span className="text-green-500 mr-3 text-lg">✓</span>
+                        <span><strong>Không bỏ rơi:</strong> Cam kết không bỏ rơi, ngược đãi hoặc chuyển nhượng thú cưng cho người khác</span>
+                      </li>
+                      <li className="flex items-start text-sm text-gray-700">
+                        <span className="text-green-500 mr-3 text-lg">✓</span>
+                        <span><strong>Thông báo kịp thời:</strong> Liên hệ với trung tâm nếu có vấn đề phát sinh hoặc không thể tiếp tục nuôi</span>
+                      </li>
+                      <li className="flex items-start text-sm text-gray-700">
+                        <span className="text-green-500 mr-3 text-lg">✓</span>
+                        <span><strong>Yêu thương trọn đời:</strong> Coi thú cưng như thành viên gia đình và yêu thương suốt đời</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </Checkbox>
+            </div>
+
+            {form.commitment && (
+              <div className="bg-green-50 border-2 border-green-200 p-4 rounded-2xl animate-fadeIn">
+                <p className="text-green-700 text-center font-medium flex items-center justify-center">
+                  <CheckCircleOutlined className="mr-2 text-xl" />
+                  Cảm ơn bạn đã cam kết! Chúng tôi tin tưởng bạn sẽ là người chủ tuyệt vời 💚
+                </p>
+              </div>
+            )}
           </div>
         );
 
@@ -279,12 +503,26 @@ export default function AdoptForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
-            <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
-              <img
-                src={petImage}
-                className="w-full h-[300px] object-cover"
-                alt={pet?.name}
-              />
+            <Card className="border-0 shadow-2xl rounded-3xl overflow-hidden sticky top-24 transform hover:scale-105 transition-all duration-300">
+              <div className="relative">
+                <img
+                  src={petImage}
+                  className="w-full h-[350px] object-cover"
+                  alt={pet?.name}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                  <h3 className="text-white text-2xl font-bold mb-2">{pet?.name}</h3>
+                  <div className="flex gap-2">
+                    <Tag color="blue" className="text-sm">{pet?.species}</Tag>
+                    <Tag color="green" className="text-sm">{pet?.age}</Tag>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 bg-gradient-to-br from-blue-50 to-purple-50">
+                <p className="text-gray-700 text-center italic">
+                  "Tôi đang chờ đợi một mái ấm yêu thương... 🐾"
+                </p>
+              </div>
             </Card>
           </div>
 
@@ -297,15 +535,16 @@ export default function AdoptForm() {
 
                 <Divider />
 
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <Button
                     size="large"
                     onClick={() =>
                       setCurrentStep(Math.max(0, currentStep - 1))
                     }
                     disabled={currentStep === 0}
+                    className="rounded-full px-8 hover:scale-105 transition-transform"
                   >
-                    Quay lại
+                    ← Quay lại
                   </Button>
 
                   {currentStep < 2 ? (
@@ -314,9 +553,9 @@ export default function AdoptForm() {
                       size="large"
                       onClick={() => setCurrentStep(currentStep + 1)}
                       disabled={!validateStep(currentStep)}
-                      className="bg-[#6272B6]"
+                      className="bg-gradient-to-r from-[#6272B6] to-purple-600 border-0 rounded-full px-8 hover:scale-105 transition-transform shadow-lg"
                     >
-                      Bước tiếp theo
+                      Bước tiếp theo →
                     </Button>
                   ) : (
                     <Button
@@ -325,9 +564,9 @@ export default function AdoptForm() {
                       loading={submitting}
                       onClick={handleSubmit}
                       icon={<SendOutlined />}
-                      className="bg-[#6272B6]"
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 border-0 rounded-full px-8 hover:scale-105 transition-transform shadow-lg"
                     >
-                      {submitting ? "Đang gửi..." : "Gửi đơn nhận nuôi"}
+                      {submitting ? "Đang gửi..." : "🎉 Gửi đơn nhận nuôi"}
                     </Button>
                   )}
                 </div>
