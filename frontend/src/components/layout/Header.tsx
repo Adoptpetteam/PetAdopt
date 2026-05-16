@@ -286,7 +286,7 @@ export default function Header() {
       </nav>
 
       {/* ===== DONORS MARQUEE ===== */}
-      <div className="bg-[#FFF5E1] text-[#D48B3B] h-10 flex items-center overflow-hidden border-t border-b border-[#F3E0C0]">
+      <div className="bg-[#FFF5E1] text-[#6272B6] h-10 flex items-center overflow-hidden border-t border-b border-[#F3E0C0]">
         {supporters.length > 0 ? (
           <div
             className="flex whitespace-nowrap font-medium text-sm"
