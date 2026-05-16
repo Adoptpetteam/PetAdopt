@@ -154,10 +154,10 @@ export default function Products() {
         {/* Tiêu đề với gradient và animation */}
         <div className="flex flex-col items-center mb-12">
           <div className="relative">
-            <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] via-purple-600 to-pink-500 mb-4 tracking-tight">
-              Cửa Hàng Thú Cưng ✨
+            <h1 className="text-5xl font-extrabold text-[#6272B6] mb-4 tracking-tight">
+              Cửa Hàng Thú Cưng
             </h1>
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-lg blur opacity-25"></div>
+            {/* <div className="absolute -inset-1 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-lg blur opacity-25"></div> */}
           </div>
           <div className="h-1 w-32 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-full mb-4"></div>
           <p className="text-gray-600 text-lg font-medium">Mọi thứ thú cưng cần cho cuộc sống hạnh phúc 🐾</p>
@@ -370,8 +370,7 @@ export default function Products() {
           margin-right: 8px !important;
         }
         .category-tabs .ant-tabs-tab-active {
-          background: #6272B6 !important;
-          color: white !important;
+          
         }
         .line-clamp-2 {
           display: -webkit-box;
