@@ -441,8 +441,8 @@ export default function RefundManagement() {
       <Card
         title={
           <div className="flex items-center justify-between">
-            <span className="text-xl font-bold">
-              <DollarOutlined className="mr-2" />
+            <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
+              
               Quản lý Hoàn hủy đơn hàng
             </span>
             <Button onClick={loadOrders} loading={loading}>
