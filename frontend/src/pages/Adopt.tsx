@@ -67,10 +67,10 @@ export default function Pets() {
         {/* Header */}
         <div className="text-center mb-16">
           <div className="relative inline-block">
-            <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 mb-4">
-              🔍 TÌM THÚ CƯNG
+            <h2 className="text-[32px] font-bold text-[#6272B6] mb-6">
+            TÌM THÚ CƯNG
             </h2>
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-lg blur opacity-25"></div>
+            {/* <div className="absolute -inset-1 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-lg blur opacity-25"></div> */}
           </div>
           <p className="text-gray-600 text-lg">Khám phá những người bạn bốn chân đang chờ đợi một mái ấm</p>
         </div>
@@ -127,14 +127,14 @@ export default function Pets() {
 
                 <input
                   type="text"
-                  placeholder="🔍 Tìm theo tên, mã, chip..."
+                  placeholder="Tìm theo tên, mã, chip..."
                   className="w-full h-14 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl px-6 outline-none border-2 border-transparent focus:border-[#6272B6] transition-all duration-300"
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 />
 
-                <button className="h-14 rounded-2xl bg-gradient-to-r from-[#6272B6] to-purple-600 text-white font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                  🔍 Tìm kiếm.
+                <button className="h-14 rounded-2xl bg-[#6272B6] text-white font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                  Tìm kiếm.
                 </button>
               </div>
             </div>
