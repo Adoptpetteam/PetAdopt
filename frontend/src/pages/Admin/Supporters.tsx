@@ -129,7 +129,7 @@ export default function Supporters() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-[#6272B6]">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
           Danh sách người ủng hộ
         </h1>
         <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
