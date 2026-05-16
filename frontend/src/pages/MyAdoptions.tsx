@@ -192,7 +192,7 @@ export default function MyAdoptions() {
           size="small"
           icon={<EyeOutlined />}
           onClick={() => showDetail(record)}
-          className="bg-[#6272B6] border-0"
+          className="!bg-[#6272B6] border-0"
         >
           Chi tiết
         </Button>
@@ -207,10 +207,10 @@ export default function MyAdoptions() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="relative inline-block">
-            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 mb-2">
+            <h1 className="text-4xl font-bold text-[#6272B6] mb-2">
               <HeartOutlined /> Đơn Nhận Nuôi Của Tôi
             </h1>
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-lg blur opacity-25"></div>
+            {/* <div className="absolute -inset-1 bg-gradient-to-r from-[#6272B6] to-purple-600 rounded-lg blur opacity-25"></div> */}
           </div>
           <p className="text-gray-600 mt-4">Theo dõi trạng thái các đơn nhận nuôi thú cưng</p>
         </div>

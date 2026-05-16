@@ -585,7 +585,7 @@ export default function Orders() {
             size="small"
             icon={<EyeOutlined />}
             onClick={() => setSelected(record)}
-            className="bg-[#6272B6] border-0 rounded-full w-full"
+            className="!bg-[#6272B6] border-0 rounded-full w-full"
           >
             Chi tiết
           </Button>
@@ -649,7 +649,7 @@ export default function Orders() {
           <Space>
             <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading}>Làm mới</Button>
             <Link to="/products">
-              <Button type="primary" icon={<ShoppingOutlined />} className="bg-[#6272B6] border-0 rounded-full">
+              <Button type="primary" icon={<ShoppingOutlined />} className="!bg-[#6272B6] border-0 rounded-full">
                 Mua thêm
               </Button>
             </Link>
@@ -747,9 +747,9 @@ export default function Orders() {
                     }}
                   >
                     Xóa bộ lọc
-                  </Button>
+                  </Button >
                   <Tooltip title="Xuất Excel">
-                    <Button icon={<DownloadOutlined />} type="primary" className="bg-green-500 border-0">
+                    <Button icon={<DownloadOutlined />} type="primary" className="!bg-[#6272B6] bg-green-500 border-0">
                       Xuất
                     </Button>
                   </Tooltip>
