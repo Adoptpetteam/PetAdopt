@@ -340,7 +340,12 @@ const OrderPage = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
-        <Title level={3} className="m-0">📦 Quản lý đơn hàng</Title>
+        <Title level={3} className="m-0">
+          <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
+            Quản lý đơn hàng
+          </div>
+          
+          </Title>
         <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading}>Làm mới</Button>
       </div>
 

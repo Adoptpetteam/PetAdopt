@@ -113,7 +113,8 @@ export default function Pets() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
-              <BugOutlined /> Quản lý Thú cưng
+              {/* <BugOutlined /> Quản lý Thú cưng */}
+              Quản lý thú cưng
             </h1>
             <p className="text-gray-500 mt-1">Quản lý danh sách thú cưng trong hệ thống</p>
           </div>

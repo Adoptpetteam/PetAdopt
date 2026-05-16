@@ -309,7 +309,7 @@ export default function Adoptions() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
-            <HeartOutlined /> Quản lý nhận nuôi
+             Quản lý nhận nuôi 
           </h1>
           <p className="text-gray-500 mt-1">Xem và xử lý các đơn nhận nuôi thú cưng</p>
         </div>
