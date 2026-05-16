@@ -9,6 +9,9 @@ router.use(authenticate);
 // GET /api/notifications - Lấy danh sách thông báo
 router.get('/', notificationController.getMyNotifications);
 
+// GET /api/notifications/me - Alias
+router.get('/me', notificationController.getMyNotifications);
+
 // GET /api/notifications/unread-count - Đếm số thông báo chưa đọc
 router.get('/unread-count', notificationController.getUnreadCount);
 

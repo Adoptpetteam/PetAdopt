@@ -36,6 +36,7 @@ const vaccinationRoutes = require('./src/routes/vaccination.routes');
 const reviewRoutes = require('./src/routes/review.routes');
 const notificationRoutes = require('./src/routes/notification.routes');
 const healthRecordRoutes = require('./src/routes/healthRecord.routes');
+const refundRoutes = require('./src/routes/refund.routes');
 
 const app = express();
 
@@ -131,6 +132,8 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 app.use('/api/health-records', healthRecordRoutes);
+
+app.use('/api/refunds', refundRoutes);
 
 // ===============================
 // HEALTH CHECK
