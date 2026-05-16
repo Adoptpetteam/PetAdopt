@@ -118,7 +118,7 @@ const Post = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#6272B6] m-0">Quản lý bài viết</h2>
+          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">Quản lý bài viết</h2>
           <div className="flex gap-3 mt-2">
             <Badge count={published} color="green" showZero>
               <span className="text-sm text-gray-500 mr-2">Đã đăng</span>
