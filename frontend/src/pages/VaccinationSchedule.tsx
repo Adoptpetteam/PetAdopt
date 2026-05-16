@@ -443,7 +443,7 @@ const VaccinationSchedule = () => {
             size="large"
             icon={<PlusOutlined />}
             onClick={() => openModal()}
-            className="bg-[#6272B6] hover:bg-[#4a569d] rounded-xl"
+            className="!bg-[#6272B6] hover:bg-[#4a569d] rounded-xl"
           >
             Thêm lịch tiêm
           </Button>
