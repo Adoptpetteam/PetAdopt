@@ -161,7 +161,7 @@ const User = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h2 className="text-2xl font-bold text-[#6272B6] mb-6">
+      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2 mb-4">
         Quản lý người dùng
       </h2>
 
