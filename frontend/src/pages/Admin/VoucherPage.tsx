@@ -283,7 +283,7 @@ export default function VoucherPage() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#6272B6] flex items-center gap-2">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
           <TagOutlined /> Quản lý Voucher
         </h1>
         <Space>
