@@ -33,10 +33,10 @@ export default function Volunteer() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-[#6272B6] to-purple-600 text-white py-20">
+      <div className="relative bg-[#6272B6] text-white py-20">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative max-w-6xl mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold mb-4">🤝 Trở Thành Tình Nguyện Viên</h1>
+          <h1 className="text-5xl font-bold mb-4">Trở Thành Tình Nguyện Viên</h1>
           <p className="text-xl opacity-90 max-w-2xl mx-auto">
             Hãy cùng chúng tôi mang lại cuộc sống tốt đẹp hơn cho những bé thú cưng đáng yêu
           </p>
@@ -82,8 +82,8 @@ export default function Volunteer() {
           className="shadow-2xl border-0"
           title={
             <div className="text-center py-4">
-              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600">
-                📝 Đăng Ký Tình Nguyện Viên
+              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-[#6272B6]">
+                Đăng Ký Tình Nguyện Viên
               </h2>
               <p className="text-gray-500 mt-2">Điền thông tin của bạn để tham gia cùng chúng tôi</p>
             </div>
@@ -204,7 +204,7 @@ export default function Volunteer() {
                 loading={loading}
                 className="w-full h-12 text-lg font-semibold rounded-lg bg-gradient-to-r from-[#6272B6] to-purple-600 border-0 hover:opacity-90"
               >
-                🚀 Gửi Đơn Đăng Ký
+                Gửi Đơn Đăng Ký
               </Button>
             </Form.Item>
           </Form>

@@ -57,7 +57,7 @@ export default function Pets() {
         <img src={Banner} className="w-full h-[400px] object-cover" alt="banner" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white">
-            <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">🐾 Tìm Người Bạn Đồng Hành</h1>
+            <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">Tìm Người Bạn Đồng Hành</h1>
             <p className="text-xl drop-shadow-md">Mang tình yêu thương về nhà cùng những chú thú cưng đáng yêu</p>
           </div>
         </div>
