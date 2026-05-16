@@ -641,7 +641,7 @@ export default function Orders() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Title level={2} className="text-[#6272B6] m-0 flex items-center gap-2">
+            <Title level={2} className="!text-[#6272B6] m-0 flex items-center gap-2">
               <BoxPlotOutlined /> Lịch sử mua hàng
             </Title>
             <Text type="secondary">Quản lý và theo dõi đơn hàng của bạn</Text>
