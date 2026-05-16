@@ -232,3 +232,27 @@ module.exports = {
   notifyVaccinationReminder,
   notifySystem
 };
+
+
+// ===============================
+// REFUND NOTIFICATIONS
+// ===============================
+
+exports.notifyRefundRequested = async (userId, orderId, orderCode, message) => {
+  try {
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      user: userId,
+      type: 'order',
+      title: `💰 Yêu cầu hoàn tiền - Đơn #${orderCode}`,
+      message: message || 'Đơn hàng của bạn đã bị hủy. Vui lòng điền form hoàn tiền để nhận lại tiền.',
+      relatedId: orderId,
+      relatedModel: 'Order',
+      link: `/orders`
+    });
+    console.log(`[Notification] Refund requested notification created for user ${userId}`);
+  } catch (error) {
+    console.error('[Notification] Error creating refund requested notification:', error.message);
+    throw error;
+  }
+};

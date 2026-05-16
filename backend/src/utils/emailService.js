@@ -621,3 +621,142 @@ exports.sendVaccinationReminder = async (email, data) => {
 
   return this.sendEmail(email, subject, html);
 };
+
+
+// ===============================
+// REFUND FORM EMAIL
+// ===============================
+
+exports.sendRefundFormEmail = async (email, data) => {
+  const { customerName, orderId, amount, reason, items, totals } = data;
+  
+  const subject = `💰 Thông báo hoàn tiền - Đơn hàng #${orderId.toString().slice(-8).toUpperCase()}`;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #6272B6; margin: 0 0 10px 0;">🐾 Pet Adopt</h1>
+          <h2 style="color: #333; margin: 0;">Thông báo hoàn tiền</h2>
+        </div>
+
+        <!-- Greeting -->
+        <p style="color: #333; font-size: 16px; line-height: 1.6;">
+          Xin chào <strong>${customerName}</strong>,
+        </p>
+
+        <!-- Alert Box -->
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 20px 0;">
+          <p style="color: #856404; margin: 0; font-weight: bold;">⚠️ Đơn hàng của bạn đã bị hủy</p>
+          <p style="color: #856404; margin: 10px 0 0 0;">
+            Lý do: ${reason}
+          </p>
+        </div>
+
+        <!-- Order Info -->
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #333; margin: 0 0 15px 0;">📦 Thông tin đơn hàng</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; font-weight: bold;">Mã đơn hàng:</td>
+              <td style="padding: 8px 0; color: #333; font-weight: bold;">#${orderId.toString().slice(-8).toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666; font-weight: bold;">Số tiền hoàn:</td>
+              <td style="padding: 8px 0; color: #6272B6; font-weight: bold; font-size: 18px;">${amount.toLocaleString()}đ</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666; font-weight: bold;">Phương thức thanh toán:</td>
+              <td style="padding: 8px 0; color: #333;">VNPay</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Products -->
+        ${items && items.length > 0 ? `
+        <div style="margin: 20px 0;">
+          <h3 style="color: #333; margin: 0 0 15px 0;">🛍️ Sản phẩm</h3>
+          ${items.map(item => `
+            <div style="display: flex; align-items: center; padding: 10px; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+              <div style="flex: 1;">
+                <div style="font-weight: bold; color: #333;">${item.name}</div>
+                <div style="color: #666; font-size: 14px;">${item.quantity} × ${item.price.toLocaleString()}đ</div>
+              </div>
+              <div style="font-weight: bold; color: #6272B6;">${(item.quantity * item.price).toLocaleString()}đ</div>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        <!-- Refund Instructions -->
+        <div style="background-color: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8; margin: 20px 0;">
+          <h3 style="color: #0c5460; margin: 0 0 15px 0;">💳 Hướng dẫn nhận hoàn tiền</h3>
+          <p style="color: #0c5460; margin: 0 0 10px 0;">
+            Để nhận lại số tiền <strong>${amount.toLocaleString()}đ</strong>, vui lòng làm theo các bước sau:
+          </p>
+          <ol style="color: #0c5460; margin: 0; padding-left: 20px;">
+            <li style="margin-bottom: 8px;">Truy cập trang "Đơn hàng của tôi"</li>
+            <li style="margin-bottom: 8px;">Tìm đơn hàng #${orderId.toString().slice(-8).toUpperCase()}</li>
+            <li style="margin-bottom: 8px;">Click vào nút "Điền form hoàn tiền"</li>
+            <li style="margin-bottom: 8px;">Điền đầy đủ thông tin tài khoản ngân hàng</li>
+            <li style="margin-bottom: 8px;">Gửi form và chờ admin xử lý (1-3 ngày làm việc)</li>
+          </ol>
+        </div>
+
+        <!-- Required Info -->
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="color: #333; margin: 0 0 10px 0;">📝 Thông tin cần cung cấp:</h4>
+          <ul style="color: #666; margin: 0; padding-left: 20px;">
+            <li>Số tài khoản ngân hàng</li>
+            <li>Tên ngân hàng</li>
+            <li>Tên chủ tài khoản (phải trùng với tên người đặt hàng)</li>
+            <li>Ảnh QR Code ngân hàng (tùy chọn - giúp xử lý nhanh hơn)</li>
+          </ul>
+        </div>
+
+        <!-- CTA Button -->
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL}/orders"
+             style="background-color: #6272B6; color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; font-size: 16px;">
+            💰 Điền Form Hoàn Tiền Ngay
+          </a>
+        </div>
+
+        <!-- Note -->
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #856404; margin: 0; font-size: 14px;">
+            <strong>⏰ Lưu ý:</strong> Vui lòng điền form trong vòng 7 ngày kể từ khi nhận email này. 
+            Sau thời gian trên, bạn cần liên hệ trực tiếp với chúng tôi để được hỗ trợ.
+          </p>
+        </div>
+
+        <!-- Support -->
+        <div style="text-align: center; margin: 20px 0;">
+          <p style="color: #666; margin: 0 0 10px 0;">Cần hỗ trợ? Liên hệ với chúng tôi:</p>
+          <p style="margin: 0;">
+            <a href="mailto:${process.env.EMAIL_FROM}" style="color: #6272B6; text-decoration: none; font-weight: bold;">
+              📧 ${process.env.EMAIL_FROM}
+            </a>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+          <p style="margin: 0 0 10px 0;">
+            <strong>Pet Adopt - Chăm sóc thú cưng với tình yêu thương</strong>
+          </p>
+          <p style="margin: 0;">
+            📧 Email: ${process.env.EMAIL_FROM} | 🌐 Website: ${process.env.FRONTEND_URL}
+          </p>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #999;">
+            Bạn nhận được email này vì đơn hàng của bạn đã bị hủy và cần hoàn tiền
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return this.sendEmail(email, subject, html);
+};

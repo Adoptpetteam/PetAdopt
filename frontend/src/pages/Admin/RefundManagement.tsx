@@ -8,7 +8,7 @@ import {
   DollarOutlined, CheckCircleOutlined, CloseCircleOutlined,
   EyeOutlined, BankOutlined, UserOutlined, PhoneOutlined,
   HomeOutlined, SwapOutlined, RollbackOutlined, TruckOutlined,
-  QrcodeOutlined, UploadOutlined,
+  QrcodeOutlined, UploadOutlined, ClockCircleOutlined,
 } from '@ant-design/icons';
 import { apiClient } from '../../api/http';
 import dayjs from 'dayjs';
@@ -18,7 +18,15 @@ const { TextArea } = Input;
 interface Order {
   _id: string;
   user: { _id: string; name: string; email: string };
+  
+  // OLD STATUS (deprecated)
   status: string;
+  
+  // NEW STATUS (recommended)
+  orderStatus?: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
+  paymentStatus?: "unpaid" | "pending" | "paid" | "refunding" | "refunded" | "failed";
+  returnStatus?: null | "requested" | "approved" | "rejected" | "shipping" | "received" | "completed";
+  
   createdAt: string;
   updatedAt: string;
   customer: { name: string; phone: string; address: string };
@@ -47,6 +55,7 @@ interface Order {
   };
 }
 
+// OLD STATUS CONFIG (deprecated)
 const statusConfig: Record<string, { color: string; label: string }> = {
   refund_pending: { color: 'orange', label: 'Chờ hoàn tiền' },
   refund_processing: { color: 'blue', label: 'Đang hoàn tiền' },
@@ -56,6 +65,34 @@ const statusConfig: Record<string, { color: string; label: string }> = {
   return_received: { color: 'blue', label: 'Đã nhận hàng trả' },
   exchange_requested: { color: 'orange', label: 'Yêu cầu đổi hàng' },
   exchange_completed: { color: 'green', label: 'Đã đổi hàng' },
+};
+
+// NEW STATUS CONFIGS - Giống app giao hàng
+const orderStatusConfig = {
+  pending:   { color: "orange",  label: "Chờ xác nhận",        icon: <ClockCircleOutlined /> },
+  confirmed: { color: "blue",    label: "Đã xác nhận",         icon: <CheckCircleOutlined /> },
+  shipping:  { color: "purple",  label: "Đang giao hàng",      icon: <TruckOutlined /> },
+  delivered: { color: "green",   label: "Giao hàng thành công", icon: <CheckCircleOutlined /> },
+  cancelled: { color: "red",     label: "Đã hủy",              icon: <CloseCircleOutlined /> },
+};
+
+const paymentStatusConfig = {
+  unpaid:    { color: "default", label: "Chưa thanh toán",      icon: <DollarOutlined /> },
+  pending:   { color: "orange",  label: "Chờ thanh toán",       icon: <ClockCircleOutlined /> },
+  paid:      { color: "green",   label: "Đã thanh toán",        icon: <CheckCircleOutlined /> },
+  refunding: { color: "blue",    label: "Đang hoàn tiền",       icon: <DollarOutlined /> },
+  refunded:  { color: "green",   label: "Đã hoàn tiền",         icon: <CheckCircleOutlined /> },
+  failed:    { color: "red",     label: "Thanh toán thất bại",  icon: <CloseCircleOutlined /> },
+};
+
+const returnStatusConfig = {
+  null:      { color: "default", label: "Không có",         icon: null },
+  requested: { color: "orange",  label: "Yêu cầu hoàn trả", icon: <SwapOutlined /> },
+  approved:  { color: "cyan",    label: "Đã chấp thuận",    icon: <CheckCircleOutlined /> },
+  rejected:  { color: "red",     label: "Đã từ chối",       icon: <CloseCircleOutlined /> },
+  shipping:  { color: "purple",  label: "Đang gửi về",      icon: <TruckOutlined /> },
+  received:  { color: "blue",    label: "Đã nhận hàng",     icon: <CheckCircleOutlined /> },
+  completed: { color: "green",   label: "Hoàn tất",         icon: <CheckCircleOutlined /> },
 };
 
 export default function RefundManagement() {
@@ -238,16 +275,38 @@ export default function RefundManagement() {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
-      render: (status: string) => {
-        const config = statusConfig[status];
-        return config ? (
-          <Tag color={config.color}>{config.label}</Tag>
-        ) : (
-          <Tag>{status}</Tag>
+      render: (_, record) => {
+        // Sử dụng trạng thái mới nếu có, fallback về status cũ
+        const orderSt = record.orderStatus || 'pending';
+        const paymentSt = record.paymentStatus || 'unpaid';
+        const returnSt = record.returnStatus;
+        
+        const orderCfg = orderStatusConfig[orderSt as keyof typeof orderStatusConfig];
+        const paymentCfg = paymentStatusConfig[paymentSt as keyof typeof paymentStatusConfig];
+        const returnCfg = returnSt ? returnStatusConfig[returnSt as keyof typeof returnStatusConfig] : null;
+        
+        return (
+          <Space direction="vertical" size={2} style={{ width: '100%' }}>
+            {/* Trạng thái đơn hàng */}
+            <Tag icon={orderCfg?.icon} color={orderCfg?.color} className="w-full text-center text-xs">
+              📦 {orderCfg?.label}
+            </Tag>
+            
+            {/* Trạng thái thanh toán */}
+            <Tag icon={paymentCfg?.icon} color={paymentCfg?.color} className="w-full text-center text-xs">
+              💰 {paymentCfg?.label}
+            </Tag>
+            
+            {/* Trạng thái hoàn trả (nếu có) */}
+            {returnCfg && (
+              <Tag icon={returnCfg?.icon} color={returnCfg?.color} className="w-full text-center text-xs">
+                🔄 {returnCfg?.label}
+              </Tag>
+            )}
+          </Space>
         );
       },
-      width: 150,
+      width: 180,
     },
     {
       title: 'Số tiền',
@@ -440,11 +499,28 @@ export default function RefundManagement() {
               <Descriptions.Item label="Địa chỉ">
                 {selectedOrder.customer.address}
               </Descriptions.Item>
-              <Descriptions.Item label="Trạng thái" span={2}>
-                <Tag color={statusConfig[selectedOrder.status]?.color}>
-                  {statusConfig[selectedOrder.status]?.label}
-                </Tag>
+              <Descriptions.Item label="Trạng thái đơn hàng">
+                {(() => {
+                  const orderSt = selectedOrder.orderStatus || 'pending';
+                  const cfg = orderStatusConfig[orderSt as keyof typeof orderStatusConfig];
+                  return <Tag icon={cfg?.icon} color={cfg?.color}>📦 {cfg?.label}</Tag>;
+                })()}
               </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái thanh toán">
+                {(() => {
+                  const paymentSt = selectedOrder.paymentStatus || 'unpaid';
+                  const cfg = paymentStatusConfig[paymentSt as keyof typeof paymentStatusConfig];
+                  return <Tag icon={cfg?.icon} color={cfg?.color}>💰 {cfg?.label}</Tag>;
+                })()}
+              </Descriptions.Item>
+              {selectedOrder.returnStatus && (
+                <Descriptions.Item label="Trạng thái hoàn trả" span={2}>
+                  {(() => {
+                    const cfg = returnStatusConfig[selectedOrder.returnStatus as keyof typeof returnStatusConfig];
+                    return <Tag icon={cfg?.icon} color={cfg?.color}>🔄 {cfg?.label}</Tag>;
+                  })()}
+                </Descriptions.Item>
+              )}
               <Descriptions.Item label="Tổng tiền" span={2}>
                 <span className="text-lg font-bold text-blue-600">
                   {selectedOrder.totals.total.toLocaleString()}đ

@@ -207,9 +207,16 @@ exports.checkoutOrder = async (req, res) => {
     // Create order
     let createdOrder;
     try {
+      // TẤT CẢ ĐƠN HÀNG ĐỀU BẮT ĐẦU Ở TRẠNG THÁI PENDING
+      // Đợi admin duyệt trước khi xử lý
       createdOrder = await Order.create({
         user: userId,
+        // Old status (backward compatible)
         status: 'pending',
+        // New status fields
+        orderStatus: 'pending',
+        paymentStatus: paymentMethod === 'vnpay' ? 'pending' : 'unpaid',
+        returnStatus: null,
         paymentMethod,
         customer: {
           name: customer.name,
@@ -237,14 +244,8 @@ exports.checkoutOrder = async (req, res) => {
     }
 
     // ===== TĂNG USED COUNT VOUCHER =====
-    // CHỈ tăng ngay cho COD (đã xác nhận)
-    // VNPay: tăng sau khi thanh toán thành công trong vnpayReturn
-    if (appliedVoucher && paymentMethod === 'cod') {
-      await Voucher.findByIdAndUpdate(appliedVoucher._id, {
-        $inc: { usedCount: 1 },
-        $push: { usedBy: { user: userId, usedAt: new Date() } },
-      });
-    }
+    // KHÔNG tăng ngay nữa - đợi admin duyệt đơn
+    // Voucher sẽ được tăng khi admin confirm đơn hàng
 
     // ===== VNPAY FLOW =====
     if (paymentMethod === 'vnpay') {
@@ -265,13 +266,11 @@ exports.checkoutOrder = async (req, res) => {
       });
     }
 
-    // ===== COD FLOW: xác nhận đơn, chưa thu tiền =====
-    await Order.findByIdAndUpdate(createdOrder._id, {
-      status: 'confirmed',
-      $push: { statusHistory: { status: 'confirmed', note: 'Đơn COD đã xác nhận, thanh toán khi nhận hàng' } },
-    });
-
-    // Gửi email xác nhận đơn hàng COD
+    // ===== COD FLOW: Giữ ở pending, đợi admin duyệt =====
+    // KHÔNG tự động chuyển sang confirmed nữa
+    // Admin sẽ duyệt đơn trong trang quản lý
+    
+    // Gửi email thông báo đơn hàng đã được tạo (chờ xác nhận)
     try {
       const user = await User.findById(userId);
       if (user?.email) {
@@ -281,22 +280,12 @@ exports.checkoutOrder = async (req, res) => {
           items: orderItems,
           totals: { subtotal, discount, total },
           paymentMethod: 'cod',
-          customer
+          customer,
+          status: 'pending' // Đơn đang chờ xác nhận
         });
       }
     } catch (emailError) {
       console.error('Email error (non-blocking):', emailError.message);
-    }
-
-    // Tạo notification
-    try {
-      await notifyOrderConfirmed(
-        userId,
-        createdOrder._id,
-        createdOrder._id.toString().slice(-8).toUpperCase()
-      );
-    } catch (notifError) {
-      console.error('Notification error (non-blocking):', notifError.message);
     }
 
     return res.status(201).json({
@@ -355,20 +344,19 @@ exports.vnpayReturn = async (req, res) => {
     const orderId = order._id;
 
     if (responseCode === '00') {
+      // Thanh toán thành công - CẬP NHẬT TRẠNG THÁI MỚI
       await Order.findByIdAndUpdate(orderId, {
-        status: 'paid',
-        $push: { statusHistory: { status: 'paid', note: 'Thanh toán VNPay thành công' } },
+        // Old status (backward compatible)
+        status: 'pending', // Vẫn giữ pending, đợi admin duyệt
+        // New status fields
+        orderStatus: 'pending', // Đợi admin xác nhận
+        paymentStatus: 'paid', // Đã thanh toán
+        returnStatus: null,
+        $push: { statusHistory: { status: 'paid', note: 'Thanh toán VNPay thành công - Đợi admin xác nhận đơn' } },
       });
-      // Tăng usedCount voucher sau khi VNPay thành công
-      if (order.voucher?.code) {
-        await Voucher.findOneAndUpdate(
-          { code: order.voucher.code },
-          {
-            $inc: { usedCount: 1 },
-            $push: { usedBy: { user: order.user, usedAt: new Date() } },
-          }
-        );
-      }
+      
+      // KHÔNG tăng usedCount voucher ngay - đợi admin duyệt đơn
+      // Voucher sẽ được tăng khi admin confirm đơn hàng
 
       // Gửi email xác nhận thanh toán VNPay thành công
       try {
@@ -380,7 +368,8 @@ exports.vnpayReturn = async (req, res) => {
             items: order.items,
             totals: order.totals,
             paymentMethod: 'vnpay',
-            customer: order.customer
+            customer: order.customer,
+            status: 'pending' // Đơn đang chờ admin xác nhận
           });
         }
       } catch (emailError) {
@@ -402,14 +391,19 @@ exports.vnpayReturn = async (req, res) => {
     } else {
       // ===== XỬ LÝ HỦY THANH TOÁN =====
       // Không xóa đơn hàng, chỉ cập nhật trạng thái thành "cancelled"
-      if (order.status === 'pending') {
+      if (order.status === 'pending' || order.orderStatus === 'pending') {
         // Hoàn kho
         for (const item of order.items) {
           await Product.updateOne({ _id: item.product }, { $inc: { quantity: item.quantity } });
         }
         // Voucher chưa được tăng (VNPay) → không cần hoàn
         await Order.findByIdAndUpdate(orderId, {
+          // Old status
           status: 'cancelled',
+          // New status fields
+          orderStatus: 'cancelled',
+          paymentStatus: 'failed',
+          returnStatus: null,
           $push: { statusHistory: { status: 'cancelled', note: `Thanh toán VNPay bị hủy - mã lỗi ${responseCode}` } },
         });
       }
@@ -489,9 +483,18 @@ exports.listAllOrders = async (req, res) => {
 // ===============================
 // PUT /api/orders/:id/status (admin)
 // ===============================
+// PUT /api/orders/:id/status (admin)
+// ===============================
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { status, note } = req.body;
+    console.log('[updateOrderStatus] Request received:', {
+      orderId: req.params.id,
+      body: req.body
+    });
+    
+    const { status, note, orderStatus, paymentStatus, returnStatus } = req.body;
+    
+    // Validate old status (backward compatible)
     const validStatuses = [
       'pending', 'confirmed', 'paid', 'shipping', 'completed', 'cancelled',
       'refund_pending', 'refund_processing', 'refund_completed',
@@ -499,17 +502,49 @@ exports.updateOrderStatus = async (req, res) => {
       'exchange_requested', 'exchange_shipping', 'exchange_completed'
     ];
     
-    if (!validStatuses.includes(status)) {
+    if (status && !validStatuses.includes(status)) {
+      console.log('[updateOrderStatus] Invalid status:', status);
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
     const order = await Order.findById(req.params.id);
     if (!order) {
+      console.log('[updateOrderStatus] Order not found:', req.params.id);
       return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    
+    console.log('[updateOrderStatus] Current order:', {
+      _id: order._id,
+      status: order.status,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod
+    });
+
+    // ===== XỬ LÝ ADMIN CONFIRM ĐƠN HÀNG =====
+    // Khi admin chuyển từ pending → confirmed
+    const isConfirming = (orderStatus === 'confirmed' || status === 'confirmed') && 
+                         (order.orderStatus === 'pending' || order.status === 'pending');
+    
+    if (isConfirming) {
+      // Tăng usedCount voucher khi admin duyệt đơn
+      if (order.voucher?.code) {
+        await Voucher.findOneAndUpdate(
+          { code: order.voucher.code },
+          {
+            $inc: { usedCount: 1 },
+            $push: { usedBy: { user: order.user, usedAt: new Date() } },
+          }
+        );
+      }
     }
 
     // Hoàn kho và voucher khi admin hủy đơn (chỉ hoàn nếu chưa cancelled trước đó)
-    if (status === 'cancelled' && order.status !== 'cancelled') {
+    const isCancelling = (orderStatus === 'cancelled' || status === 'cancelled') && 
+                         (order.orderStatus !== 'cancelled' && order.status !== 'cancelled');
+    
+    if (isCancelling) {
+      // Hoàn kho
       await Product.bulkWrite(
         order.items.map((item) => ({
           updateOne: {
@@ -518,17 +553,93 @@ exports.updateOrderStatus = async (req, res) => {
           },
         }))
       );
-      // Hoàn voucher nếu đơn đã được tính (COD confirmed, hoặc VNPay paid)
-      const voucherWasUsed = ['confirmed', 'paid', 'shipping', 'completed'].includes(order.status);
+      
+      // Hoàn voucher nếu đơn đã được tính (confirmed, shipping, delivered)
+      const voucherWasUsed = ['confirmed', 'paid', 'shipping', 'completed'].includes(order.status) ||
+                             ['confirmed', 'shipping', 'delivered'].includes(order.orderStatus);
       if (voucherWasUsed) await releaseVoucher(order);
+      
+      // ===== XỬ LÝ HỦY ĐƠN VNPAY ĐÃ THANH TOÁN =====
+      // Nếu đơn VNPay đã thanh toán → Chuyển sang refund_pending và gửi form hoàn tiền
+      const isVNPayPaid = order.paymentMethod === 'vnpay' && 
+                          (order.paymentStatus === 'paid' || order.status === 'paid');
+      
+      if (isVNPayPaid) {
+        console.log('[Cancel Order] VNPay paid order cancelled - sending refund form');
+        
+        // Cập nhật trạng thái hoàn tiền
+        updateData.paymentStatus = 'refunding';
+        updateData.returnStatus = 'requested';
+        
+        // Khởi tạo thông tin refund
+        updateData.refund = {
+          reason: note || 'Admin hủy đơn hàng',
+          requestedAt: new Date(),
+          requestedBy: 'admin',
+          amount: order.totals.total,
+          note: 'Đơn hàng bị hủy bởi admin - Vui lòng điền form để nhận hoàn tiền'
+        };
+        
+        // Gửi email thông báo và form hoàn tiền (non-blocking)
+        const sendRefundEmail = async () => {
+          try {
+            const user = await User.findById(order.user);
+            if (user?.email) {
+              const emailService = require('../utils/emailService');
+              await emailService.sendRefundFormEmail(user.email, {
+                customerName: order.customer.name,
+                orderId: order._id,
+                amount: order.totals.total,
+                reason: 'Admin hủy đơn hàng',
+                items: order.items,
+                totals: order.totals
+              });
+              console.log('[Cancel Order] Refund form email sent to:', user.email);
+            }
+          } catch (emailError) {
+            console.error('[Cancel Order] Email error (non-blocking):', emailError.message);
+          }
+        };
+        
+        // Tạo notification (non-blocking)
+        const sendRefundNotification = async () => {
+          try {
+            const notificationService = require('../utils/notificationService');
+            await notificationService.notifyRefundRequested(
+              order.user,
+              order._id,
+              order._id.toString().slice(-8).toUpperCase(),
+              'Admin đã hủy đơn hàng. Vui lòng điền form hoàn tiền để nhận lại tiền.'
+            );
+          } catch (notifError) {
+            console.error('[Cancel Order] Notification error (non-blocking):', notifError.message);
+          }
+        };
+        
+        // Chạy async không chờ
+        sendRefundEmail();
+        sendRefundNotification();
+      }
     }
+
+    // Build update object
+    const updateData = {
+      $push: { statusHistory: { status: status || orderStatus, note: note || `Admin cập nhật trạng thái` } },
+    };
+    
+    // Update old status if provided (backward compatible)
+    if (status) {
+      updateData.status = status;
+    }
+    
+    // Update new status fields if provided
+    if (orderStatus) updateData.orderStatus = orderStatus;
+    if (paymentStatus) updateData.paymentStatus = paymentStatus;
+    if (returnStatus !== undefined) updateData.returnStatus = returnStatus;
 
     const updated = await Order.findByIdAndUpdate(
       req.params.id,
-      {
-        status,
-        $push: { statusHistory: { status, note: note || `Admin cập nhật: ${status}` } },
-      },
+      updateData,
       { new: true }
     ).populate('user', 'name email');
 
@@ -538,8 +649,8 @@ exports.updateOrderStatus = async (req, res) => {
         await sendOrderStatusUpdate(updated.user.email, {
           customerName: updated.customer.name,
           orderId: updated._id,
-          status,
-          note: note || `Admin cập nhật: ${status}`,
+          status: orderStatus || status,
+          note: note || `Admin cập nhật trạng thái`,
           items: updated.items,
           totals: updated.totals
         });
@@ -554,7 +665,8 @@ exports.updateOrderStatus = async (req, res) => {
         const orderCode = updated._id.toString().slice(-8).toUpperCase();
         const userId = updated.user._id || updated.user;
         
-        switch (status) {
+        const currentStatus = orderStatus || status;
+        switch (currentStatus) {
           case 'confirmed':
             await notifyOrderConfirmed(userId, updated._id, orderCode);
             break;

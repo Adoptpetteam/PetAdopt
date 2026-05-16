@@ -60,6 +60,9 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ============================================
+    // OLD STATUS (Deprecated - Giữ lại để backward compatible)
+    // ============================================
     status: {
       type: String,
       enum: [
@@ -80,6 +83,35 @@ const orderSchema = new mongoose.Schema(
         'exchange_completed'
       ],
       default: 'pending',
+    },
+
+    // ============================================
+    // NEW STATUS FIELDS (Recommended)
+    // ============================================
+    
+    // Trạng thái đơn hàng (Order Status)
+    // Flow: pending → confirmed → shipping → delivered → cancelled (bất kỳ lúc nào)
+    orderStatus: {
+      type: String,
+      enum: ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'],
+      default: 'pending',
+      index: true
+    },
+    
+    // Trạng thái thanh toán (Payment Status)
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'pending', 'paid', 'refunding', 'refunded', 'failed'],
+      default: 'unpaid',
+      index: true
+    },
+    
+    // Trạng thái hoàn trả (Return/Refund Status)
+    returnStatus: {
+      type: String,
+      enum: [null, 'requested', 'approved', 'rejected', 'shipping', 'received', 'completed'],
+      default: null,
+      index: true
     },
 
     statusHistory: [

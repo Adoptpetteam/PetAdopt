@@ -34,10 +34,18 @@ interface OrderData {
   _id: string;
   createdAt: string;
   updatedAt: string;
+  
+  // OLD STATUS (deprecated)
   status: "pending" | "confirmed" | "paid" | "shipping" | "completed" | "cancelled" | 
            "refund_pending" | "refund_processing" | "refund_completed" |
            "return_requested" | "return_shipping" | "return_received" |
            "exchange_requested" | "exchange_shipping" | "exchange_completed";
+  
+  // NEW STATUS (recommended)
+  orderStatus?: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
+  paymentStatus?: "unpaid" | "pending" | "paid" | "refunding" | "refunded" | "failed";
+  returnStatus?: null | "requested" | "approved" | "rejected" | "shipping" | "received" | "completed";
+  
   paymentMethod: "cod" | "vnpay";
   customer: { name: string; phone: string; address: string };
   items: OrderItem[];
@@ -60,6 +68,34 @@ const statusConfig = {
   exchange_requested:  { color: "orange",  label: "Yêu cầu đổi hàng",    icon: <SwapOutlined />,         desc: "Yêu cầu đổi hàng đang chờ xử lý" },
   exchange_shipping:   { color: "purple",  label: "Đang đổi hàng",       icon: <TruckOutlined />,        desc: "Đang xử lý đổi hàng" },
   exchange_completed:  { color: "green",   label: "Đã đổi hàng",         icon: <CheckCircleOutlined />,  desc: "Đổi hàng thành công" },
+};
+
+// NEW STATUS CONFIGS - Giống app giao hàng
+const orderStatusConfig = {
+  pending:   { color: "orange",  label: "Chờ xác nhận",        icon: <ClockCircleOutlined /> },
+  confirmed: { color: "blue",    label: "Đã xác nhận",         icon: <CheckCircleOutlined /> },
+  shipping:  { color: "purple",  label: "Đang giao hàng",      icon: <TruckOutlined /> },
+  delivered: { color: "green",   label: "Giao hàng thành công", icon: <GiftOutlined /> },
+  cancelled: { color: "red",     label: "Đã hủy",              icon: <CloseCircleOutlined /> },
+};
+
+const paymentStatusConfig = {
+  unpaid:    { color: "default", label: "Chưa thanh toán",      icon: <DollarOutlined /> },
+  pending:   { color: "orange",  label: "Chờ thanh toán",       icon: <ClockCircleOutlined /> },
+  paid:      { color: "green",   label: "Đã thanh toán",        icon: <CheckCircleOutlined /> },
+  refunding: { color: "blue",    label: "Đang hoàn tiền",       icon: <ReloadOutlined /> },
+  refunded:  { color: "green",   label: "Đã hoàn tiền",         icon: <CheckCircleOutlined /> },
+  failed:    { color: "red",     label: "Thanh toán thất bại",  icon: <CloseCircleOutlined /> },
+};
+
+const returnStatusConfig = {
+  null:      { color: "default", label: "Không có",         icon: null },
+  requested: { color: "orange",  label: "Yêu cầu hoàn trả", icon: <RollbackOutlined /> },
+  approved:  { color: "cyan",    label: "Đã chấp thuận",    icon: <CheckCircleOutlined /> },
+  rejected:  { color: "red",     label: "Đã từ chối",       icon: <CloseCircleOutlined /> },
+  shipping:  { color: "purple",  label: "Đang gửi về",      icon: <TruckOutlined /> },
+  received:  { color: "blue",    label: "Đã nhận hàng",     icon: <CheckCircleOutlined /> },
+  completed: { color: "green",   label: "Hoàn tất",         icon: <CheckCircleOutlined /> },
 };
 
 const paymentConfig = {
@@ -434,7 +470,9 @@ export default function Orders() {
 
   // Kiểm tra xem đơn hàng có thể yêu cầu trả/đổi hàng không
   const canRequestReturnExchange = (order: OrderData) => {
-    if (order.status !== 'completed') return false;
+    // Sử dụng orderStatus mới hoặc fallback về status cũ
+    const orderSt = order.orderStatus || order.status;
+    if (orderSt !== 'delivered' && order.status !== 'completed') return false;
     
     const completedDate = new Date(order.updatedAt);
     const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -557,24 +595,48 @@ export default function Orders() {
       title: "Trạng thái",
       dataIndex: "status",
       render: (s: string, record: OrderData) => {
-        const cfg = statusConfig[s as keyof typeof statusConfig];
+        // Sử dụng trạng thái mới nếu có, fallback về status cũ
+        const orderSt = record.orderStatus || 'pending';
+        const paymentSt = record.paymentStatus || 'unpaid';
+        const returnSt = record.returnStatus;
+        
+        const orderCfg = orderStatusConfig[orderSt as keyof typeof orderStatusConfig];
+        const paymentCfg = paymentStatusConfig[paymentSt as keyof typeof paymentStatusConfig];
+        const returnCfg = returnSt ? returnStatusConfig[returnSt as keyof typeof returnStatusConfig] : null;
+        
         return (
-          <div>
-            <Tag icon={cfg?.icon} color={cfg?.color} className="mb-1">{cfg?.label}</Tag>
-            {s !== "cancelled" && (
+          <Space direction="vertical" size={2} style={{ width: '100%' }}>
+            {/* Trạng thái đơn hàng */}
+            <Tag icon={orderCfg?.icon} color={orderCfg?.color} className="w-full text-center">
+              📦 {orderCfg?.label}
+            </Tag>
+            
+            {/* Trạng thái thanh toán */}
+            <Tag icon={paymentCfg?.icon} color={paymentCfg?.color} className="w-full text-center">
+              💰 {paymentCfg?.label}
+            </Tag>
+            
+            {/* Trạng thái hoàn trả (nếu có) */}
+            {returnCfg && (
+              <Tag icon={returnCfg?.icon} color={returnCfg?.color} className="w-full text-center">
+                🔄 {returnCfg?.label}
+              </Tag>
+            )}
+            
+            {/* Progress bar */}
+            {orderSt !== "cancelled" && (
               <Progress
                 percent={getProgress(record).percent}
                 status={getProgress(record).status}
                 strokeColor="#6272B6"
                 showInfo={false}
                 size="small"
-                style={{ width: 100 }}
               />
             )}
-          </div>
+          </Space>
         );
       },
-      width: 160,
+      width: 180,
     },
     {
       title: "",
