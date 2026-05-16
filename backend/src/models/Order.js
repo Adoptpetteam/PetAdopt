@@ -29,6 +29,25 @@ const orderItemSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+
+    // Thông tin biến thể (nếu có)
+    variantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false
+    },
+    
+    variantName: {
+      type: String,
+      trim: true // Ví dụ: "1kg - Vị gà"
+    },
+    
+    variantAttributes: {
+      size: String,
+      weight: String,
+      flavor: String,
+      color: String,
+      age: String
+    }
   },
   { _id: false }
 );

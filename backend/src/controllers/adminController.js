@@ -335,3 +335,141 @@ exports.getAllAdoptionsAdmin = async (req, res, next) => {
   }
 };
 
+// Get analytics data for charts
+exports.getAnalytics = async (req, res, next) => {
+  try {
+    const Product = require('../models/Product');
+    
+    // 1. Doanh thu 7 ngày qua
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const revenueByDay = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: sevenDaysAgo },
+          status: { $in: ['completed', 'confirmed', 'paid', 'shipping'] }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          doanhthu: { $sum: '$totals.total' },
+          donhang: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Format dữ liệu 7 ngày (điền ngày trống = 0)
+    const last7Days = [];
+    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayData = revenueByDay.find(d => d._id === dateStr);
+      
+      last7Days.push({
+        name: dayNames[date.getDay()],
+        doanhthu: dayData ? dayData.doanhthu : 0,
+        donhang: dayData ? dayData.donhang : 0,
+        date: dateStr
+      });
+    }
+
+    // 2. Top 5 sản phẩm bán chạy
+    const topProducts = await Order.aggregate([
+      { $match: { status: { $in: ['completed', 'confirmed', 'paid', 'shipping'] } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.product',
+          value: { $sum: '$items.quantity' }
+        }
+      },
+      { $sort: { value: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'productInfo'
+        }
+      },
+      { $unwind: { path: '$productInfo', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          name: { $ifNull: ['$productInfo.name', 'Sản phẩm đã xóa'] },
+          value: 1
+        }
+      }
+    ]);
+
+    // 3. Tăng trưởng người dùng 6 tháng
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const userGrowth = await User.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          nguoidung: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const petGrowth = await Pet.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          thucung: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Format dữ liệu 6 tháng
+    const last6Months = [];
+    const monthNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+    let cumulativeUsers = 0;
+    let cumulativePets = 0;
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthStr = date.toISOString().substring(0, 7);
+      
+      const userData = userGrowth.find(d => d._id === monthStr);
+      const petData = petGrowth.find(d => d._id === monthStr);
+      
+      cumulativeUsers += userData ? userData.nguoidung : 0;
+      cumulativePets += petData ? petData.thucung : 0;
+      
+      last6Months.push({
+        thang: monthNames[date.getMonth()],
+        nguoidung: cumulativeUsers,
+        thucung: cumulativePets
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        revenueData: last7Days,
+        topProducts: topProducts.length > 0 ? topProducts : [
+          { name: 'Chưa có dữ liệu', value: 1 }
+        ],
+        userGrowth: last6Months
+      }
+    });
+  } catch (error) {
+    console.error('[Analytics] Error:', error);
+    next(error);
+  }
+};
+

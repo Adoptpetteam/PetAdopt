@@ -18,4 +18,7 @@ router.get('/orders', authenticate, isAdmin, adminController.getAllOrdersAdmin);
 // Adoptions admin routes  
 router.get('/adoptions', authenticate, isAdmin, adminController.getAllAdoptionsAdmin);
 
+// Analytics routes
+router.get('/analytics', authenticate, isAdmin, adminController.getAnalytics);
+
 module.exports = router;
