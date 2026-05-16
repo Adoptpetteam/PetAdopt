@@ -65,13 +65,21 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* SIDEBAR với gradient và glass effect */}
-      <div className={`${collapsed ? 'w-20' : 'w-72'} transition-all duration-300 relative`}>
+      {/* <div className={`${collapsed ? 'w-20' : 'w-72'} transition-all duration-300 relative`}> */}
+      <div
+  className={`
+    ${collapsed ? 'w-20' : 'w-72'}
+    fixed top-0 left-0 h-screen
+    transition-all duration-300 z-50
+  `}
+>
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#6272B6] via-purple-600 to-indigo-700"></div>
         <div className="absolute inset-0 bg-black/10"></div>
         
         {/* Sidebar content */}
-        <div className="relative h-full text-white p-6 overflow-hidden">
+        {/* <div className="relative h-full text-white p-6 overflow-hidden"> */}
+        <div className="relative h-full text-white p-6 overflow-y-auto overflow-x-hidden">
           {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
@@ -100,6 +108,7 @@ export default function AdminLayout() {
           {/* Navigation */}
           <nav className="space-y-2">
             {menuItems.map((item) => (
+              
               <Link
                 key={item.path}
                 to={item.path}
@@ -159,7 +168,14 @@ export default function AdminLayout() {
         </div>
       </div>
       {/* CONTENT với gradient background */}
-      <div className="flex-1 relative overflow-hidden">
+      {/* <div className="flex-1 relative overflow-hidden"> */}
+<div
+  className={`
+    flex-1 relative
+    ${collapsed ? "ml-20" : "ml-72"}
+    transition-all duration-300
+  `}
+>
         {/* Background pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30"></div>
         <div className="absolute inset-0" style={{
