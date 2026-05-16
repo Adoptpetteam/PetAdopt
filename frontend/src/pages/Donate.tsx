@@ -102,7 +102,7 @@ export default function Donate() {
       )}
 
       <h1 className="text-3xl font-bold text-[#6272B6] mb-6">
-        Ủng hộ chúng tôi ❤️
+        Ủng hộ chúng tôi
       </h1>
 
       <p className="text-gray-500 mb-10">
