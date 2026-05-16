@@ -1,280 +1,194 @@
-import React, { useState, useEffect } from 'react';
-import { Card, List, Button, Empty, Spin, message, Tag, Space } from 'antd';
-import { CheckOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import './Notifications.css';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, Button, Empty, Spin, message, Tag, Badge, Modal } from "antd";
+import {
+  BellOutlined,
+  CheckOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
+import { apiClient } from "../api/http";
 
 interface Notification {
   _id: string;
   type: string;
   title: string;
   message: string;
-  link?: string;
+  order?: any;
+  refundRequest?: string;
   isRead: boolean;
-  icon: string;
-  priority: string;
   createdAt: string;
+  metadata?: any;
+  actionUrl?: string;
+  actionLabel?: string;
 }
 
-const Notifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+export default function Notifications() {
+  const [items, setItems] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-  const fetchNotifications = async () => {
+  const load = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      const params: any = { page, limit: 20 };
-      if (filter === 'unread') params.isRead = 'false';
-
-      const response = await axios.get(`${API_URL}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
-
-      if (response.data.success) {
-        setNotifications(response.data.data);
-        setTotal(response.data.pagination.total);
-      }
-    } catch (error: any) {
-      console.error('Error fetching notifications:', error);
-      if (error.response?.status === 401) {
-        navigate('/login');
-      }
+      const res = await apiClient.get("/notifications/me");
+      setItems(res.data.data || []);
+    } catch {
+      message.error("Không thể tải thông báo");
     } finally {
       setLoading(false);
     }
   };
 
-  const markAsRead = async (id: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${API_URL}/notifications/${id}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchNotifications();
-    } catch (error) {
-      message.error('Không thể đánh dấu đã đọc');
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${API_URL}/notifications/read-all`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      message.success(response.data.message);
-      fetchNotifications();
-    } catch (error) {
-      message.error('Không thể đánh dấu tất cả đã đọc');
-    }
-  };
-
-  const deleteNotification = async (id: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/notifications/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      message.success('Đã xóa thông báo');
-      fetchNotifications();
-    } catch (error) {
-      message.error('Không thể xóa thông báo');
-    }
-  };
-
-  const clearAllRead = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.delete(`${API_URL}/notifications/clear-all`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      message.success(response.data.message);
-      fetchNotifications();
-    } catch (error) {
-      message.error('Không thể xóa thông báo');
-    }
-  };
-
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
-      markAsRead(notification._id);
-    }
-    if (notification.link) {
-      navigate(notification.link);
-    }
-  };
-
-  const getTimeAgo = (date: string) => {
-    const now = new Date();
-    const notifDate = new Date(date);
-    const diff = Math.floor((now.getTime() - notifDate.getTime()) / 1000);
-
-    if (diff < 60) return 'Vừa xong';
-    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
-    return `${Math.floor(diff / 86400)} ngày trước`;
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors: any = {
-      low: 'default',
-      normal: 'blue',
-      high: 'orange',
-      urgent: 'red'
-    };
-    return colors[priority] || 'default';
-  };
-
   useEffect(() => {
-    fetchNotifications();
-  }, [page, filter]);
+    load();
+  }, []);
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await apiClient.put(`/notifications/${id}/read`);
+      setItems((prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)));
+      window.dispatchEvent(new Event("notification-change"));
+    } catch {
+      message.error("Lỗi");
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiClient.put("/notifications/read-all");
+      setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      message.success("Đã đánh dấu tất cả đã đọc");
+      window.dispatchEvent(new Event("notification-change"));
+    } catch {
+      message.error("Lỗi");
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    Modal.confirm({
+      title: "Xóa thông báo này?",
+      icon: <ExclamationCircleOutlined />,
+      onOk: async () => {
+        try {
+          await apiClient.delete(`/notifications/${id}`);
+          setItems((prev) => prev.filter((n) => n._id !== id));
+        } catch {
+          message.error("Lỗi");
+        }
+      },
+    });
+  };
+
+  const handleAction = (n: Notification) => {
+    if (!n.isRead) handleMarkRead(n._id);
+    if (n.actionUrl) navigate(n.actionUrl);
+  };
+
+  const unreadCount = items.filter((n) => !n.isRead).length;
+
+  const typeColor: Record<string, string> = {
+    order_cancelled: "red",
+    order_refund_required: "orange",
+    order_status_update: "blue",
+    refund_approved: "cyan",
+    refund_completed: "green",
+    voucher_received: "purple",
+    general: "default",
+  };
 
   return (
-    <div className="notifications-page">
-      <div className="container">
-        <Card
-          title={
-            <div className="notifications-header">
-              <h2>🔔 Thông báo của bạn</h2>
-              <Space>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={fetchNotifications}
-                  loading={loading}
-                >
-                  Làm mới
-                </Button>
-                <Button
-                  icon={<CheckOutlined />}
-                  onClick={markAllAsRead}
-                  type="primary"
-                >
-                  Đọc tất cả
-                </Button>
-                <Button
-                  icon={<DeleteOutlined />}
-                  onClick={clearAllRead}
-                  danger
-                >
-                  Xóa đã đọc
-                </Button>
-              </Space>
-            </div>
-          }
-          className="notifications-card"
-        >
-          <div className="notifications-filter">
-            <Button
-              type={filter === 'all' ? 'primary' : 'default'}
-              onClick={() => { setFilter('all'); setPage(1); }}
-            >
-              Tất cả ({total})
+    <div className="bg-gray-50 min-h-screen py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-[#6272B6] flex items-center gap-3">
+            <BellOutlined />
+            Thông báo
+            {unreadCount > 0 && <Badge count={unreadCount} />}
+          </h1>
+          <div className="flex gap-2">
+            <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
+              Làm mới
             </Button>
-            <Button
-              type={filter === 'unread' ? 'primary' : 'default'}
-              onClick={() => { setFilter('unread'); setPage(1); }}
-            >
-              Chưa đọc
-            </Button>
+            {unreadCount > 0 && (
+              <Button icon={<CheckOutlined />} onClick={handleMarkAllRead}>
+                Đánh dấu tất cả đã đọc
+              </Button>
+            )}
           </div>
+        </div>
 
-          <Spin spinning={loading}>
-            {notifications.length === 0 ? (
-              <Empty
-                description="Không có thông báo"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
-            ) : (
-              <List
-                dataSource={notifications}
-                pagination={{
-                  current: page,
-                  pageSize: 20,
-                  total,
-                  onChange: setPage,
-                  showSizeChanger: false
-                }}
-                renderItem={(item) => (
-                  <List.Item
-                    className={`notification-list-item ${!item.isRead ? 'unread' : ''}`}
-                    onClick={() => handleNotificationClick(item)}
-                    style={{ cursor: item.link ? 'pointer' : 'default' }}
-                    actions={[
-                      !item.isRead && (
-                        <Button
-                          type="link"
-                          size="small"
-                          icon={<CheckOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            markAsRead(item._id);
-                          }}
-                        >
-                          Đánh dấu đã đọc
-                        </Button>
-                      ),
+        {loading ? (
+          <div className="text-center py-20">
+            <Spin size="large" />
+          </div>
+        ) : items.length === 0 ? (
+          <Card>
+            <Empty description="Chưa có thông báo nào" />
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {items.map((n) => (
+              <Card
+                key={n._id}
+                className={`shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                  !n.isRead ? "border-l-4 border-l-[#6272B6] bg-blue-50/30" : ""
+                }`}
+                onClick={() => handleAction(n)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Tag color={typeColor[n.type] || "default"}>
+                          {n.type === "order_cancelled" && "❌ Đơn hàng bị hủy"}
+                          {n.type === "order_refund_required" && "💰 Cần hoàn tiền"}
+                          {n.type === "order_status_update" && "📦 Cập nhật đơn hàng"}
+                          {n.type === "refund_approved" && "✅ Hoàn tiền được duyệt"}
+                          {n.type === "refund_completed" && "💵 Hoàn tiền xong"}
+                          {n.type === "voucher_received" && "🎁 Voucher"}
+                          {n.type === "general" && "📢 Thông báo"}
+                        </Tag>
+                        {!n.isRead && <Tag color="blue">Mới</Tag>}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {new Date(n.createdAt).toLocaleString("vi-VN")}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-800 mb-1">{n.title}</h3>
+                    <p className="text-gray-600 text-sm whitespace-pre-line">
+                      {n.message}
+                    </p>
+                    {n.actionUrl && n.actionLabel && (
                       <Button
-                        type="link"
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
+                        type="primary"
+                        className="mt-3 bg-[#6272B6] border-0 rounded-full"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteNotification(item._id);
+                          handleAction(n);
                         }}
                       >
-                        Xóa
+                        {n.actionLabel} →
                       </Button>
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={<div className="notification-list-icon">{item.icon}</div>}
-                      title={
-                        <div className="notification-list-title">
-                          {item.title}
-                          {item.priority !== 'normal' && (
-                            <Tag color={getPriorityColor(item.priority)} style={{ marginLeft: 8 }}>
-                              {item.priority === 'urgent' ? 'Khẩn cấp' : 
-                               item.priority === 'high' ? 'Quan trọng' : 
-                               item.priority === 'low' ? 'Thấp' : 'Bình thường'}
-                            </Tag>
-                          )}
-                        </div>
-                      }
-                      description={
-                        <div>
-                          <div className="notification-list-message">{item.message}</div>
-                          <div className="notification-list-time">{getTimeAgo(item.createdAt)}</div>
-                        </div>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
-            )}
-          </Spin>
-        </Card>
+                    )}
+                  </div>
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(n._id);
+                    }}
+                  />
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default Notifications;
+}

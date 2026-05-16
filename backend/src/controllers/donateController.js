@@ -311,6 +311,9 @@ exports.sendVoucherEmail = async (req, res) => {
         if (!email || !code) return res.status(400).json({ success: false, message: 'Thiếu email hoặc mã voucher' });
 
         const { sendEmail } = require('../utils/emailService');
+        const { createNotification } = require('./notificationController');
+        const User = require('../models/User');
+
         const discount = type === 'percent' ? `${value}%` : `${new Intl.NumberFormat('vi-VN').format(value)}đ`;
         const expiry = endDate ? `Hết hạn: ${new Date(endDate).toLocaleDateString('vi-VN')}` : 'Không giới hạn thời gian';
 
@@ -339,6 +342,21 @@ exports.sendVoucherEmail = async (req, res) => {
 </body></html>`;
 
         await sendEmail(email, `🎁 Voucher giảm giá ${discount} từ PetAdopt`, html);
+
+        // Tạo notification trong app nếu email khớp với tài khoản đã đăng ký
+        const user = await User.findOne({ email: email.toLowerCase() }).select('_id');
+        if (user) {
+            await createNotification({
+                userId: user._id,
+                type: 'voucher_received',
+                title: '🎁 Bạn nhận được voucher từ PetAdopt',
+                message: `Cảm ơn bạn đã ủng hộ! Admin đã gửi cho bạn mã voucher giảm ${discount}.\n\nMã voucher: ${code}\n${description ? `Mô tả: ${description}\n` : ''}${expiry}`,
+                actionUrl: '/products',
+                actionLabel: 'Mua sắm ngay',
+                metadata: { voucherCode: code, discount, type, value, endDate },
+            });
+        }
+
         return res.json({ success: true, message: 'Đã gửi email voucher' });
     } catch (err) {
         console.error('[Donate] Send voucher email error:', err.message);
