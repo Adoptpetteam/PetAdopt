@@ -755,7 +755,7 @@ exports.requestCancelOrder = async (req, res) => {
 
 // ===============================
 // PUT /api/orders/:id/cancel (user tự hủy)
-// Chỉ hủy được khi đơn còn pending hoặc confirmed
+// CHỈ hủy được khi đơn còn PENDING (chờ xác nhận)
 // ===============================
 exports.cancelMyOrder = async (req, res) => {
   try {
@@ -767,21 +767,25 @@ exports.cancelMyOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
 
-    // Chỉ cho hủy khi chưa giao hàng
-    const cancellableStatuses = ['pending', 'confirmed'];
-    if (!cancellableStatuses.includes(order.status)) {
+    // CHỈ CHO HỦY KHI ĐƠN HÀNG ĐANG Ở TRẠNG THÁI PENDING (chờ xác nhận)
+    // Kiểm tra cả old status và new orderStatus để đảm bảo backward compatible
+    const currentStatus = order.orderStatus || order.status;
+    
+    if (currentStatus !== 'pending') {
       const statusMessages = {
+        'confirmed': 'đã được xác nhận',
         'paid': 'đã thanh toán',
         'shipping': 'đang giao hàng', 
+        'delivered': 'đã giao hàng',
         'completed': 'đã hoàn thành',
         'cancelled': 'đã bị hủy'
       };
       
-      const statusText = statusMessages[order.status] || order.status;
+      const statusText = statusMessages[currentStatus] || currentStatus;
       
       return res.status(400).json({
         success: false,
-        message: `Không thể hủy đơn hàng ${statusText}. Chỉ có thể hủy đơn khi chưa được giao hàng.`,
+        message: `Không thể hủy đơn hàng ${statusText}. Chỉ có thể hủy đơn khi đang ở trạng thái "Chờ xác nhận".`,
       });
     }
 
@@ -795,13 +799,16 @@ exports.cancelMyOrder = async (req, res) => {
       }))
     );
 
-    // Hoàn voucher (COD confirmed đã tăng usedCount rồi)
+    // Hoàn voucher (nếu đơn pending thì voucher chưa được tăng usedCount, không cần hoàn)
+    // Chỉ hoàn nếu đơn đã được confirmed trước đó (edge case)
     if (order.status === 'confirmed') await releaseVoucher(order);
 
+    // Cập nhật cả old status và new status fields
     const updated = await Order.findByIdAndUpdate(
       order._id,
       {
         status: 'cancelled',
+        orderStatus: 'cancelled',
         $push: { statusHistory: { status: 'cancelled', note: 'Khách hàng tự hủy đơn' } },
       },
       { new: true }

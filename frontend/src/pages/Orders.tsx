@@ -381,8 +381,17 @@ export default function Orders() {
     // Tìm order để kiểm tra
     const order = orders.find(o => o._id === orderId);
     
-    // Nếu đơn đã thanh toán VNPay ở trạng thái pending/confirmed/paid
-    if (order && order.paymentMethod === 'vnpay' && ['pending', 'confirmed', 'paid'].includes(order.status)) {
+    // Kiểm tra trạng thái - CHỈ CHO PHÉP HỦY KHI PENDING
+    // Ưu tiên orderStatus (new), fallback về status (old)
+    const currentOrderStatus = order?.orderStatus || order?.status;
+    
+    if (!order || currentOrderStatus !== 'pending') {
+      message.error('Chỉ có thể hủy đơn hàng đang ở trạng thái "Chờ xác nhận"');
+      return;
+    }
+    
+    // Nếu đơn đã thanh toán VNPay ở trạng thái pending
+    if (order.paymentMethod === 'vnpay' && order.paymentStatus === 'paid') {
       Modal.confirm({
         title: "Hủy đơn hàng đã thanh toán",
         icon: <DollarOutlined style={{ color: "#1890ff" }} />,
@@ -412,7 +421,7 @@ export default function Orders() {
       return;
     }
     
-    // Đơn COD hoặc chưa thanh toán - hủy bình thường
+    // Đơn COD hoặc VNPay chưa thanh toán - hủy bình thường
     Modal.confirm({
       title: "Xác nhận hủy đơn",
       icon: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
@@ -651,7 +660,7 @@ export default function Orders() {
           >
             Chi tiết
           </Button>
-          {['pending', 'confirmed'].includes(record.status) && (
+          {(record.orderStatus === 'pending' || (!record.orderStatus && record.status === 'pending')) && (
             <Button
               danger
               size="small"
@@ -1034,7 +1043,7 @@ export default function Orders() {
             </div>
 
             <div className="mt-4 flex justify-end gap-3 flex-wrap">
-              {['pending', 'confirmed'].includes(selected.status) && (
+              {(selected.orderStatus === 'pending' || (!selected.orderStatus && selected.status === 'pending')) && (
                 <Button
                   danger
                   icon={<CloseCircleOutlined />}
