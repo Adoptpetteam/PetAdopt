@@ -43,6 +43,7 @@ const orderStatusConfig = {
   delivered: { color: "green",   label: "Giao hàng thành công", icon: <GiftOutlined />,        desc: "Đã giao hàng thành công" },
   completed: { color: "cyan",    label: "Hoàn thành",           icon: <CheckCircleOutlined />, desc: "Đơn hàng đã hoàn tất" },
   cancelled: { color: "red",     label: "Đã hủy",              icon: <CloseCircleOutlined />, desc: "Đơn hàng đã bị hủy" },
+  refund_pending: { color: "volcano", label: "Chờ duyệt hủy", icon: <StopOutlined />, desc: "Khách yêu cầu hủy đơn, chờ admin xét duyệt" },
 };
 
 const paymentStatusConfig = {
@@ -501,6 +502,10 @@ const OrderPage = () => {
             <Select.Option value="shipping">Đang giao hàng</Select.Option>
             <Select.Option value="delivered">Đã giao hàng</Select.Option>
             <Select.Option value="completed">Hoàn thành</Select.Option>
+            <Select.Option value="refund_pending">
+              <Badge status="processing" />
+              Chờ duyệt hủy
+            </Select.Option>
             <Select.Option value="cancelled">Đã hủy</Select.Option>
           </Select>
           <Tag color="blue">{filteredData.length} đơn</Tag>

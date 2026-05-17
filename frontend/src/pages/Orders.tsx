@@ -320,13 +320,14 @@ const getTimelineItems = (order: OrderData) => {
 };
 
 const TAB_ITEMS = [
-  { key: "all",       label: "Tất cả" },
-  { key: "pending",   label: "Chờ xử lý" },
-  { key: "confirmed", label: "Đã xác nhận" },
-  { key: "paid",      label: "Đã thanh toán" },
-  { key: "shipping",  label: "Đang giao" },
-  { key: "completed", label: "Hoàn thành" },
-  { key: "cancelled", label: "Đã hủy" },
+  { key: "all",            label: "Tất cả" },
+  { key: "pending",        label: "Chờ xử lý" },
+  { key: "confirmed",      label: "Đã xác nhận" },
+  { key: "paid",           label: "Đã thanh toán" },
+  { key: "shipping",       label: "Đang giao" },
+  { key: "completed",      label: "Hoàn thành" },
+  { key: "refund_pending", label: "Chờ duyệt hủy" },
+  { key: "cancelled",      label: "Đã hủy" },
 ];
 
 export default function Orders() {
@@ -437,6 +438,39 @@ export default function Orders() {
           if (selected?._id === orderId) setSelected(null);
         } catch (e: any) {
           message.error(e?.response?.data?.message || "Không thể hủy đơn hàng");
+        }
+      },
+    });
+  };
+
+  const handleConfirmReceived = (orderId: string) => {
+    Modal.confirm({
+      title: "Xác nhận đã nhận hàng",
+      icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
+      content: (
+        <div>
+          <p>Bạn đã nhận được hàng và hài lòng với sản phẩm?</p>
+          <p className="mt-2 text-gray-600 text-sm">
+            Sau khi xác nhận, đơn hàng sẽ chuyển sang trạng thái "Hoàn thành". 
+            Bạn vẫn có thể yêu cầu trả/đổi hàng trong vòng 3 ngày.
+          </p>
+        </div>
+      ),
+      okText: "Đã nhận hàng",
+      okType: "primary",
+      cancelText: "Chưa nhận",
+      onOk: async () => {
+        try {
+          await apiClient.put(`/orders/me/${orderId}/confirm-received`);
+          message.success("✅ Cảm ơn bạn! Đơn hàng đã hoàn thành.");
+          loadOrders();
+          if (selected?._id === orderId) {
+            // Reload selected order
+            const res = await apiClient.get(`/orders/me/${orderId}`);
+            setSelected(res.data.data);
+          }
+        } catch (e: any) {
+          message.error(e?.response?.data?.message || "Không thể xác nhận đã nhận hàng");
         }
       },
     });
@@ -669,6 +703,17 @@ export default function Orders() {
               className="rounded-full w-full"
             >
               Hủy đơn
+            </Button>
+          )}
+          {(record.orderStatus === 'shipping' || (!record.orderStatus && record.status === 'shipping')) && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => handleConfirmReceived(record._id)}
+              className="rounded-full w-full !bg-green-500 border-0"
+            >
+              Đã nhận hàng
             </Button>
           )}
           {canRequestRefund(record) && (

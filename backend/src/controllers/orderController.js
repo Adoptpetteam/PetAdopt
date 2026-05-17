@@ -460,7 +460,14 @@ exports.listAllOrders = async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
     const filter = {};
-    if (status) filter.status = status;
+    
+    // Filter theo cả old status và new orderStatus để đảm bảo backward compatible
+    if (status) {
+      filter.$or = [
+        { status: status },
+        { orderStatus: status }
+      ];
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const total = await Order.countDocuments(filter);
@@ -543,6 +550,21 @@ exports.updateOrderStatus = async (req, res) => {
     const isCancelling = (orderStatus === 'cancelled' || status === 'cancelled') && 
                          (order.orderStatus !== 'cancelled' && order.status !== 'cancelled');
     
+    // Build update object (khai báo sớm để dùng trong logic bên dưới)
+    const updateData = {
+      $push: { statusHistory: { status: status || orderStatus, note: note || `Admin cập nhật trạng thái` } },
+    };
+    
+    // Update old status if provided (backward compatible)
+    if (status) {
+      updateData.status = status;
+    }
+    
+    // Update new status fields if provided
+    if (orderStatus) updateData.orderStatus = orderStatus;
+    if (paymentStatus) updateData.paymentStatus = paymentStatus;
+    if (returnStatus !== undefined) updateData.returnStatus = returnStatus;
+    
     if (isCancelling) {
       // Hoàn kho
       await Product.bulkWrite(
@@ -560,29 +582,42 @@ exports.updateOrderStatus = async (req, res) => {
       if (voucherWasUsed) await releaseVoucher(order);
       
       // ===== XỬ LÝ HỦY ĐƠN VNPAY ĐÃ THANH TOÁN =====
-      // Nếu đơn VNPay đã thanh toán → Chuyển sang refund_pending và gửi form hoàn tiền
+      // Kiểm tra xem đơn có phải VNPay đã thanh toán không
       const isVNPayPaid = order.paymentMethod === 'vnpay' && 
                           (order.paymentStatus === 'paid' || order.status === 'paid');
       
+      // Kiểm tra xem đơn có đang ở trạng thái refund_pending không (user đã yêu cầu hủy)
+      const wasRefundPending = order.status === 'refund_pending' || order.orderStatus === 'refund_pending';
+      
       if (isVNPayPaid) {
-        console.log('[Cancel Order] VNPay paid order cancelled - sending refund form');
+        console.log('[Cancel Order] VNPay paid order cancelled - creating RefundRequest and sending form');
         
         // Cập nhật trạng thái hoàn tiền
         updateData.paymentStatus = 'refunding';
         updateData.returnStatus = 'requested';
         
-        // Khởi tạo thông tin refund
-        updateData.refund = {
-          reason: note || 'Admin hủy đơn hàng',
-          requestedAt: new Date(),
-          requestedBy: 'admin',
-          amount: order.totals.total,
-          note: 'Đơn hàng bị hủy bởi admin - Vui lòng điền form để nhận hoàn tiền'
-        };
+        // Tạo RefundRequest nếu chưa có
+        const RefundRequest = require('../models/RefundRequest');
+        let refund = await RefundRequest.findOne({ order: order._id });
         
-        // Gửi email thông báo và form hoàn tiền (non-blocking)
+        if (!refund) {
+          refund = await RefundRequest.create({
+            order: order._id,
+            user: order.user,
+            amount: order.totals.total,
+            cancelReason: wasRefundPending 
+              ? 'Khách hàng yêu cầu hủy đơn - Admin đã duyệt' 
+              : (note || 'Admin hủy đơn hàng'),
+            originalPaymentMethod: 'vnpay',
+            status: 'awaiting_info',
+          });
+          console.log('[Cancel Order] RefundRequest created:', refund._id);
+        }
+        
+        // Gửi email form hoàn tiền (non-blocking)
         const sendRefundEmail = async () => {
           try {
+            const User = require('../models/User');
             const user = await User.findById(order.user);
             if (user?.email) {
               const emailService = require('../utils/emailService');
@@ -590,7 +625,9 @@ exports.updateOrderStatus = async (req, res) => {
                 customerName: order.customer.name,
                 orderId: order._id,
                 amount: order.totals.total,
-                reason: 'Admin hủy đơn hàng',
+                reason: wasRefundPending 
+                  ? 'Yêu cầu hủy đơn của bạn đã được chấp thuận' 
+                  : 'Admin hủy đơn hàng',
                 items: order.items,
                 totals: order.totals
               });
@@ -601,16 +638,38 @@ exports.updateOrderStatus = async (req, res) => {
           }
         };
         
-        // Tạo notification (non-blocking)
+        // Tạo notification với link đến form (non-blocking)
         const sendRefundNotification = async () => {
           try {
-            const notificationService = require('../utils/notificationService');
-            await notificationService.notifyRefundRequested(
-              order.user,
-              order._id,
-              order._id.toString().slice(-8).toUpperCase(),
-              'Admin đã hủy đơn hàng. Vui lòng điền form hoàn tiền để nhận lại tiền.'
-            );
+            const Notification = require('../models/Notification');
+            const orderCode = order._id.toString().slice(-8).toUpperCase();
+            
+            await Notification.create({
+              user: order.user,
+              type: 'order_refund_required',
+              title: wasRefundPending 
+                ? `✅ Yêu cầu hủy đơn #${orderCode} đã được duyệt` 
+                : `Đơn hàng #${orderCode} đã bị hủy - Cần cập nhật thông tin hoàn tiền`,
+              message: wasRefundPending
+                ? `Yêu cầu hủy đơn của bạn đã được chấp thuận. Vui lòng cập nhật thông tin ngân hàng để nhận hoàn tiền ${order.totals.total.toLocaleString('vi-VN')}đ.`
+                : `Lý do hủy: ${note || 'Admin hủy đơn'}\n\nĐơn hàng của bạn đã được thanh toán qua VNPay. Vui lòng cập nhật thông tin ngân hàng để chúng tôi hoàn tiền cho bạn.`,
+              order: order._id,
+              refundRequest: refund._id,
+              metadata: {
+                reason: note || 'Admin hủy đơn',
+                orderCode,
+                amount: order.totals.total,
+                refundAmount: order.totals.total,
+                paymentMethod: 'vnpay',
+                requiresRefundInfo: true,
+                refundRequestId: refund._id.toString(),
+                wasRefundPending
+              },
+              actionUrl: `/refund/${refund._id}`,
+              actionLabel: 'Điền thông tin hoàn tiền'
+            });
+            
+            console.log('[Cancel Order] Notification created with refund form link');
           } catch (notifError) {
             console.error('[Cancel Order] Notification error (non-blocking):', notifError.message);
           }
@@ -621,21 +680,6 @@ exports.updateOrderStatus = async (req, res) => {
         sendRefundNotification();
       }
     }
-
-    // Build update object
-    const updateData = {
-      $push: { statusHistory: { status: status || orderStatus, note: note || `Admin cập nhật trạng thái` } },
-    };
-    
-    // Update old status if provided (backward compatible)
-    if (status) {
-      updateData.status = status;
-    }
-    
-    // Update new status fields if provided
-    if (orderStatus) updateData.orderStatus = orderStatus;
-    if (paymentStatus) updateData.paymentStatus = paymentStatus;
-    if (returnStatus !== undefined) updateData.returnStatus = returnStatus;
 
     const updated = await Order.findByIdAndUpdate(
       req.params.id,
@@ -680,7 +724,16 @@ exports.updateOrderStatus = async (req, res) => {
             await notifyOrderCompleted(userId, updated._id, orderCode);
             break;
           case 'cancelled':
-            await notifyOrderCancelled(userId, updated._id, orderCode, note || '');
+            // KHÔNG gọi notifyOrderCancelled nếu là VNPay đã thanh toán
+            // Vì logic tạo RefundRequest đã tạo notification riêng với link đến form
+            const isVNPayPaidCancelled = updated.paymentMethod === 'vnpay' && 
+                                         (updated.paymentStatus === 'paid' || updated.paymentStatus === 'refunding');
+            
+            if (!isVNPayPaidCancelled) {
+              // Chỉ gửi notification thông thường cho đơn COD hoặc VNPay chưa thanh toán
+              await notifyOrderCancelled(userId, updated._id, orderCode, note || '');
+            }
+            // Nếu là VNPay đã thanh toán, notification đã được tạo trong logic RefundRequest ở trên
             break;
         }
       } catch (notifError) {
@@ -725,11 +778,14 @@ exports.requestCancelOrder = async (req, res) => {
       });
     }
 
-    // Chuyển sang refund_pending
+    // Chuyển sang refund_pending (set cả old và new status fields)
     const updated = await Order.findByIdAndUpdate(
       order._id,
       {
         status: 'refund_pending',
+        orderStatus: 'refund_pending',
+        paymentStatus: 'refunding',
+        returnStatus: 'requested',
         $push: { 
           statusHistory: { 
             status: 'refund_pending', 
@@ -749,6 +805,94 @@ exports.requestCancelOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('[Order] Request cancel error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
+// ===============================
+// PUT /api/orders/me/:id/confirm-received (user xác nhận đã nhận hàng)
+// Chuyển từ shipping → delivered/completed
+// ===============================
+exports.confirmReceived = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const order = await Order.findOne({ _id: req.params.id, user: userId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Chỉ cho phép xác nhận khi đơn đang ở trạng thái shipping
+    const currentOrderStatus = order.orderStatus || order.status;
+    
+    if (currentOrderStatus !== 'shipping') {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể xác nhận đã nhận hàng khi đơn đang ở trạng thái "Đang giao hàng"',
+      });
+    }
+
+    // Cập nhật trạng thái sang delivered/completed
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      {
+        status: 'completed',
+        orderStatus: 'delivered',
+        $push: { 
+          statusHistory: { 
+            status: 'completed', 
+            note: 'Khách hàng xác nhận đã nhận hàng' 
+          } 
+        },
+      },
+      { new: true }
+    ).populate('user', 'name email');
+
+    console.log('[Order] User confirmed received:', updated._id);
+
+    // Gửi email cảm ơn (non-blocking)
+    if (updated && updated.user?.email) {
+      try {
+        await sendOrderStatusUpdate(updated.user.email, {
+          customerName: updated.customer.name,
+          orderId: updated._id,
+          status: 'completed',
+          note: 'Cảm ơn bạn đã xác nhận đã nhận hàng! Chúc bạn hài lòng với sản phẩm.',
+          items: updated.items,
+          totals: updated.totals
+        });
+      } catch (emailError) {
+        console.error('Email error (non-blocking):', emailError.message);
+      }
+    }
+
+    // Tạo notification (non-blocking)
+    if (updated && updated.user) {
+      try {
+        const orderCode = updated._id.toString().slice(-8).toUpperCase();
+        const userId = updated.user._id || updated.user;
+        const notificationService = require('../utils/notificationService');
+        await notificationService.createNotification({
+          user: userId,
+          type: 'order',
+          title: '✅ Đơn hàng hoàn thành',
+          message: `Đơn hàng #${orderCode} đã hoàn thành. Cảm ơn bạn đã mua hàng!`,
+          link: `/orders`,
+          metadata: { orderId: updated._id, orderCode }
+        });
+      } catch (notifError) {
+        console.error('Notification error (non-blocking):', notifError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã xác nhận nhận hàng thành công. Cảm ơn bạn!',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('[Order] Confirm received error:', error);
     res.status(500).json({ success: false, message: 'Lỗi server' });
   }
 };

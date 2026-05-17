@@ -12,10 +12,13 @@ interface Notification {
   title: string;
   message: string;
   link?: string;
+  actionUrl?: string;
+  actionLabel?: string;
   isRead: boolean;
   icon: string;
   priority: string;
   createdAt: string;
+  metadata?: any;
 }
 
 const NotificationBell: React.FC = () => {
@@ -93,8 +96,10 @@ const NotificationBell: React.FC = () => {
     if (!notification.isRead) {
       markAsRead(notification._id);
     }
-    if (notification.link) {
-      navigate(notification.link);
+    // Ưu tiên actionUrl (cho notification có action button), fallback về link
+    const targetUrl = notification.actionUrl || notification.link;
+    if (targetUrl) {
+      navigate(targetUrl);
       setOpen(false);
     }
   };
@@ -145,7 +150,7 @@ const NotificationBell: React.FC = () => {
                 key={item._id}
                 className={`notification-item ${!item.isRead ? 'unread' : ''}`}
                 onClick={() => handleNotificationClick(item)}
-                style={{ cursor: item.link ? 'pointer' : 'default' }}
+                style={{ cursor: (item.actionUrl || item.link) ? 'pointer' : 'default' }}
               >
                 <div className="notification-content">
                   <div className="notification-icon">{item.icon}</div>
@@ -153,6 +158,19 @@ const NotificationBell: React.FC = () => {
                     <div className="notification-title">{item.title}</div>
                     <div className="notification-message">{item.message}</div>
                     <div className="notification-time">{getTimeAgo(item.createdAt)}</div>
+                    {item.actionUrl && item.actionLabel && (
+                      <Button
+                        type="primary"
+                        size="small"
+                        className="mt-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNotificationClick(item);
+                        }}
+                      >
+                        {item.actionLabel}
+                      </Button>
+                    )}
                   </div>
                   <Button
                     type="text"

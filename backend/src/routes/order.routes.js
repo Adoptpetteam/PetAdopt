@@ -11,6 +11,7 @@ router.get('/me', authenticate, orderController.listMyOrders);
 router.get('/me/:id', authenticate, orderController.getMyOrderById);
 router.put('/me/:id/request-cancel', authenticate, orderController.requestCancelOrder);
 router.put('/me/:id/cancel', authenticate, orderController.cancelMyOrder);
+router.put('/me/:id/confirm-received', authenticate, orderController.confirmReceived);
 
 // User refund/return/exchange routes
 router.post('/:id/request-refund', authenticate, orderController.requestRefund);
