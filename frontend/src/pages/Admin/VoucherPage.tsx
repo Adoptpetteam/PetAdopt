@@ -400,7 +400,7 @@ export default function VoucherPage() {
 
             {Object.keys(usageData.stats.byDay).length > 0 && (
               <>
-                <Divider orientation="left" className="text-sm">📅 Theo ngày</Divider>
+                <Divider className="text-sm">📅 Theo ngày</Divider>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {Object.entries(usageData.stats.byDay)
                     .sort((a, b) => b[0].localeCompare(a[0]))
@@ -414,7 +414,7 @@ export default function VoucherPage() {
               </>
             )}
 
-            <Divider orientation="left" className="text-sm">🛒 Đơn hàng đã dùng voucher</Divider>
+            <Divider className="text-sm">🛒 Đơn hàng đã dùng voucher</Divider>
             {usageData.orders.length === 0 ? (
               <Empty description="Chưa có đơn hàng nào dùng voucher này" />
             ) : (

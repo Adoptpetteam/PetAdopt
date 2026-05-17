@@ -698,7 +698,7 @@ export default function Orders() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-16 px-4">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen py-16 px-4">
       <div className="max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -709,9 +709,11 @@ export default function Orders() {
             <Text type="secondary">Quản lý và theo dõi đơn hàng của bạn</Text>
           </div>
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading}>Làm mới</Button>
+            <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading} className="rounded-full">
+              Làm mới
+            </Button>
             <Link to="/products">
-              <Button type="primary" icon={<ShoppingOutlined />} className="!bg-[#6272B6] border-0 rounded-full">
+              <Button type="primary" icon={<ShoppingOutlined />} className="!bg-gradient-to-r from-[#6272B6] to-[#8B9FE8] border-0 rounded-full shadow-lg hover:shadow-xl">
                 Mua thêm
               </Button>
             </Link>
@@ -721,51 +723,51 @@ export default function Orders() {
         {/* Thống kê tổng quan */}
         <Row gutter={[16, 16]} className="mb-6">
           <Col xs={12} sm={6}>
-            <Card className="text-center border-0 shadow-sm">
+            <Card className="text-center border-0 shadow-md hover:shadow-lg transition-shadow bg-white/80 backdrop-blur">
               <Statistic
-                title="Tổng đơn hàng"
+                title={<span className="text-gray-600 font-medium">Tổng đơn hàng</span>}
                 value={orderStats.total}
                 prefix={<ShoppingCartOutlined className="text-blue-500" />}
-                styles={{ content: { color: '#6272B6', fontSize: '20px'  }}}
+                valueStyle={{ color: '#6272B6', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card className="text-center border-0 shadow-sm">
+            <Card className="text-center border-0 shadow-md hover:shadow-lg transition-shadow bg-white/80 backdrop-blur">
               <Statistic
-                title="Tổng chi tiêu"
+                title={<span className="text-gray-600 font-medium">Tổng chi tiêu</span>}
                 value={orderStats.totalAmount}
                 prefix={<DollarOutlined className="text-green-500" />}
                 suffix="đ"
-                styles={{ content: { color: '#10b981', fontSize: '20px'  }}}
+                valueStyle={{ color: '#10b981', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card className="text-center border-0 shadow-sm">
+            <Card className="text-center border-0 shadow-md hover:shadow-lg transition-shadow bg-white/80 backdrop-blur">
               <Statistic
-                title="Đã hoàn thành"
+                title={<span className="text-gray-600 font-medium">Đã hoàn thành</span>}
                 value={orderStats.completed}
                 prefix={<CheckCircleOutlined className="text-green-500" />}
-                styles={{ content: { color: '#10b981', fontSize: '20px'  }}}
+                valueStyle={{ color: '#10b981', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card className="text-center border-0 shadow-sm">
+            <Card className="text-center border-0 shadow-md hover:shadow-lg transition-shadow bg-white/80 backdrop-blur">
               <Statistic
-                title="Đang xử lý"
+                title={<span className="text-gray-600 font-medium">Đang xử lý</span>}
                 value={orderStats.pending}
                 prefix={<ClockCircleOutlined className="text-orange-500" />}
-                styles={{ content: { color: '#f59e0b', fontSize: '20px'  }}}
+                valueStyle={{ color: '#f59e0b', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Card>
           </Col>
         </Row>
 
-        <Card className="rounded-2xl shadow-sm border-0">
+        <Card className="rounded-2xl shadow-xl border-0 bg-white/90 backdrop-blur">
           {/* Bộ lọc nâng cao */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+          <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={8}>
                 <Input
@@ -774,6 +776,8 @@ export default function Orders() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   allowClear
+                  size="large"
+                  className="rounded-lg"
                 />
               </Col>
               <Col xs={24} sm={6}>
@@ -782,7 +786,8 @@ export default function Orders() {
                   value={dateRange}
                   onChange={setDateRange}
                   format="DD/MM/YYYY"
-                  className="w-full"
+                  className="w-full rounded-lg"
+                  size="large"
                 />
               </Col>
               <Col xs={24} sm={4}>
@@ -791,6 +796,7 @@ export default function Orders() {
                   value={paymentFilter}
                   onChange={setPaymentFilter}
                   className="w-full"
+                  size="large"
                   options={[
                     { label: 'Tất cả', value: 'all' },
                     { label: 'COD', value: 'cod' },
@@ -807,11 +813,13 @@ export default function Orders() {
                       setPaymentFilter("all");
                       setActiveTab("all");
                     }}
+                    size="large"
+                    className="rounded-full"
                   >
                     Xóa bộ lọc
                   </Button >
                   <Tooltip title="Xuất Excel">
-                    <Button icon={<DownloadOutlined />} type="primary" className="!bg-[#6272B6] bg-green-500 border-0">
+                    <Button icon={<DownloadOutlined />} size="large" className="!bg-green-500 text-white border-0 rounded-full hover:!bg-green-600">
                       Xuất
                     </Button>
                   </Tooltip>
@@ -831,9 +839,9 @@ export default function Orders() {
           {filtered.length === 0 ? (
             <Empty
               description={
-                <div className="text-center">
-                  <div className="text-gray-500 mb-2">
-                    {orders.length === 0 ? "Bạn chưa có đơn hàng nào" : "Không tìm thấy đơn hàng phù hợp"}
+                <div className="text-center py-8">
+                  <div className="text-gray-500 mb-4 text-lg">
+                    {orders.length === 0 ? "🛒 Bạn chưa có đơn hàng nào" : "🔍 Không tìm thấy đơn hàng phù hợp"}
                   </div>
                   {searchText || dateRange || paymentFilter !== "all" ? (
                     <Button onClick={() => {
@@ -841,7 +849,7 @@ export default function Orders() {
                       setDateRange(null);
                       setPaymentFilter("all");
                       setActiveTab("all");
-                    }}>
+                    }} className="rounded-full">
                       Xóa bộ lọc
                     </Button>
                   ) : null}
@@ -851,8 +859,8 @@ export default function Orders() {
             >
               {orders.length === 0 && (
                 <Link to="/products">
-                  <Button type="primary" className="bg-[#6272B6] border-0 rounded-full px-8">
-                    Mua sắm ngay
+                  <Button type="primary" size="large" className="!bg-gradient-to-r from-[#6272B6] to-[#8B9FE8] border-0 rounded-full px-8 shadow-lg hover:shadow-xl">
+                    🛍️ Mua sắm ngay
                   </Button>
                 </Link>
               )}
@@ -882,25 +890,27 @@ export default function Orders() {
         onCancel={() => setSelected(null)}
         footer={null}
         width={720}
+        className="top-8"
         title={
-          <Space>
-            <BoxPlotOutlined className="text-[#6272B6]" />
-            <span>Chi tiết đơn hàng <Text code>#{selected?._id.slice(-8).toUpperCase()}</Text></span>
-          </Space>
+          <div className="flex items-center gap-2 text-[#6272B6]">
+            <BoxPlotOutlined />
+            <span>Chi tiết đơn hàng <Text code className="text-sm">#{selected?._id.slice(-8).toUpperCase()}</Text></span>
+          </div>
         }
       >
         {selected && (
           <div>
             {/* Progress bar */}
             {selected.status !== "cancelled" && (
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl shadow-sm">
                 <Progress
                   percent={getProgress(selected).percent}
                   status={getProgress(selected).status}
                   strokeColor={{ "0%": "#6272B6", "100%": "#a78bfa" }}
                   className="mb-2"
+                  strokeWidth={10}
                 />
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-gray-500 font-medium">
                   {selected.status.startsWith("refund") ? (
                     <>
                       <span>💰 Yêu cầu</span>
@@ -1012,18 +1022,25 @@ export default function Orders() {
               ))}
             </div>
 
-            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl flex justify-between items-center">
-              <Text strong className="text-base">Tổng cộng</Text>
-              <Text strong className="text-2xl text-[#6272B6]">{selected.totals.total.toLocaleString()}đ</Text>
+            <div className="mt-4 p-5 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl shadow-sm flex justify-between items-center">
+              <div>
+                <Text type="secondary" className="block text-sm mb-1">Tổng thanh toán</Text>
+                <Text strong className="text-3xl text-[#6272B6]">{selected.totals.total.toLocaleString()}đ</Text>
+              </div>
+              <div className="text-right">
+                <Text type="secondary" className="block text-xs">Đã bao gồm VAT</Text>
+                <Text type="secondary" className="block text-xs">và phí vận chuyển</Text>
+              </div>
             </div>
 
-            <div className="mt-4 flex justify-end gap-3">
+            <div className="mt-4 flex justify-end gap-3 flex-wrap">
               {['pending', 'confirmed'].includes(selected.status) && (
                 <Button
                   danger
                   icon={<CloseCircleOutlined />}
                   onClick={() => handleCancelOrder(selected._id)}
-                  className="rounded-full px-6"
+                  className="rounded-full px-6 shadow-md hover:shadow-lg"
+                  size="large"
                 >
                   Hủy đơn hàng
                 </Button>
@@ -1035,7 +1052,8 @@ export default function Orders() {
                     handleOpenRefundModal(selected);
                     setSelected(null);
                   }}
-                  className="rounded-full px-6 bg-blue-50 text-blue-600 border-blue-300"
+                  className="rounded-full px-6 bg-blue-50 text-blue-600 border-blue-300 shadow-md hover:shadow-lg"
+                  size="large"
                 >
                   Yêu cầu hoàn tiền
                 </Button>
@@ -1047,12 +1065,15 @@ export default function Orders() {
                     handleOpenReturnExchangeModal(selected);
                     setSelected(null);
                   }}
-                  className="rounded-full px-6 bg-green-50 text-green-600 border-green-300"
+                  className="rounded-full px-6 bg-green-50 text-green-600 border-green-300 shadow-md hover:shadow-lg"
+                  size="large"
                 >
                   Trả/Đổi hàng
                 </Button>
               )}
-              <Button onClick={() => setSelected(null)} className="rounded-full px-8">Đóng</Button>
+              <Button onClick={() => setSelected(null)} className="rounded-full px-8 shadow-md hover:shadow-lg" size="large">
+                Đóng
+              </Button>
             </div>
           </div>
         )}

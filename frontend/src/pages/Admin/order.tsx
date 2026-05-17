@@ -219,8 +219,8 @@ const OrderPage = () => {
     const pending = filteredData.filter(o => o.orderStatus === "pending" || o.status === "pending").length;
     const confirmed = filteredData.filter(o => o.orderStatus === "confirmed" || o.status === "confirmed").length;
     const shipping = filteredData.filter(o => o.orderStatus === "shipping" || o.status === "shipping").length;
-    const delivered = filteredData.filter(o => o.orderStatus === "delivered" || o.status === "completed").length;
-    const completed = filteredData.filter(o => o.orderStatus === "completed").length;
+    const delivered = filteredData.filter(o => o.orderStatus === "delivered" || o.status === "completed" || o.status === "delivered").length;
+    const completed = filteredData.filter(o => o.status === "completed").length;
     const cancelled = filteredData.filter(o => o.orderStatus === "cancelled" || o.status === "cancelled").length;
     
     return { total, revenue, pending, confirmed, shipping, delivered, completed, cancelled };
@@ -407,7 +407,7 @@ const OrderPage = () => {
               title="Tổng đơn" 
               value={stats.total} 
               prefix={<ShoppingOutlined />} 
-              styles={{ value: { color: "#3f8600" } }} 
+              valueStyle={{ color: "#3f8600" }} 
             />
           </Card>
         </Col>
@@ -418,7 +418,7 @@ const OrderPage = () => {
               value={stats.revenue} 
               suffix="đ" 
               prefix={<DollarOutlined />} 
-              styles={{ value: { color: "#6272B6" } }} 
+              valueStyle={{ color: "#6272B6" }} 
             />
           </Card>
         </Col>
@@ -428,7 +428,7 @@ const OrderPage = () => {
               title="Chờ xác nhận" 
               value={stats.pending} 
               prefix={<ClockCircleOutlined />} 
-              styles={{ value: { color: "#faad14" } }} 
+              valueStyle={{ color: "#faad14" }} 
             />
           </Card>
         </Col>
@@ -438,7 +438,7 @@ const OrderPage = () => {
               title="Đã xác nhận" 
               value={stats.confirmed} 
               prefix={<CheckCircleOutlined />} 
-              styles={{ value: { color: "#1890ff" } }} 
+              valueStyle={{ color: "#1890ff" }} 
             />
           </Card>
         </Col>
@@ -448,7 +448,7 @@ const OrderPage = () => {
               title="Đang giao" 
               value={stats.shipping} 
               prefix={<TruckOutlined />} 
-              styles={{ value: { color: "#722ed1" } }} 
+              valueStyle={{ color: "#722ed1" }} 
             />
           </Card>
         </Col>
@@ -458,7 +458,7 @@ const OrderPage = () => {
               title="Đã giao" 
               value={stats.delivered} 
               prefix={<GiftOutlined />} 
-              styles={{ value: { color: "#52c41a" } }} 
+              valueStyle={{ color: "#52c41a" }} 
             />
           </Card>
         </Col>
@@ -468,7 +468,7 @@ const OrderPage = () => {
               title="Hoàn thành" 
               value={stats.completed} 
               prefix={<CheckCircleOutlined />} 
-              styles={{ value: { color: "#13c2c2" } }} 
+              valueStyle={{ color: "#13c2c2" }} 
             />
           </Card>
         </Col>
@@ -478,7 +478,7 @@ const OrderPage = () => {
               title="Đã hủy" 
               value={stats.cancelled} 
               prefix={<CloseCircleOutlined />} 
-              styles={{ value: { color: "#ff4d4f" } }} 
+              valueStyle={{ color: "#ff4d4f" }} 
             />
           </Card>
         </Col>

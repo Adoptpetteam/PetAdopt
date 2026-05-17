@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const moment = require('moment');
 const { sendDonationThankYou } = require('../utils/donateService');
 const Donation = require('../models/Donation');
+const Voucher = require('../models/Voucher');
 
 // ====== In-memory store ======
 const pendingOrders = new Map();
@@ -30,6 +31,101 @@ function getClientIp(req) {
         req.socket?.remoteAddress ||
         req.connection?.socket?.remoteAddress ||
         '127.0.0.1';
+}
+
+// ====== AUTO VOUCHER FUNCTIONS ======
+async function autoSendVoucher(donation) {
+    try {
+        const { email, name, amount } = donation;
+        
+        if (!email) {
+            console.log('[Donate] No email, skip auto voucher');
+            return;
+        }
+        
+        // Xác định voucher tier
+        let voucherValue, voucherCode;
+        if (amount >= 500000) {
+            voucherValue = 15;
+        } else if (amount >= 100000) {
+            voucherValue = 10;
+        } else if (amount >= 50000) {
+            voucherValue = 5;
+        } else {
+            console.log(`[Donate] Amount ${amount} < 50k, no voucher`);
+            return; // Không gửi voucher nếu < 50k
+        }
+        
+        // Tạo mã voucher unique
+        voucherCode = `THANK${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        
+        // Kiểm tra trùng (rất hiếm nhưng cẩn thận)
+        let exists = await Voucher.findOne({ code: voucherCode });
+        while (exists) {
+            voucherCode = `THANK${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+            exists = await Voucher.findOne({ code: voucherCode });
+        }
+        
+        // Tạo voucher trong database
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 3); // Hết hạn sau 3 tháng
+        
+        await Voucher.create({
+            code: voucherCode,
+            type: 'percent',
+            value: voucherValue,
+            description: `Cảm ơn bạn đã ủng hộ ${amount.toLocaleString('vi-VN')}đ`,
+            startDate: new Date(),
+            endDate,
+            usageLimit: 1,
+            userLimit: 1,
+            usedCount: 0,
+            isActive: true,
+            minOrder: 0,
+            maxDiscount: 0,
+        });
+        
+        // Gửi email voucher
+        await sendVoucherEmailAuto(email, name, voucherCode, voucherValue, endDate);
+        
+        console.log(`[Donate] ✅ Auto sent voucher ${voucherCode} (${voucherValue}%) to ${email}`);
+    } catch (error) {
+        console.error('[Donate] Auto voucher error:', error.message);
+    }
+}
+
+async function sendVoucherEmailAuto(email, name, code, value, endDate) {
+    const { sendEmail } = require('../utils/emailService');
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    
+    const html = `
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:20px;">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#6272B6,#8B9FE8);padding:32px;text-align:center;">
+    <div style="font-size:48px;">🎁</div>
+    <h1 style="color:#fff;font-size:22px;margin:12px 0 0;">Quà tặng từ PetAdopt</h1>
+  </div>
+  <div style="padding:32px;">
+    <p>Xin chào <strong>${name || 'bạn'}</strong>,</p>
+    <p>Cảm ơn bạn đã ủng hộ trung tâm bảo trợ thú cưng PetAdopt! 💚</p>
+    <p>Đây là voucher giảm giá dành riêng cho bạn:</p>
+    <div style="background:#EEF2FF;border:2px dashed #6272B6;border-radius:12px;padding:24px;text-align:center;margin:24px 0;">
+      <p style="font-size:12px;color:#6366F1;font-weight:bold;letter-spacing:2px;margin:0 0 8px;">MÃ VOUCHER</p>
+      <p style="font-size:32px;font-weight:bold;color:#4338CA;letter-spacing:4px;margin:0 0 8px;">${code}</p>
+      <p style="font-size:20px;font-weight:bold;color:#10b981;margin:0;">Giảm ${value}%</p>
+      <p style="font-size:12px;color:#9CA3AF;margin:8px 0 0;">Hết hạn: ${new Date(endDate).toLocaleDateString('vi-VN')}</p>
+    </div>
+    <p>Nhập mã này khi thanh toán tại cửa hàng để nhận ưu đãi nhé!</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${clientUrl}/products" style="display:inline-block;background:#6272B6;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:bold;">Mua sắm ngay</a>
+    </div>
+    <p style="color:#9CA3AF;font-size:12px;margin-top:24px;">Cảm ơn sự ủng hộ của bạn 🐾❤️<br/>PetAdopt Team</p>
+  </div>
+</div>
+</body></html>`;
+    
+    await sendEmail(email, `🎁 Voucher giảm ${value}% từ PetAdopt`, html);
 }
 
 function verifyVNPaySignature(vnp_Params, secretKey) {
@@ -167,9 +263,15 @@ exports.vnpayReturn = async (req, res) => {
                     { new: true }
                 );
                 console.log(`[Donate] Donation updated to success:`, donation?._id);
+                
                 if (donation?.email) {
+                    // Gửi email cảm ơn
                     sendDonationThankYou(donation.email, donation.name, donation.amount)
                         .catch(err => console.error('[Donate] Email failed:', err.message));
+                    
+                    // TỰ ĐỘNG GỬI VOUCHER
+                    autoSendVoucher(donation)
+                        .catch(err => console.error('[Donate] Auto voucher failed:', err.message));
                 }
             } catch (dbError) {
                 console.error('[Donate] DB update error:', dbError.message);
@@ -216,9 +318,15 @@ exports.vnpayIPN = async (req, res) => {
                     { status: 'success', paidAt: new Date() },
                     { new: true }
                 );
+                
                 if (donation?.email) {
+                    // Gửi email cảm ơn
                     sendDonationThankYou(donation.email, donation.name, donation.amount)
                         .catch(err => console.error('[Donate IPN] Email failed:', err.message));
+                    
+                    // TỰ ĐỘNG GỬI VOUCHER
+                    autoSendVoucher(donation)
+                        .catch(err => console.error('[Donate IPN] Auto voucher failed:', err.message));
                 }
             } catch (dbError) {
                 console.error('[Donate IPN] DB update error:', dbError.message);

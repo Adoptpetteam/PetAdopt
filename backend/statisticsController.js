@@ -38,8 +38,19 @@ exports.getOrderOverview = async (req, res) => {
       }
     ]);
 
-    // Tổng doanh thu (đơn đã thanh toán online hoặc đã hoàn thành)
-    const revenueFilter = { ...filter, status: { $in: ['paid', 'completed'] } };
+    // Tổng doanh thu (giống logic trang Order)
+    // Tính đơn: delivered, completed, hoặc đã thanh toán (paid)
+    // KHÔNG loại trừ cancelled (vì trang Order cũng tính)
+    const revenueFilter = {
+      ...filter,
+      $or: [
+        { orderStatus: 'delivered' },
+        { status: 'completed' },
+        { paymentStatus: 'paid' },
+        { status: 'paid' }
+      ]
+    };
+    
     const revenueResult = await Order.aggregate([
       { $match: revenueFilter },
       {
@@ -102,7 +113,15 @@ exports.getRevenueByTime = async (req, res) => {
   try {
     const { period = 'day', startDate, endDate } = req.query;
 
-    const filter = { status: { $in: ['paid', 'completed'] } };
+    const filter = {
+      $or: [
+        { orderStatus: 'delivered' },
+        { status: 'completed' },
+        { paymentStatus: 'paid' },
+        { status: 'paid' }
+      ]
+    };
+    
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
@@ -183,7 +202,15 @@ exports.getTopProducts = async (req, res) => {
   try {
     const { limit = 10, startDate, endDate } = req.query;
 
-    const filter = { status: { $in: ['paid', 'completed'] } };
+    const filter = {
+      $or: [
+        { orderStatus: 'delivered' },
+        { status: 'completed' },
+        { paymentStatus: 'paid' },
+        { status: 'paid' }
+      ]
+    };
+    
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
@@ -225,7 +252,15 @@ exports.getCustomerStats = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    const filter = { status: { $in: ['paid', 'completed'] } };
+    const filter = {
+      $or: [
+        { orderStatus: 'delivered' },
+        { status: 'completed' },
+        { paymentStatus: 'paid' },
+        { status: 'paid' }
+      ]
+    };
+    
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
@@ -364,7 +399,12 @@ exports.getComparison = async (req, res) => {
     // Helper function để lấy stats cho một khoảng thời gian
     const getStats = async (startDate, endDate) => {
       const filter = {
-        status: { $in: ['paid', 'completed'] }, // paid = VNPay, completed = COD đã giao
+        $or: [
+          { orderStatus: 'delivered' },
+          { status: 'completed' },
+          { paymentStatus: 'paid' },
+          { status: 'paid' }
+        ],
         createdAt: {
           $gte: new Date(startDate),
           $lte: parseEndDate(endDate)

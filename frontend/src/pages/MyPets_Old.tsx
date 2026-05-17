@@ -293,9 +293,10 @@ export default function MyPets() {
                       </span>
                     ),
                     children: (
-                  {profileLoading ? (
-                    <div className="profile-loading">Đang tải hồ sơ...</div>
-                  ) : healthProfile ? (
+                      <>
+                        {profileLoading ? (
+                          <div className="profile-loading">Đang tải hồ sơ...</div>
+                        ) : healthProfile ? (
                     <Row gutter={[24, 24]}>
                       {/* Pet Info */}
                       <Col xs={24} lg={8}>
@@ -343,7 +344,7 @@ export default function MyPets() {
                                 title="Điểm sức khỏe"
                                 value={getHealthScore(healthProfile)}
                                 suffix="/100"
-                                styles={{ content: { color: getHealthScoreColor(getHealthScore(healthProfile))  }}}
+                                valueStyle={{ color: getHealthScoreColor(getHealthScore(healthProfile)) }}
                               />
                             </Col>
                             <Col xs={12} sm={6}>
@@ -351,21 +352,21 @@ export default function MyPets() {
                                 title="Mũi tiêm"
                                 value={healthProfile.statistics.vaccination.completed}
                                 suffix={`/${healthProfile.statistics.vaccination.total}`}
-                                styles={{ content: { color: '#1890ff'  }}}
+                                valueStyle={{ color: '#1890ff' }}
                               />
                             </Col>
                             <Col xs={12} sm={6}>
                               <Statistic
                                 title="Lần khám"
                                 value={healthProfile.statistics.health.checkups}
-                                styles={{ content: { color: '#52c41a'  }}}
+                                valueStyle={{ color: '#52c41a' }}
                               />
                             </Col>
                             <Col xs={12} sm={6}>
                               <Statistic
                                 title="Hồ sơ y tế"
                                 value={healthProfile.statistics.health.totalRecords}
-                                styles={{ content: { color: '#722ed1'  }}}
+                                valueStyle={{ color: '#722ed1' }}
                               />
                             </Col>
                           </Row>
@@ -431,7 +432,6 @@ export default function MyPets() {
                                     </span>
                                     <Tag 
                                       color={getPriorityColor(task.priority)} 
-                                      size="small"
                                       style={{ marginLeft: 8 }}
                                     >
                                       {task.priority === 'high' ? 'Khẩn cấp' : 
@@ -453,116 +453,117 @@ export default function MyPets() {
                   ) : (
                     <Empty description="Không thể tải hồ sơ sức khỏe" />
                   )}
-                </TabPane>
-
-                {/* Health Records */}
-                <TabPane
-                  tab={
-                    <span>
-                      <MedicineBoxOutlined />
-                      Hồ sơ y tế
-                    </span>
-                  }
-                  key="2"
-                >
-                  <Card>
-                    <div className="health-records-actions">
-                      <Button
-                        type="primary"
-                        icon={<EyeOutlined />}
-                        onClick={() => navigate('/pet-care')}
-                      >
-                        Xem chi tiết
-                      </Button>
-                      <Button
-                        icon={<PlusOutlined />}
-                        onClick={() => navigate('/pet-care')}
-                      >
-                        Thêm hồ sơ
-                      </Button>
-                    </div>
-                    
-                    {healthProfile && (
-                      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                        <Col xs={24} sm={8}>
-                          <Card className="record-summary">
-                            <Statistic
-                              title="Tổng hồ sơ"
-                              value={healthProfile.statistics.health.totalRecords}
-                              prefix={<MedicineBoxOutlined />}
-                            />
-                          </Card>
-                        </Col>
-                        <Col xs={24} sm={8}>
-                          <Card className="record-summary">
-                            <Statistic
-                              title="Lần tiêm phòng"
-                              value={healthProfile.statistics.health.vaccinations}
-                              prefix={<MedicineBoxOutlined />}
-                              styles={{ content: { color: '#1890ff'  }}}
-                            />
-                          </Card>
-                        </Col>
-                        <Col xs={24} sm={8}>
-                          <Card className="record-summary">
-                            <Statistic
-                              title="Lần khám bệnh"
-                              value={healthProfile.statistics.health.checkups}
-                              prefix={<HeartOutlined />}
-                              styles={{ content: { color: '#52c41a'  }}}
-                            />
-                          </Card>
-                        </Col>
-                      </Row>
-                    )}
-                  </Card>
-                </TabPane>
-
-                {/* Weight Tracking */}
-                <TabPane
-                  tab={
-                    <span>
-                      <LineChartOutlined />
-                      Theo dõi cân nặng
-                    </span>
-                  }
-                  key="3"
-                >
-                  <Card title="📈 Biểu đồ cân nặng">
-                    {healthProfile && healthProfile.weightHistory.length > 0 ? (
-                      <div className="weight-chart">
-                        <Timeline mode="left">
-                          {healthProfile.weightHistory.map((record, index) => (
-                            <Timeline.Item
-                              key={index}
-                              label={formatDate(record.date)}
-                              color="blue"
-                            >
-                              <strong>{record.weight} kg</strong>
-                              {index > 0 && (
-                                <span style={{ marginLeft: 8 }}>
-                                  {record.weight > healthProfile.weightHistory[index - 1].weight ? (
-                                    <Tag color="green">+{(record.weight - healthProfile.weightHistory[index - 1].weight).toFixed(1)} kg</Tag>
-                                  ) : record.weight < healthProfile.weightHistory[index - 1].weight ? (
-                                    <Tag color="red">{(record.weight - healthProfile.weightHistory[index - 1].weight).toFixed(1)} kg</Tag>
-                                  ) : (
-                                    <Tag color="blue">Không đổi</Tag>
+                      </>
+                    ),
+                  },
+                  {
+                    key: "2",
+                    label: (
+                      <span>
+                        <MedicineBoxOutlined />
+                        Hồ sơ y tế
+                      </span>
+                    ),
+                    children: (
+                      <Card>
+                        <div className="health-records-actions">
+                          <Button
+                            type="primary"
+                            icon={<EyeOutlined />}
+                            onClick={() => navigate('/pet-care')}
+                          >
+                            Xem chi tiết
+                          </Button>
+                          <Button
+                            icon={<PlusOutlined />}
+                            onClick={() => navigate('/pet-care')}
+                          >
+                            Thêm hồ sơ
+                          </Button>
+                        </div>
+                        
+                        {healthProfile && (
+                          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                            <Col xs={24} sm={8}>
+                              <Card className="record-summary">
+                                <Statistic
+                                  title="Tổng hồ sơ"
+                                  value={healthProfile.statistics.health.totalRecords}
+                                  prefix={<MedicineBoxOutlined />}
+                                />
+                              </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                              <Card className="record-summary">
+                                <Statistic
+                                  title="Lần tiêm phòng"
+                                  value={healthProfile.statistics.health.vaccinations}
+                                  prefix={<MedicineBoxOutlined />}
+                                  valueStyle={{ color: '#1890ff' }}
+                                />
+                              </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                              <Card className="record-summary">
+                                <Statistic
+                                  title="Lần khám bệnh"
+                                  value={healthProfile.statistics.health.checkups}
+                                  prefix={<HeartOutlined />}
+                                  valueStyle={{ color: '#52c41a' }}
+                                />
+                              </Card>
+                            </Col>
+                          </Row>
+                        )}
+                      </Card>
+                    ),
+                  },
+                  {
+                    key: "3",
+                    label: (
+                      <span>
+                        <LineChartOutlined />
+                        Theo dõi cân nặng
+                      </span>
+                    ),
+                    children: (
+                      <Card title="📈 Biểu đồ cân nặng">
+                        {healthProfile && healthProfile.weightHistory.length > 0 ? (
+                          <div className="weight-chart">
+                            <Timeline mode="left">
+                              {healthProfile.weightHistory.map((record, index) => (
+                                <Timeline.Item
+                                  key={index}
+                                  label={formatDate(record.date)}
+                                  color="blue"
+                                >
+                                  <strong>{record.weight} kg</strong>
+                                  {index > 0 && (
+                                    <span style={{ marginLeft: 8 }}>
+                                      {record.weight > healthProfile.weightHistory[index - 1].weight ? (
+                                        <Tag color="green">+{(record.weight - healthProfile.weightHistory[index - 1].weight).toFixed(1)} kg</Tag>
+                                      ) : record.weight < healthProfile.weightHistory[index - 1].weight ? (
+                                        <Tag color="red">{(record.weight - healthProfile.weightHistory[index - 1].weight).toFixed(1)} kg</Tag>
+                                      ) : (
+                                        <Tag color="blue">Không đổi</Tag>
+                                      )}
+                                    </span>
                                   )}
-                                </span>
-                              )}
-                            </Timeline.Item>
-                          ))}
-                        </Timeline>
-                      </div>
-                    ) : (
-                      <Empty 
-                        description="Chưa có dữ liệu cân nặng"
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      />
-                    )}
-                  </Card>
-                </TabPane>
-              </Tabs>
+                                </Timeline.Item>
+                              ))}
+                            </Timeline>
+                          </div>
+                        ) : (
+                          <Empty 
+                            description="Chưa có dữ liệu cân nặng"
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                          />
+                        )}
+                      </Card>
+                    ),
+                  },
+                ]}
+              />
             )}
           </>
         )}

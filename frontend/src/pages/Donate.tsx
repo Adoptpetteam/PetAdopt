@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { message } from "antd"
+import { Card, Button, Input, InputNumber, message, Space, Divider, Typography, Row, Col, Statistic } from "antd"
+import { HeartOutlined, GiftOutlined, TrophyOutlined, DollarOutlined, MailOutlined, UserOutlined, MessageOutlined } from "@ant-design/icons"
 import { createVNPayPayment } from "../api/donateApi"
 import { apiClient } from "../api/http"
+import TopSupportersMarquee from "../components/TopSupportersMarquee"
+
+const { Title, Text, Paragraph } = Typography
+const { TextArea } = Input
 
 interface Supporter {
   _id: string;
@@ -11,14 +16,21 @@ interface Supporter {
   paidAt: string;
 }
 
+interface DonationStats {
+  total: number;
+  totalAmount: number;
+  pending: number;
+}
+
 export default function Donate() {
   const [searchParams] = useSearchParams()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [messageText, setMessageText] = useState("")
-  const [amount, setAmount] = useState("")
+  const [amount, setAmount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [supporters, setSupporters] = useState<Supporter[]>([])
+  const [stats, setStats] = useState<DonationStats>({ total: 0, totalAmount: 0, pending: 0 })
 
   const status = searchParams.get("status")
   const code = searchParams.get("code")
@@ -29,28 +41,36 @@ export default function Donate() {
       if (storedUser) {
         const user = JSON.parse(storedUser)
         if (user?.email) setEmail(user.email)
+        if (user?.name) setName(user.name)
       }
     } catch { /* ignore */ }
   }, [])
 
-  // Fetch danh sách người ủng hộ cho marquee
+  // Fetch danh sách người ủng hộ
   useEffect(() => {
     apiClient.get("/donate/supporters", { params: { limit: 50 } })
       .then(res => setSupporters(res.data.data || []))
       .catch(() => {})
-  }, [status]) // refetch sau khi thanh toán thành công
+    
+    // Fetch statistics
+    apiClient.get("/donate/statistics")
+      .then(res => setStats(res.data.data || { total: 0, totalAmount: 0, pending: 0 }))
+      .catch(() => {})
+  }, [status])
 
   useEffect(() => {
     if (status === "success") {
-      message.success("Thanh toán thành công! Cảm ơn bạn đã ủng hộ ❤️")
+      message.success({
+        content: "🎉 Thanh toán thành công! Cảm ơn bạn đã ủng hộ ❤️",
+        duration: 5,
+      })
     } else if (status === "failed") {
       message.error("Thanh toán thất bại. Vui lòng thử lại.")
     }
   }, [status, code])
 
   const handleDonate = async () => {
-    const amountNum = Number(amount)
-    if (!amountNum || amountNum < 1000) {
+    if (!amount || amount < 1000) {
       message.warning("Vui lòng nhập số tiền hợp lệ (tối thiểu 1,000 VND)")
       return
     }
@@ -58,7 +78,7 @@ export default function Donate() {
     setLoading(true)
     try {
       const res = await createVNPayPayment({
-        amount: amountNum,
+        amount,
         name: name || undefined,
         email: email || undefined,
       })
@@ -70,104 +90,258 @@ export default function Donate() {
     }
   }
 
-  const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n)
+  const quickAmounts = [50000, 100000, 200000, 500000]
 
   return (
-    <div className="max-w-[600px] mx-auto py-20 px-6 text-center">
-
-      {/* MARQUEE người ủng hộ */}
-      {supporters.length > 0 && (
-        <div className="overflow-hidden bg-[#6272B6] text-white rounded-full py-2 mb-8">
-          <div
-            className="flex gap-12 whitespace-nowrap"
-            style={{
-              animation: "marquee 30s linear infinite",
-              display: "inline-flex",
-            }}
-          >
-            {/* Nhân đôi để loop mượt */}
-            {[...supporters, ...supporters].map((s, i) => (
-              <span key={i} className="text-sm font-medium">
-                ❤️ Cảm ơn bạn {s.name || "Ẩn danh"} đã ủng hộ {fmt(s.amount)}đ
-              </span>
-            ))}
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen py-12 px-4">
+      <div className="max-w-[1200px] mx-auto">
+        
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#6272B6] to-[#8B9FE8] rounded-full mb-4 shadow-lg">
+            <HeartOutlined className="text-4xl text-white" />
           </div>
-          <style>{`
-            @keyframes marquee {
-              0%   { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
-            }
-          `}</style>
+          <Title level={1} className="!text-[#6272B6] !mb-2">
+            Ủng hộ PetAdopt
+          </Title>
+          <Paragraph className="text-gray-600 text-lg max-w-[600px] mx-auto">
+            Mỗi đóng góp của bạn giúp chúng tôi chăm sóc và tìm mái ấm cho những bé thú cưng đáng yêu 🐾
+          </Paragraph>
         </div>
-      )}
 
-      <h1 className="text-3xl font-bold text-[#6272B6] mb-6">
-        Ủng hộ chúng tôi
-      </h1>
+        {/* Statistics */}
+        <Row gutter={[16, 16]} className="mb-8">
+          <Col xs={24} sm={8}>
+            <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-0 bg-white/80 backdrop-blur">
+              <Statistic
+                title={<span className="text-gray-600 font-medium">Tổng người ủng hộ</span>}
+                value={stats.total}
+                prefix={<TrophyOutlined className="text-yellow-500" />}
+                valueStyle={{ color: '#6272B6', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-0 bg-white/80 backdrop-blur">
+              <Statistic
+                title={<span className="text-gray-600 font-medium">Tổng số tiền</span>}
+                value={stats.totalAmount}
+                suffix="đ"
+                prefix={<DollarOutlined className="text-green-500" />}
+                valueStyle={{ color: '#10b981', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-0 bg-white/80 backdrop-blur">
+              <Statistic
+                title={<span className="text-gray-600 font-medium">Đang chờ xử lý</span>}
+                value={stats.pending}
+                prefix={<GiftOutlined className="text-blue-500" />}
+                valueStyle={{ color: '#6272B6', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      <p className="text-gray-500 mb-10">
-        Nhập số tiền và nhấn "Ủng hộ" để chuyển sang trang thanh toán VNPay
-      </p>
+        {/* Marquee */}
+        {supporters.length > 0 && (
+          <div className="mb-8">
+            <TopSupportersMarquee />
+          </div>
+        )}
 
-      {/* INPUT */}
-      <div className="space-y-4 mb-8">
-        <input
-          placeholder="Tên của bạn (tuỳ chọn)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
-        />
+        <Row gutter={[24, 24]}>
+          {/* Form ủng hộ */}
+          <Col xs={24} lg={14}>
+            <Card 
+              className="shadow-xl border-0 bg-white/90 backdrop-blur"
+              title={
+                <Space>
+                  <HeartOutlined className="text-[#6272B6]" />
+                  <span className="text-[#6272B6] font-bold">Thông tin ủng hộ</span>
+                </Space>
+              }
+            >
+              <Space direction="vertical" size="large" className="w-full">
+                {/* Tên */}
+                <div>
+                  <Text strong className="block mb-2">
+                    <UserOutlined className="mr-2" />
+                    Tên của bạn <Text type="secondary">(tuỳ chọn)</Text>
+                  </Text>
+                  <Input
+                    size="large"
+                    placeholder="Nguyễn Văn A"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    prefix={<UserOutlined className="text-gray-400" />}
+                    className="rounded-lg"
+                  />
+                </div>
 
-        <input
-          type="email"
-          placeholder="Email (để nhận lời cảm ơn qua thư)"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
-        />
+                {/* Email */}
+                <div>
+                  <Text strong className="block mb-2">
+                    <MailOutlined className="mr-2" />
+                    Email <Text type="secondary">(để nhận voucher & lời cảm ơn)</Text>
+                  </Text>
+                  <Input
+                    size="large"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    prefix={<MailOutlined className="text-gray-400" />}
+                    className="rounded-lg"
+                  />
+                  <Text type="secondary" className="text-xs block mt-1">
+                    💡 Nhập email để nhận voucher giảm giá khi mua sắm!
+                  </Text>
+                </div>
 
-        <input
-          type="number"
-          placeholder="Số tiền ủng hộ (VND) *"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full h-12 bg-[#DDEDFF] rounded-full px-6 outline-none"
-          min="1000"
-        />
+                {/* Số tiền */}
+                <div>
+                  <Text strong className="block mb-2">
+                    <DollarOutlined className="mr-2" />
+                    Số tiền ủng hộ <Text type="danger">*</Text>
+                  </Text>
+                  <InputNumber
+                    size="large"
+                    placeholder="Nhập số tiền (VND)"
+                    value={amount}
+                    onChange={(val) => setAmount(val)}
+                    min={1000}
+                    step={10000}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                    className="w-full rounded-lg"
+                    addonBefore={<DollarOutlined className="text-gray-400" />}
+                    addonAfter="VND"
+                    style={{ width: '100%' }}
+                  />
+                  
+                  {/* Quick amounts */}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {quickAmounts.map((amt) => (
+                      <Button
+                        key={amt}
+                        size="small"
+                        onClick={() => setAmount(amt)}
+                        className={`rounded-full ${amount === amt ? 'bg-[#6272B6] text-white border-[#6272B6]' : ''}`}
+                      >
+                        {(amt / 1000).toLocaleString()}k
+                      </Button>
+                    ))}
+                  </div>
 
-        <textarea
-          placeholder="Lời nhắn (tuỳ chọn)"
-          value={messageText}
-          onChange={(e) => setMessageText(e.target.value)}
-          className="w-full h-28 bg-[#DDEDFF] rounded-2xl px-6 py-3 outline-none"
-        />
+                  {/* Voucher info */}
+                  {amount && amount >= 50000 && (
+                    <div className="mt-3 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                      <Text className="text-green-700 font-medium">
+                        🎁 Bạn sẽ nhận voucher giảm{' '}
+                        {amount >= 500000 ? '15%' : amount >= 100000 ? '10%' : '5%'} khi ủng hộ!
+                      </Text>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lời nhắn */}
+                <div>
+                  <Text strong className="block mb-2">
+                    <MessageOutlined className="mr-2" />
+                    Lời nhắn <Text type="secondary">(tuỳ chọn)</Text>
+                  </Text>
+                  <TextArea
+                    rows={4}
+                    placeholder="Gửi lời động viên đến PetAdopt..."
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                <Divider />
+
+                {/* Button */}
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  loading={loading}
+                  onClick={handleDonate}
+                  icon={<HeartOutlined />}
+                  className="!bg-gradient-to-r from-[#6272B6] to-[#8B9FE8] border-0 !h-14 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  {loading ? "Đang chuyển..." : "Ủng hộ qua VNPay"}
+                </Button>
+
+                <Text type="secondary" className="text-center block text-xs">
+                  🔒 Thanh toán an toàn qua cổng VNPay
+                </Text>
+              </Space>
+            </Card>
+          </Col>
+
+          {/* QR Code & Info */}
+          <Col xs={24} lg={10}>
+            <Space direction="vertical" size="large" className="w-full">
+              {/* QR Card */}
+              <Card 
+                className="shadow-xl border-0 bg-white/90 backdrop-blur text-center"
+                title={
+                  <span className="text-[#6272B6] font-bold">
+                    Hoặc chuyển khoản thủ công
+                  </span>
+                }
+              >
+                <img
+                  src="https://img.vietqr.io/image/970422-123456789-compact.png"
+                  alt="QR Code"
+                  className="w-64 mx-auto rounded-lg shadow-md mb-4"
+                />
+                <Divider />
+                <Space direction="vertical" size="small" className="w-full">
+                  <Text strong className="text-base">Thông tin chuyển khoản</Text>
+                  <Text>🏦 Ngân hàng: <Text strong>MB Bank</Text></Text>
+                  <Text>💳 STK: <Text strong code>123456789</Text></Text>
+                  <Text>👤 Chủ TK: <Text strong>PET ADOPTION</Text></Text>
+                </Space>
+              </Card>
+
+              {/* Info Card */}
+              <Card 
+                className="shadow-xl border-0 bg-gradient-to-br from-[#6272B6] to-[#8B9FE8] text-white"
+              >
+                <Space direction="vertical" size="middle" className="w-full">
+                  <Title level={4} className="!text-white !mb-0">
+                    🎁 Ưu đãi khi ủng hộ
+                  </Title>
+                  <Divider className="!bg-white/30 !my-2" />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <Text className="text-white">Ủng hộ <strong>50k-99k</strong>: Voucher giảm <strong>5%</strong></Text>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <Text className="text-white">Ủng hộ <strong>100k-499k</strong>: Voucher giảm <strong>10%</strong></Text>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <Text className="text-white">Ủng hộ <strong>≥500k</strong>: Voucher giảm <strong>15%</strong></Text>
+                    </div>
+                  </div>
+                  <Divider className="!bg-white/30 !my-2" />
+                  <Text className="text-white/90 text-sm">
+                    ✨ Voucher có hạn sử dụng 3 tháng và được gửi qua email ngay sau khi ủng hộ thành công!
+                  </Text>
+                </Space>
+              </Card>
+            </Space>
+          </Col>
+        </Row>
       </div>
-
-      {/* QR */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        <p className="text-sm text-gray-600 mb-2">
-          Hoặc quét mã QR để chuyển khoản thủ công
-        </p>
-        <img
-          src="https://img.vietqr.io/image/970422-123456789-compact.png"
-          alt="QR Code"
-          className="w-60 mx-auto"
-        />
-        <p className="mt-4 text-sm text-gray-600">
-          Ngân hàng: MB Bank <br />
-          STK: 123456789 <br />
-          Chủ TK: PET ADOPTION
-        </p>
-      </div>
-
-      {/* BUTTON */}
-      <button
-        onClick={handleDonate}
-        disabled={loading}
-        className="w-full bg-[#6272B6] text-white py-3 rounded-full hover:bg-[#4e5fa8] disabled:opacity-60"
-      >
-        {loading ? "Đang chuyển..." : "Ủng hộ qua VNPay"}
-      </button>
     </div>
   )
 }

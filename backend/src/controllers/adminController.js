@@ -348,7 +348,12 @@ exports.getAnalytics = async (req, res, next) => {
       {
         $match: {
           createdAt: { $gte: sevenDaysAgo },
-          status: { $in: ['completed', 'confirmed', 'paid', 'shipping'] }
+          $or: [
+            { orderStatus: 'delivered' },
+            { status: 'completed' },
+            { paymentStatus: 'paid' },
+            { status: 'paid' }
+          ]
         }
       },
       {
@@ -380,7 +385,16 @@ exports.getAnalytics = async (req, res, next) => {
 
     // 2. Top 5 sản phẩm bán chạy
     const topProducts = await Order.aggregate([
-      { $match: { status: { $in: ['completed', 'confirmed', 'paid', 'shipping'] } } },
+      { 
+        $match: { 
+          $or: [
+            { orderStatus: 'delivered' },
+            { status: 'completed' },
+            { paymentStatus: 'paid' },
+            { status: 'paid' }
+          ]
+        } 
+      },
       { $unwind: '$items' },
       {
         $group: {

@@ -252,7 +252,7 @@ const VaccinationAdmin = () => {
       render: (record: VaccinationSchedule) => (
         <div>
           <div className="font-medium">{record.vaccineName}</div>
-          <Tag size="small" color="blue">{record.vaccineType}</Tag>
+          <Tag color="blue">{record.vaccineType}</Tag>
           {record.totalDoses > 1 && (
             <div className="text-xs text-gray-500 mt-1">
               Liều {record.doseNumber}/{record.totalDoses}
@@ -640,7 +640,7 @@ const VaccinationAdmin = () => {
         )}
       </Modal>
 
-      <style jsx="true">{`
+      <style>{`
         .vaccination-admin-tabs .ant-tabs-tab {
           border-radius: 8px !important;
           margin-right: 8px !important;

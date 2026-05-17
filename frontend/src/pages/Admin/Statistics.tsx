@@ -80,19 +80,29 @@ export default function Statistics() {
   async function fetchAll() {
     setLoading(true);
     try {
+      console.log('📊 Fetching statistics with params:', { period, dateRange });
+      
       const [ov, rv, tp, inv] = await Promise.all([
         getOrderOverview(dateRange),
         getRevenueByTime({ period, ...dateRange }),
         getTopProducts({ limit: 10, ...dateRange }),
         getInventory({ lowStockThreshold: 10 }),
       ]);
+      
+      console.log('✅ Overview data:', ov.data);
+      console.log('✅ Revenue data:', rv.data);
+      console.log('✅ Top products:', tp.data);
+      console.log('✅ Inventory:', inv.data);
+      
       setOverview(ov.data);
       setRevenueData(rv.data);
       setTopProducts(tp.data);
       setInventory(inv.data);
       setLastUpdated(new Date());
     } catch (err) {
-      console.error("Statistics fetch error:", err);
+      console.error("❌ Statistics fetch error:", err);
+      console.error("❌ Error response:", err.response?.data);
+      console.error("❌ Error status:", err.response?.status);
     } finally {
       setLoading(false);
     }

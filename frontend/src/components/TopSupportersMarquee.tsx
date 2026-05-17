@@ -4,8 +4,16 @@ import { HeartOutlined, TrophyOutlined, CrownOutlined, StarOutlined } from '@ant
 import { apiClient } from '../api/http';
 import './TopSupportersMarquee.css';
 
+interface Supporter {
+  _id: string;
+  isAnonymous: boolean;
+  name?: string;
+  donationCount: number;
+  totalAmount: number;
+}
+
 export default function TopSupportersMarquee() {
-  const [supporters, setSupporters] = useState([]);
+  const [supporters, setSupporters] = useState<Supporter[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -132,7 +140,7 @@ export default function TopSupportersMarquee() {
                   {/* Amount */}
                   <div className="supporter-amount">
                     <div className="amount-value">
-                      {supporter.totalAmount.toLocaleString('vi-VN')}
+                      {(supporter.totalAmount || supporter.amount || 0).toLocaleString('vi-VN')}
                     </div>
                     <div className="amount-currency">VNĐ</div>
                   </div>

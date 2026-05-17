@@ -18,7 +18,8 @@ const createNotification = async (userId, type, title, message, options = {}) =>
       priority: options.priority || 'normal'
     };
 
-    const notification = await Notification.createNotification(notificationData);
+    // Sử dụng Notification.create thay vì Notification.createNotification
+    const notification = await Notification.create(notificationData);
     console.log(`✅ Notification created for user ${userId}: ${type}`);
     return notification;
   } catch (error) {

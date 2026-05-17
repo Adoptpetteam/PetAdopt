@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spin, SpinProps } from 'antd';
+import { Spin, type SpinProps } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 
 interface LoadingProps extends SpinProps {

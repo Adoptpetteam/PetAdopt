@@ -335,7 +335,7 @@ export default function Adoptions() {
               title="Tổng đơn"
               value={stats.total}
               prefix={<HeartOutlined className="text-[#6272B6]" />}
-              styles={{ value: { color: "#6272B6", fontSize: "24px", fontWeight: "bold" } }}
+              valueStyle={{ color: "#6272B6", fontSize: "24px", fontWeight: "bold" }}
             />
           </Card>
         </Col>
@@ -345,7 +345,7 @@ export default function Adoptions() {
               title="Chờ xử lý"
               value={stats.pending}
               prefix={<ClockCircleOutlined className="text-orange-500" />}
-              styles={{ value: { color: "#f59e0b", fontSize: "24px", fontWeight: "bold" } }}
+              valueStyle={{ color: "#f59e0b", fontSize: "24px", fontWeight: "bold" }}
             />
           </Card>
         </Col>
@@ -355,7 +355,7 @@ export default function Adoptions() {
               title="Đã duyệt"
               value={stats.approved}
               prefix={<CheckCircleOutlined className="text-green-500" />}
-              styles={{ value: { color: "#10b981", fontSize: "24px", fontWeight: "bold" } }}
+              valueStyle={{ color: "#10b981", fontSize: "24px", fontWeight: "bold" }}
             />
           </Card>
         </Col>
@@ -366,7 +366,7 @@ export default function Adoptions() {
               value={stats.approvalRate}
               suffix="%"
               prefix={<BarChartOutlined className="text-blue-500" />}
-              styles={{ value: { color: "#3b82f6", fontSize: "24px", fontWeight: "bold" } }}
+              valueStyle={{ color: "#3b82f6", fontSize: "24px", fontWeight: "bold" }}
             />
           </Card>
         </Col>
