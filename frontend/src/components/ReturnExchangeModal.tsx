@@ -129,10 +129,10 @@ export const ReturnExchangeModal: React.FC<ReturnExchangeModalProps> = ({
       onCancel={handleCancel}
       footer={null}
       width={650}
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
-        message="Điều kiện trả/đổi hàng"
+        title="Điều kiện trả/đổi hàng"
         description={
           <div>
             <p>• Thời hạn: Trong vòng <strong>3 ngày</strong> sau khi nhận hàng</p>
@@ -241,7 +241,7 @@ export const ReturnExchangeModal: React.FC<ReturnExchangeModalProps> = ({
               Thông tin tài khoản nhận hoàn tiền
             </h4>
             <Alert
-              message="Bắt buộc"
+              title="Bắt buộc"
               description="Vui lòng cung cấp thông tin tài khoản để nhận hoàn tiền sau khi admin xác nhận trả hàng."
               type="info"
               showIcon
@@ -348,7 +348,7 @@ export const ReturnExchangeModal: React.FC<ReturnExchangeModalProps> = ({
 
         {type === 'return' && (
           <Alert
-            message="Quy trình trả hàng"
+            title="Quy trình trả hàng"
             description={
               <ol className="list-decimal list-inside space-y-1 text-sm">
                 <li>Gửi yêu cầu và chờ admin xác nhận</li>
@@ -365,7 +365,7 @@ export const ReturnExchangeModal: React.FC<ReturnExchangeModalProps> = ({
 
         {type === 'exchange' && (
           <Alert
-            message="Quy trình đổi hàng"
+            title="Quy trình đổi hàng"
             description={
               <ol className="list-decimal list-inside space-y-1 text-sm">
                 <li>Gửi yêu cầu và chờ admin xác nhận</li>

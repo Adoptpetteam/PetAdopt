@@ -155,8 +155,8 @@ const getTimelineItems = (order: OrderData) => {
   if (order.status === "cancelled") {
     return [
       {
-        dot: React.cloneElement(statusConfig.pending.icon, { style: { fontSize: 16, color: "#1890ff" } }),
-        children: (
+        icon: React.cloneElement(statusConfig.pending.icon, { style: { fontSize: 16, color: "#1890ff" } }),
+        content: (
           <div>
             <Text strong className="text-blue-600">Đặt hàng thành công</Text>
             <div className="text-xs text-gray-400 mt-1">Đơn hàng đã được tạo</div>
@@ -165,8 +165,8 @@ const getTimelineItems = (order: OrderData) => {
         ),
       },
       {
-        dot: React.cloneElement(statusConfig.cancelled.icon, { style: { fontSize: 16, color: "#ff4d4f" } }),
-        children: (
+        icon: React.cloneElement(statusConfig.cancelled.icon, { style: { fontSize: 16, color: "#ff4d4f" } }),
+        content: (
           <div>
             <Text strong className="text-red-500">Đơn hàng đã hủy</Text>
             <div className="text-xs text-gray-400 mt-1">Đơn hàng bị hủy bỏ</div>
@@ -193,10 +193,10 @@ const getTimelineItems = (order: OrderData) => {
       const cfg = statusConfig[step.key as keyof typeof statusConfig];
       
       return {
-        dot: React.cloneElement(cfg.icon, {
+        icon: React.cloneElement(cfg.icon, {
           style: { fontSize: 16, color: done ? (active ? "#1890ff" : "#52c41a") : "#d9d9d9" },
         }),
-        children: (
+        content: (
           <div>
             <Text strong className={done ? (active ? "text-blue-600" : "text-green-600") : "text-gray-300"}>
               {step.title}
@@ -227,10 +227,10 @@ const getTimelineItems = (order: OrderData) => {
       const cfg = statusConfig[step.key as keyof typeof statusConfig];
       
       return {
-        dot: React.cloneElement(cfg.icon, {
+        icon: React.cloneElement(cfg.icon, {
           style: { fontSize: 16, color: done ? (active ? "#1890ff" : "#52c41a") : "#d9d9d9" },
         }),
-        children: (
+        content: (
           <div>
             <Text strong className={done ? (active ? "text-blue-600" : "text-green-600") : "text-gray-300"}>
               {step.title}
@@ -260,10 +260,10 @@ const getTimelineItems = (order: OrderData) => {
       const cfg = statusConfig[step.key as keyof typeof statusConfig];
       
       return {
-        dot: React.cloneElement(cfg.icon, {
+        icon: React.cloneElement(cfg.icon, {
           style: { fontSize: 16, color: done ? (active ? "#1890ff" : "#52c41a") : "#d9d9d9" },
         }),
-        children: (
+        content: (
           <div>
             <Text strong className={done ? (active ? "text-blue-600" : "text-green-600") : "text-gray-300"}>
               {step.title}
@@ -301,10 +301,10 @@ const getTimelineItems = (order: OrderData) => {
     const active = i === currentIdx;
     const cfg = statusConfig[step.key as keyof typeof statusConfig];
     return {
-      dot: React.cloneElement(cfg.icon, {
+      icon: React.cloneElement(cfg.icon, {
         style: { fontSize: 16, color: done ? "#1890ff" : "#d9d9d9" },
       }),
-      children: (
+      content: (
         <div>
           <Text strong className={done ? (active ? "text-blue-600" : "text-blue-400") : "text-gray-300"}>
             {step.title}
@@ -1088,3 +1088,4 @@ export default function Orders() {
     </div>
   );
 }
+

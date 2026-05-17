@@ -7,6 +7,7 @@ import { apiClient } from "../api/http";
 interface RefundInfoModalProps {
   visible: boolean;
   notificationId: string;
+  refundRequestId: string;   // RefundRequest._id (không phải orderId)
   orderId: string;
   amount: number;
   reason: string;
@@ -17,6 +18,7 @@ interface RefundInfoModalProps {
 export function RefundInfoModal({
   visible,
   notificationId,
+  refundRequestId,
   orderId,
   amount,
   reason,
@@ -26,35 +28,55 @@ export function RefundInfoModal({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [qrUrl, setQrUrl] = useState("");
+  const [uploadingQr, setUploadingQr] = useState(false);
+
+  // Upload QR trước rồi lấy URL
+  const handleUploadQR = async (file: File): Promise<boolean> => {
+    setUploadingQr(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const token = localStorage.getItem("token") || localStorage.getItem("admin_token");
+      const res = await apiClient.post("/refunds/upload-qr", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const url = res.data.imageUrl.startsWith("http")
+        ? res.data.imageUrl
+        : `http://localhost:5000${res.data.imageUrl}`;
+      setQrUrl(url);
+      message.success("Tải ảnh QR thành công");
+    } catch {
+      message.error("Tải ảnh thất bại");
+    } finally {
+      setUploadingQr(false);
+    }
+    return false; // không cho antd tự upload
+  };
 
   const handleSubmit = async (values: any) => {
+    if (!refundRequestId) {
+      message.error("Không tìm thấy yêu cầu hoàn tiền");
+      return;
+    }
     try {
       setLoading(true);
 
-      // Upload QR image nếu có
-      let qrImageUrl = "";
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        const formData = new FormData();
-        formData.append("file", fileList[0].originFileObj);
-
-        const uploadRes = await apiClient.post("/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        qrImageUrl = uploadRes.data.url;
-      }
-
-      // Gửi thông tin hoàn tiền
-      await apiClient.post(`/notifications/${notificationId}/refund-info`, {
+      // Gọi đúng endpoint submit-bank-info
+      await apiClient.put(`/refunds/me/${refundRequestId}/submit-bank-info`, {
         bankName: values.bankName,
         accountNumber: values.accountNumber,
         accountHolder: values.accountHolder,
-        qrImage: qrImageUrl,
+        qrCodeImage: qrUrl || "",
       });
 
-      message.success("Đã gửi thông tin hoàn tiền thành công!");
+      message.success("Đã gửi thông tin hoàn tiền! Admin sẽ xử lý sớm.");
       form.resetFields();
       setFileList([]);
+      setQrUrl("");
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -76,15 +98,16 @@ export function RefundInfoModal({
       }
       footer={null}
       width={600}
+      destroyOnHidden
     >
       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm text-gray-600 mb-1">
           <strong>Lý do hủy:</strong> {reason}
         </p>
         <p className="text-sm text-gray-600">
           <strong>Số tiền hoàn:</strong>{" "}
           <span className="text-lg font-bold text-[#6272B6]">
-            {amount.toLocaleString()}đ
+            {amount.toLocaleString("vi-VN")}đ
           </span>
         </p>
       </div>
@@ -107,10 +130,7 @@ export function RefundInfoModal({
           name="accountNumber"
           rules={[
             { required: true, message: "Vui lòng nhập số tài khoản" },
-            {
-              pattern: /^[0-9]+$/,
-              message: "Số tài khoản chỉ được chứa số",
-            },
+            { pattern: /^[0-9]+$/, message: "Số tài khoản chỉ được chứa số" },
           ]}
         >
           <Input
@@ -123,13 +143,11 @@ export function RefundInfoModal({
         <Form.Item
           label="Chủ tài khoản"
           name="accountHolder"
-          rules={[
-            { required: true, message: "Vui lòng nhập tên chủ tài khoản" },
-          ]}
+          rules={[{ required: true, message: "Vui lòng nhập tên chủ tài khoản" }]}
         >
           <Input
             prefix={<UserOutlined />}
-            placeholder="Nhập tên chủ tài khoản (viết hoa không dấu)"
+            placeholder="Nhập tên chủ tài khoản (VIẾT HOA KHÔNG DẤU)"
             size="large"
           />
         </Form.Item>
@@ -138,19 +156,19 @@ export function RefundInfoModal({
           <Upload
             listType="picture-card"
             fileList={fileList}
-            onChange={({ fileList }) => setFileList(fileList)}
-            beforeUpload={() => false}
+            onChange={({ fileList: fl }) => setFileList(fl)}
+            beforeUpload={handleUploadQR}
             maxCount={1}
             accept="image/*"
           >
             {fileList.length === 0 && (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Tải ảnh QR</div>
+                <div style={{ marginTop: 8 }}>{uploadingQr ? "Đang tải..." : "Tải ảnh QR"}</div>
               </div>
             )}
           </Upload>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 mt-1">
             Tải lên ảnh QR Code ngân hàng để chúng tôi chuyển tiền nhanh hơn
           </p>
         </Form.Item>

@@ -29,7 +29,7 @@ const refundRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['awaiting_info', 'pending', 'processing', 'completed', 'rejected'],
+      enum: ['awaiting_info', 'pending', 're_enter_info', 'processing', 'completed', 'rejected'],
       default: 'awaiting_info',
       index: true,
     },

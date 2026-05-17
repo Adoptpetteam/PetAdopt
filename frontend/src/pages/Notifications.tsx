@@ -171,7 +171,26 @@ export default function Notifications() {
                     <p className="text-gray-600 text-sm whitespace-pre-line">
                       {n.message}
                     </p>
-                    {n.type === 'order_refund_required' && n.metadata?.requiresRefundInfo && (
+
+                    {/* Hiển thị bill chuyển khoản khi hoàn tiền thành công */}
+                    {n.type === "refund_completed" && n.metadata?.billImage && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm font-medium text-green-700 mb-2">📄 Ảnh bill chuyển khoản:</p>
+                        <img
+                          src={n.metadata.billImage}
+                          alt="Bill chuyển khoản"
+                          className="max-w-xs rounded-lg border shadow-sm cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(n.metadata.billImage, "_blank");
+                          }}
+                        />
+                        {n.metadata.transactionRef && (
+                          <p className="text-xs text-gray-500 mt-2">Mã GD: <span className="font-mono font-bold text-gray-700">{n.metadata.transactionRef}</span></p>
+                        )}
+                      </div>
+                    )}
+                    {n.type === 'order_refund_required' && n.metadata?.requiresRefundInfo && !n.metadata?.submitted && (
                       <Button
                         type="primary"
                         className="mt-3 bg-orange-500 border-0 rounded-full"
@@ -182,6 +201,19 @@ export default function Notifications() {
                         }}
                       >
                         📝 Cập nhật thông tin hoàn tiền →
+                      </Button>
+                    )}
+                    {n.type === 'order_refund_required' && n.actionUrl && n.actionLabel && (
+                      <Button
+                        type="primary"
+                        className="mt-3 bg-orange-500 border-0 rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!n.isRead) handleMarkRead(n._id);
+                          navigate(n.actionUrl!);
+                        }}
+                      >
+                        {n.actionLabel} →
                       </Button>
                     )}
                     {n.actionUrl && n.actionLabel && n.type !== 'order_refund_required' && (
@@ -219,9 +251,14 @@ export default function Notifications() {
         <RefundInfoModal
           visible={refundModalVisible}
           notificationId={selectedNotification._id}
-          orderId={selectedNotification.order?._id || selectedNotification.metadata?.orderId}
-          amount={selectedNotification.metadata?.amount || 0}
-          reason={selectedNotification.metadata?.reason || ""}
+          refundRequestId={
+            selectedNotification.refundRequest ||
+            selectedNotification.metadata?.refundRequestId ||
+            ""
+          }
+          orderId={selectedNotification.order?._id || selectedNotification.metadata?.orderId || ""}
+          amount={selectedNotification.metadata?.refundAmount || selectedNotification.metadata?.amount || 0}
+          reason={selectedNotification.metadata?.cancelReason || selectedNotification.metadata?.reason || ""}
           onClose={() => {
             setRefundModalVisible(false);
             setSelectedNotification(null);

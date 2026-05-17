@@ -41,6 +41,7 @@ const orderStatusConfig = {
   confirmed: { color: "blue",    label: "Đã xác nhận",         icon: <CheckCircleOutlined />, desc: "Shop đã xác nhận, đang chuẩn bị hàng" },
   shipping:  { color: "purple",  label: "Đang giao hàng",      icon: <TruckOutlined />,       desc: "Shipper đang giao hàng đến bạn" },
   delivered: { color: "green",   label: "Giao hàng thành công", icon: <GiftOutlined />,        desc: "Đã giao hàng thành công" },
+  completed: { color: "cyan",    label: "Hoàn thành",           icon: <CheckCircleOutlined />, desc: "Đơn hàng đã hoàn tất" },
   cancelled: { color: "red",     label: "Đã hủy",              icon: <CloseCircleOutlined />, desc: "Đơn hàng đã bị hủy" },
 };
 
@@ -219,9 +220,10 @@ const OrderPage = () => {
     const confirmed = filteredData.filter(o => o.orderStatus === "confirmed" || o.status === "confirmed").length;
     const shipping = filteredData.filter(o => o.orderStatus === "shipping" || o.status === "shipping").length;
     const delivered = filteredData.filter(o => o.orderStatus === "delivered" || o.status === "completed").length;
+    const completed = filteredData.filter(o => o.orderStatus === "completed").length;
     const cancelled = filteredData.filter(o => o.orderStatus === "cancelled" || o.status === "cancelled").length;
     
-    return { total, revenue, pending, confirmed, shipping, delivered, cancelled };
+    return { total, revenue, pending, confirmed, shipping, delivered, completed, cancelled };
   }, [filteredData]);
 
   const columns: ColumnsType<Order> = [
@@ -322,7 +324,7 @@ const OrderPage = () => {
       render: (_, record) => {
         const orderSt = record.orderStatus || 'pending';
         const isPending = orderSt === 'pending';
-        const canCancel = !['delivered', 'cancelled'].includes(orderSt);
+        const canCancel = !['delivered', 'completed', 'cancelled'].includes(orderSt);
         
         return (
           <Space orientation="vertical" size="small">
@@ -463,6 +465,16 @@ const OrderPage = () => {
         <Col xs={12} sm={12} md={6} lg={3}>
           <Card>
             <Statistic 
+              title="Hoàn thành" 
+              value={stats.completed} 
+              prefix={<CheckCircleOutlined />} 
+              styles={{ value: { color: "#13c2c2" } }} 
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} md={6} lg={3}>
+          <Card>
+            <Statistic 
               title="Đã hủy" 
               value={stats.cancelled} 
               prefix={<CloseCircleOutlined />} 
@@ -488,6 +500,7 @@ const OrderPage = () => {
             <Select.Option value="confirmed">Đã xác nhận</Select.Option>
             <Select.Option value="shipping">Đang giao hàng</Select.Option>
             <Select.Option value="delivered">Đã giao hàng</Select.Option>
+            <Select.Option value="completed">Hoàn thành</Select.Option>
             <Select.Option value="cancelled">Đã hủy</Select.Option>
           </Select>
           <Tag color="blue">{filteredData.length} đơn</Tag>
@@ -577,6 +590,9 @@ const OrderPage = () => {
                     </Select.Option>
                     <Select.Option value="delivered">
                       <Space><GiftOutlined style={{ color: '#52c41a' }} />Giao hàng thành công</Space>
+                    </Select.Option>
+                    <Select.Option value="completed">
+                      <Space><CheckCircleOutlined style={{ color: '#389e0d' }} />Hoàn thành</Space>
                     </Select.Option>
                     <Select.Option value="cancelled">
                       <Space><CloseCircleOutlined style={{ color: '#ff4d4f' }} />Đã hủy</Space>

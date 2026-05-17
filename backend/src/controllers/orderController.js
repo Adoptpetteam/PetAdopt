@@ -1169,11 +1169,12 @@ exports.requestReturnExchange = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
 
-    // Chỉ cho phép với đơn đã completed
-    if (order.status !== 'completed') {
+    // Chỉ cho phép với đơn đã giao (delivered hoặc completed)
+    const isDelivered = order.status === 'completed' || order.orderStatus === 'delivered' || order.orderStatus === 'completed';
+    if (!isDelivered) {
       return res.status(400).json({
         success: false,
-        message: 'Chỉ có thể yêu cầu trả/đổi hàng sau khi đơn hàng đã hoàn thành',
+        message: 'Chỉ có thể yêu cầu trả/đổi hàng sau khi đơn hàng đã được giao',
       });
     }
 
@@ -1638,25 +1639,42 @@ exports.adminCancelOrder = async (req, res) => {
     const orderCode = order._id.toString().slice(-8).toUpperCase();
 
     if (isVNPayPaid) {
-      // Trường hợp 1: VNPay - Cần form hoàn tiền
+      // Trường hợp 1: VNPay - Tạo RefundRequest + Notification kèm form hoàn tiền
+      const RefundRequest = require('../models/RefundRequest');
+      let refund = await RefundRequest.findOne({ order: order._id });
+      if (!refund) {
+        refund = await RefundRequest.create({
+          order: order._id,
+          user: userId,
+          amount: order.totals.total,
+          cancelReason: reason.trim(),
+          originalPaymentMethod: 'vnpay',
+          status: 'awaiting_info',
+        });
+      }
+
       await Notification.create({
         user: userId,
         type: 'order_refund_required',
         title: `Đơn hàng #${orderCode} đã bị hủy - Cần cập nhật thông tin hoàn tiền`,
         message: `Lý do hủy: ${reason}\n\nĐơn hàng của bạn đã được thanh toán qua VNPay. Vui lòng cập nhật thông tin ngân hàng để chúng tôi hoàn tiền cho bạn.`,
         order: order._id,
+        refundRequest: refund._id,
         metadata: {
           reason,
+          cancelReason: reason,
           orderCode,
           amount: order.totals.total,
+          refundAmount: order.totals.total,
           paymentMethod: 'vnpay',
-          requiresRefundInfo: true
+          requiresRefundInfo: true,
+          refundRequestId: refund._id.toString(),
         },
-        actionUrl: `/notifications`,
-        actionLabel: 'Cập nhật thông tin hoàn tiền'
+        actionUrl: `/refund/${refund._id}`,
+        actionLabel: 'Điền thông tin hoàn tiền'
       });
 
-      console.log('[Admin Cancel] VNPay order cancelled, refund notification created');
+      console.log('[Admin Cancel] VNPay order cancelled, RefundRequest created:', refund._id);
     } else {
       // Trường hợp 2: COD - Chỉ thông báo lý do hủy
       await Notification.create({

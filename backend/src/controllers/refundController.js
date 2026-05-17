@@ -54,7 +54,7 @@ exports.submitBankInfo = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Không có quyền thực hiện' });
     }
 
-    if (refund.status !== 'awaiting_info') {
+    if (!['awaiting_info', 're_enter_info'].includes(refund.status)) {
       return res.status(400).json({ success: false, message: 'Yêu cầu này đã được nộp thông tin' });
     }
 
@@ -73,6 +73,13 @@ exports.submitBankInfo = async (req, res) => {
     refund.status = 'pending';
     refund.submittedAt = new Date();
     await refund.save();
+
+    // Cập nhật notification liên quan → submitted để ẩn nút "Điền thông tin"
+    const Notification = require('../models/Notification');
+    await Notification.updateMany(
+      { refundRequest: refund._id, 'metadata.requiresRefundInfo': true },
+      { $set: { 'metadata.submitted': true } }
+    );
 
     return res.status(200).json({ success: true, data: refund, message: 'Đã gửi thông tin hoàn tiền, vui lòng chờ admin xử lý' });
   } catch (err) {
@@ -116,7 +123,7 @@ exports.adminProcessRefund = async (req, res) => {
     const adminId = req.user?.userId || req.user?.id;
     const { status, adminNote, transactionRef, billImage } = req.body;
 
-    if (!['processing', 'completed', 'rejected'].includes(status)) {
+    if (!['processing', 'completed', 'rejected', 're_enter_info'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Trạng thái không hợp lệ' });
     }
 
@@ -140,12 +147,40 @@ exports.adminProcessRefund = async (req, res) => {
         user: refund.user,
         type: 'refund_completed',
         title: '✅ Hoàn tiền thành công',
-        message: `Đơn hàng #${String(refund.order).slice(-8).toUpperCase()} đã được hoàn ${refund.amount.toLocaleString('vi-VN')}đ.\nMã GD: ${transactionRef}`,
+        message: `Đơn hàng #${String(refund.order).slice(-8).toUpperCase()} đã được hoàn ${refund.amount.toLocaleString('vi-VN')}đ.\nMã GD: ${transactionRef}${adminNote ? '\n\nGhi chú: ' + adminNote : ''}`,
         order: refund.order,
         refundRequest: refund._id,
+        metadata: {
+          amount: refund.amount,
+          transactionRef: transactionRef || '',
+          billImage: billImage || '',
+          adminNote: adminNote || '',
+          orderCode: String(refund.order).slice(-8).toUpperCase(),
+        },
       });
     } else if (status === 'processing') {
       await Order.findByIdAndUpdate(refund.order, { paymentStatus: 'refunding' });
+    } else if (status === 're_enter_info') {
+      // Reset bankInfo để user nhập lại
+      refund.bankInfo = { bankName: '', accountNumber: '', accountHolder: '', qrCodeImage: '' };
+      refund.submittedAt = null;
+      // Notification yêu cầu nhập lại
+      await Notification.create({
+        user: refund.user,
+        type: 'order_refund_required',
+        title: '⚠️ Thông tin số tài khoản không hợp lệ',
+        message: `Quý khách đã nhập sai thông tin số tài khoản hoàn tiền cho đơn hàng #${String(refund.order).slice(-8).toUpperCase()}.\n\nVui lòng kiểm tra lại và nhập lại thông tin chính xác để nhận ${refund.amount.toLocaleString('vi-VN')}đ.${adminNote ? '\n\nGhi chú: ' + adminNote : ''}`,
+        order: refund.order,
+        refundRequest: refund._id,
+        actionUrl: `/refund/${refund._id}`,
+        actionLabel: 'Nhập lại thông tin',
+        metadata: {
+          cancelReason: refund.cancelReason,
+          refundAmount: refund.amount,
+          refundRequestId: refund._id.toString(),
+          requiresRefundInfo: true,
+        },
+      });
     } else if (status === 'rejected') {
       refund.processedAt = new Date();
       refund.processedBy = adminId;

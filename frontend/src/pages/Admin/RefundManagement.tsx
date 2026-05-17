@@ -1,706 +1,706 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from "react";
 import {
-  Card, Table, Tag, Button, Space, Modal, Form, Input, message,
-  Tabs, Badge, Descriptions, Image, Timeline, Alert, Select, Upload,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+  Table, Tag, Button, Modal, Form, Input, message, Select, Card,
+  Statistic, Row, Col, Image, Descriptions, Space, Tabs, Badge,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
-  DollarOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  EyeOutlined, BankOutlined, UserOutlined, PhoneOutlined,
-  HomeOutlined, SwapOutlined, RollbackOutlined, TruckOutlined,
-  QrcodeOutlined, UploadOutlined, ClockCircleOutlined,
-} from '@ant-design/icons';
-import { apiClient } from '../../api/http';
-import dayjs from 'dayjs';
+  DollarOutlined, ReloadOutlined, EyeOutlined, CheckOutlined, CloseOutlined,
+  UploadOutlined, LoadingOutlined, SwapOutlined, RollbackOutlined,
+  ShoppingCartOutlined,
+} from "@ant-design/icons";
+import { apiClient } from "../../api/http";
 
-const { TextArea } = Input;
-
-interface Order {
+interface Refund {
   _id: string;
-  user: { _id: string; name: string; email: string };
-  
-  // OLD STATUS (deprecated)
-  status: string;
-  
-  // NEW STATUS (recommended)
-  orderStatus?: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
-  paymentStatus?: "unpaid" | "pending" | "paid" | "refunding" | "refunded" | "failed";
-  returnStatus?: null | "requested" | "approved" | "rejected" | "shipping" | "received" | "completed";
-  
-  createdAt: string;
-  updatedAt: string;
-  customer: { name: string; phone: string; address: string };
-  items: any[];
-  totals: { total: number };
-  paymentMethod: string;
-  refund?: {
-    reason: string;
-    requestedAt: string;
-    requestedBy: string;
-    bankAccount: string;
+  order: any;
+  user: { name: string; email: string };
+  amount: number;
+  cancelReason: string;
+  originalPaymentMethod: string;
+  bankInfo: {
     bankName: string;
+    accountNumber: string;
     accountHolder: string;
-    qrCodeImage?: string;
-    amount: number;
-    note?: string;
+    qrCodeImage: string;
   };
+  status: string;
+  submittedAt: string | null;
+  processedAt: string | null;
+  adminNote: string;
+  transactionRef: string;
+  billImage?: string;
+  createdAt: string;
+}
+
+const statusConfig: Record<string, { label: string; color: string }> = {
+  awaiting_info: { label: "Chờ user nhập info", color: "orange" },
+  pending: { label: "Chờ xử lý", color: "blue" },
+  re_enter_info: { label: "Yêu cầu nhập lại STK", color: "volcano" },
+  processing: { label: "Đang chuyển khoản", color: "cyan" },
+  completed: { label: "Đã hoàn tiền", color: "green" },
+  rejected: { label: "Đã từ chối", color: "red" },
+};
+
+// Trạng thái đổi/trả hàng từ Order.returnStatus
+const returnStatusConfig: Record<string, { label: string; color: string }> = {
+  requested: { label: "Chờ xét duyệt", color: "orange" },
+  approved:  { label: "Đã chấp thuận", color: "cyan" },
+  rejected:  { label: "Đã từ chối", color: "red" },
+  shipping:  { label: "Đang gửi về", color: "purple" },
+  received:  { label: "Đã nhận hàng", color: "blue" },
+  completed: { label: "Hoàn tất", color: "green" },
+};
+
+interface ReturnOrder {
+  _id: string;
+  user?: { name: string; email: string };
+  customer: { name: string; phone: string; address: string };
+  paymentMethod: string;
+  paymentStatus?: string;
+  orderStatus?: string;
+  returnStatus?: string;
+  totals: { total: number };
+  items: any[];
   returnExchange?: {
-    type: 'return' | 'exchange';
+    type: "return" | "exchange";
     reason: string;
     requestedAt: string;
     images: string[];
-    trackingNumber?: string;
     inspectionNote?: string;
-    newOrderId?: string;
   };
+  createdAt: string;
+  updatedAt: string;
 }
 
-// OLD STATUS CONFIG (deprecated)
-const statusConfig: Record<string, { color: string; label: string }> = {
-  refund_pending: { color: 'orange', label: 'Chờ hoàn tiền' },
-  refund_processing: { color: 'blue', label: 'Đang hoàn tiền' },
-  refund_completed: { color: 'green', label: 'Đã hoàn tiền' },
-  return_requested: { color: 'orange', label: 'Yêu cầu trả hàng' },
-  return_shipping: { color: 'purple', label: 'Đang trả hàng' },
-  return_received: { color: 'blue', label: 'Đã nhận hàng trả' },
-  exchange_requested: { color: 'orange', label: 'Yêu cầu đổi hàng' },
-  exchange_completed: { color: 'green', label: 'Đã đổi hàng' },
-};
-
-// NEW STATUS CONFIGS - Giống app giao hàng
-const orderStatusConfig = {
-  pending:   { color: "orange",  label: "Chờ xác nhận",        icon: <ClockCircleOutlined /> },
-  confirmed: { color: "blue",    label: "Đã xác nhận",         icon: <CheckCircleOutlined /> },
-  shipping:  { color: "purple",  label: "Đang giao hàng",      icon: <TruckOutlined /> },
-  delivered: { color: "green",   label: "Giao hàng thành công", icon: <CheckCircleOutlined /> },
-  cancelled: { color: "red",     label: "Đã hủy",              icon: <CloseCircleOutlined /> },
-};
-
-const paymentStatusConfig = {
-  unpaid:    { color: "default", label: "Chưa thanh toán",      icon: <DollarOutlined /> },
-  pending:   { color: "orange",  label: "Chờ thanh toán",       icon: <ClockCircleOutlined /> },
-  paid:      { color: "green",   label: "Đã thanh toán",        icon: <CheckCircleOutlined /> },
-  refunding: { color: "blue",    label: "Đang hoàn tiền",       icon: <DollarOutlined /> },
-  refunded:  { color: "green",   label: "Đã hoàn tiền",         icon: <CheckCircleOutlined /> },
-  failed:    { color: "red",     label: "Thanh toán thất bại",  icon: <CloseCircleOutlined /> },
-};
-
-const returnStatusConfig = {
-  null:      { color: "default", label: "Không có",         icon: null },
-  requested: { color: "orange",  label: "Yêu cầu hoàn trả", icon: <SwapOutlined /> },
-  approved:  { color: "cyan",    label: "Đã chấp thuận",    icon: <CheckCircleOutlined /> },
-  rejected:  { color: "red",     label: "Đã từ chối",       icon: <CloseCircleOutlined /> },
-  shipping:  { color: "purple",  label: "Đang gửi về",      icon: <TruckOutlined /> },
-  received:  { color: "blue",    label: "Đã nhận hàng",     icon: <CheckCircleOutlined /> },
-  completed: { color: "green",   label: "Hoàn tất",         icon: <CheckCircleOutlined /> },
-};
+const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
 export default function RefundManagement() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [actionModalVisible, setActionModalVisible] = useState(false);
-  const [actionType, setActionType] = useState<'refund' | 'return' | 'exchange'>('refund');
+  const [activeTab, setActiveTab] = useState("refund");
+
+  // Tab 1: Hoàn tiền (RefundRequest)
+  const [data, setData] = useState<Refund[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [detail, setDetail] = useState<Refund | null>(null);
+  const [processing, setProcessing] = useState<Refund | null>(null);
   const [form] = Form.useForm();
-  const [activeTab, setActiveTab] = useState('refund');
+  const [billPreview, setBillPreview] = useState("");
+  const [uploadingBill, setUploadingBill] = useState(false);
+  const billFileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    loadOrders();
-  }, [activeTab]);
+  // Tab 2: Đổi/Trả hàng (Order.returnExchange - VNPay/đã thanh toán)
+  const [returnOrders, setReturnOrders] = useState<ReturnOrder[]>([]);
+  const [returnLoading, setReturnLoading] = useState(false);
+  const [returnDetail, setReturnDetail] = useState<ReturnOrder | null>(null);
+  const [returnProcessModal, setReturnProcessModal] = useState<ReturnOrder | null>(null);
+  const [returnForm] = Form.useForm();
 
-  const loadOrders = async () => {
+  // Tab 3: Hoàn hàng COD
+  const [codOrders, setCodOrders] = useState<ReturnOrder[]>([]);
+  const [codLoading, setCodLoading] = useState(false);
+  const [codDetail, setCodDetail] = useState<ReturnOrder | null>(null);
+  const [codProcessModal, setCodProcessModal] = useState<ReturnOrder | null>(null);
+  const [codForm] = Form.useForm();
+
+  const getAdminHeader = () => {
+    const token = localStorage.getItem("admin_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const load = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await apiClient.get('/orders', {
-        params: { limit: 100 }
-      });
-      
-      const allOrders = res.data.data || [];
-      
-      // Filter based on active tab
-      let filtered = allOrders;
-      if (activeTab === 'refund') {
-        filtered = allOrders.filter((o: Order) => 
-          ['refund_pending', 'refund_processing', 'refund_completed'].includes(o.status)
-        );
-      } else if (activeTab === 'return') {
-        filtered = allOrders.filter((o: Order) => 
-          ['return_requested', 'return_shipping', 'return_received'].includes(o.status)
-        );
-      } else if (activeTab === 'exchange') {
-        filtered = allOrders.filter((o: Order) => 
-          ['exchange_requested', 'exchange_completed'].includes(o.status)
-        );
-      }
-      
-      setOrders(filtered);
-    } catch (error: any) {
-      message.error('Không thể tải danh sách đơn hàng');
+      const params: any = { limit: 100 };
+      if (statusFilter !== "all") params.status = statusFilter;
+      const res = await apiClient.get("/refunds/admin", { params });
+      setData(res.data.data || []);
+    } catch {
+      message.error("Không thể tải danh sách");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewDetail = (order: Order) => {
-    setSelectedOrder(order);
-    setDetailModalVisible(true);
-  };
+  useEffect(() => { load(); }, [statusFilter]);
+  useEffect(() => {
+    if (activeTab === "return_exchange") loadReturnOrders();
+    if (activeTab === "cod_return") loadCodOrders();
+  }, [activeTab]);
 
-  const handleOpenActionModal = (order: Order, type: 'refund' | 'return' | 'exchange') => {
-    setSelectedOrder(order);
-    setActionType(type);
-    setActionModalVisible(true);
-    form.resetFields();
-  };
-
-  const handleProcessRefund = async (values: any) => {
-    if (!selectedOrder) return;
-
+  const loadReturnOrders = async () => {
+    setReturnLoading(true);
     try {
-      await apiClient.post(`/orders/${selectedOrder._id}/process-refund`, {
-        status: values.status,
-        note: values.note,
-        bankAccount: values.bankAccount,
-        bankName: values.bankName,
-        accountHolder: values.accountHolder,
-      });
-
-      message.success('Đã xử lý hoàn tiền thành công');
-      setActionModalVisible(false);
-      form.resetFields();
-      loadOrders();
-    } catch (error: any) {
-      message.error(error?.response?.data?.message || 'Không thể xử lý hoàn tiền');
-    }
-  };
-
-  const handleProcessReturn = async (values: any) => {
-    if (!selectedOrder) return;
-
-    try {
-      await apiClient.post(`/orders/${selectedOrder._id}/process-return`, {
-        action: values.action,
-        note: values.note,
-        inspectionNote: values.inspectionNote,
-        bankAccount: values.bankAccount,
-        bankName: values.bankName,
-        accountHolder: values.accountHolder,
-      });
-
-      message.success(
-        values.action === 'approve_refund' 
-          ? 'Đã chấp nhận trả hàng và chuyển sang xử lý hoàn tiền' 
-          : 'Đã từ chối yêu cầu trả hàng'
+      // Lấy đơn VNPay đã thanh toán có yêu cầu đổi/trả
+      const res = await apiClient.get("/orders", { params: { limit: 200 } });
+      const all: ReturnOrder[] = res.data.data || [];
+      const filtered = all.filter(o =>
+        (o.paymentMethod === "vnpay" || o.paymentStatus === "paid") &&
+        o.returnStatus &&
+        o.returnExchange?.type !== undefined
       );
-      setActionModalVisible(false);
-      form.resetFields();
-      loadOrders();
-    } catch (error: any) {
-      message.error(error?.response?.data?.message || 'Không thể xử lý trả hàng');
+      setReturnOrders(filtered);
+    } catch {
+      message.error("Không thể tải danh sách đổi/trả hàng");
+    } finally {
+      setReturnLoading(false);
     }
   };
 
-  const handleProcessExchange = async (values: any) => {
-    if (!selectedOrder) return;
-
+  const loadCodOrders = async () => {
+    setCodLoading(true);
     try {
-      await apiClient.post(`/orders/${selectedOrder._id}/process-exchange`, {
-        action: values.action,
-        note: values.note,
-        inspectionNote: values.inspectionNote,
-      });
-
-      message.success(
-        values.action === 'approve' 
-          ? 'Đã chấp nhận đổi hàng và tạo đơn mới' 
-          : 'Đã từ chối yêu cầu đổi hàng'
+      const res = await apiClient.get("/orders", { params: { limit: 200 } });
+      const all: ReturnOrder[] = res.data.data || [];
+      const filtered = all.filter(o =>
+        o.paymentMethod === "cod" &&
+        o.returnStatus &&
+        o.returnExchange?.type === "return"
       );
-      setActionModalVisible(false);
-      form.resetFields();
-      loadOrders();
-    } catch (error: any) {
-      message.error(error?.response?.data?.message || 'Không thể xử lý đổi hàng');
+      setCodOrders(filtered);
+    } catch {
+      message.error("Không thể tải danh sách hoàn hàng COD");
+    } finally {
+      setCodLoading(false);
     }
   };
 
-  const handleUpdateReturnStatus = async (orderId: string, status: string) => {
+  const handleProcessReturn = async (orderId: string, action: string, values: any) => {
     try {
-      await apiClient.post(`/orders/${orderId}/update-return-status`, {
+      await apiClient.post(`/orders/${orderId}/process-return`, {
+        action,
+        note: values.note || "",
+        inspectionNote: values.inspectionNote || "",
+      });
+      message.success(action === "approve_refund" ? "Đã chấp thuận trả hàng" : "Đã từ chối");
+      setReturnProcessModal(null);
+      setCodProcessModal(null);
+      returnForm.resetFields();
+      codForm.resetFields();
+      loadReturnOrders();
+      loadCodOrders();
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi xử lý");
+    }
+  };
+
+  const handleUploadBill = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { message.error("Chỉ nhận file ảnh"); return; }
+    if (file.size > 5 * 1024 * 1024) { message.error("Ảnh tối đa 5MB"); return; }
+    setUploadingBill(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await apiClient.post("/products/upload-image", formData, {
+        headers: { "Content-Type": "multipart/form-data", ...getAdminHeader() },
+      });
+      const url = res.data.imageUrl.startsWith("http")
+        ? res.data.imageUrl
+        : `http://localhost:5000${res.data.imageUrl}`;
+      setBillPreview(url);
+      form.setFieldValue("billImage", url);
+      message.success("Tải ảnh bill thành công");
+    } catch {
+      message.error("Tải ảnh thất bại");
+    } finally {
+      setUploadingBill(false);
+      if (billFileRef.current) billFileRef.current.value = "";
+    }
+  };
+
+  const handleProcess = async (status: string) => {
+    if (!processing) return;
+
+    if (status === "completed") {
+      const transRef = form.getFieldValue("transactionRef");
+      if (!transRef?.trim()) {
+        message.error("Vui lòng nhập mã chứng từ chuyển khoản");
+        return;
+      }
+    }
+
+    const values = form.getFieldsValue();
+    try {
+      await apiClient.put(`/refunds/admin/${processing._id}/process`, {
         status,
-        note: `Admin cập nhật: ${status}`,
+        adminNote: values.adminNote || "",
+        transactionRef: values.transactionRef || "",
+        billImage: billPreview || "",
       });
-
-      message.success('Đã cập nhật trạng thái vận chuyển');
-      loadOrders();
-    } catch (error: any) {
-      message.error(error?.response?.data?.message || 'Không thể cập nhật trạng thái');
+      message.success(`Đã cập nhật: ${statusConfig[status]?.label}`);
+      setProcessing(null);
+      setBillPreview("");
+      form.resetFields();
+      load();
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi");
     }
   };
 
-  const columns: ColumnsType<Order> = [
+  const stats = {
+    total: data.length,
+    awaiting: data.filter(r => r.status === "awaiting_info").length,
+    pending: data.filter(r => r.status === "pending").length,
+    completed: data.filter(r => r.status === "completed").length,
+    totalAmount: data.filter(r => r.status === "completed").reduce((s, r) => s + r.amount, 0),
+  };
+
+  const columns: ColumnsType<Refund> = [
     {
-      title: 'Mã đơn',
-      dataIndex: '_id',
-      render: (id: string) => (
-        <span className="font-mono text-xs font-bold">
-          #{id.slice(-8).toUpperCase()}
-        </span>
-      ),
-      width: 100,
+      title: "Mã đơn",
+      render: (_, r) => <span className="font-mono text-xs font-bold">#{String(r.order?._id || "").slice(-8).toUpperCase()}</span>,
+      width: 110,
     },
     {
-      title: 'Khách hàng',
-      render: (_, record) => (
+      title: "Khách hàng",
+      render: (_, r) => (
         <div>
-          <div className="font-medium">{record.customer.name}</div>
-          <div className="text-xs text-gray-500">{record.user.email}</div>
+          <div className="font-medium">{r.user?.name || "—"}</div>
+          <div className="text-xs text-gray-400">{r.user?.email || "—"}</div>
         </div>
       ),
       width: 180,
     },
     {
-      title: 'Loại yêu cầu',
-      render: (_, record) => {
-        if (record.status.startsWith('refund')) {
-          return <Tag icon={<DollarOutlined />} color="blue">Hoàn tiền</Tag>;
-        } else if (record.status.startsWith('return')) {
-          return <Tag icon={<RollbackOutlined />} color="orange">Trả hàng</Tag>;
-        } else if (record.status.startsWith('exchange')) {
-          return <Tag icon={<SwapOutlined />} color="green">Đổi hàng</Tag>;
-        }
-        return null;
-      },
+      title: "Số tiền",
+      dataIndex: "amount",
+      render: (a: number) => <span className="text-green-600 font-bold">{fmt(a)}đ</span>,
+      sorter: (a, b) => a.amount - b.amount,
       width: 120,
     },
     {
-      title: 'Trạng thái',
-      render: (_, record) => {
-        // Sử dụng trạng thái mới nếu có, fallback về status cũ
-        const orderSt = record.orderStatus || 'pending';
-        const paymentSt = record.paymentStatus || 'unpaid';
-        const returnSt = record.returnStatus;
-        
-        const orderCfg = orderStatusConfig[orderSt as keyof typeof orderStatusConfig];
-        const paymentCfg = paymentStatusConfig[paymentSt as keyof typeof paymentStatusConfig];
-        const returnCfg = returnSt ? returnStatusConfig[returnSt as keyof typeof returnStatusConfig] : null;
-        
-        return (
-          <Space direction="vertical" size={2} style={{ width: '100%' }}>
-            {/* Trạng thái đơn hàng */}
-            <Tag icon={orderCfg?.icon} color={orderCfg?.color} className="w-full text-center text-xs">
-              📦 {orderCfg?.label}
-            </Tag>
-            
-            {/* Trạng thái thanh toán */}
-            <Tag icon={paymentCfg?.icon} color={paymentCfg?.color} className="w-full text-center text-xs">
-              💰 {paymentCfg?.label}
-            </Tag>
-            
-            {/* Trạng thái hoàn trả (nếu có) */}
-            {returnCfg && (
-              <Tag icon={returnCfg?.icon} color={returnCfg?.color} className="w-full text-center text-xs">
-                🔄 {returnCfg?.label}
-              </Tag>
-            )}
-          </Space>
-        );
+      title: "Lý do hủy",
+      dataIndex: "cancelReason",
+      ellipsis: true,
+      width: 200,
+    },
+    {
+      title: "Thông tin NH",
+      render: (_, r) => r.bankInfo?.accountNumber
+        ? <Tag color="green">Đã nhập</Tag>
+        : <Tag color="orange">Chưa có</Tag>,
+      width: 100,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      render: (s: string) => {
+        const cfg = statusConfig[s];
+        return <Tag color={cfg?.color}>{cfg?.label}</Tag>;
       },
-      width: 180,
+      width: 150,
     },
     {
-      title: 'Số tiền',
-      dataIndex: ['totals', 'total'],
-      render: (total: number) => (
-        <span className="font-semibold text-blue-600">
-          {total.toLocaleString()}đ
-        </span>
-      ),
-      width: 120,
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      render: (d: string) => <span className="text-xs">{new Date(d).toLocaleDateString("vi-VN")}</span>,
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend",
+      width: 100,
     },
     {
-      title: 'Ngày yêu cầu',
-      render: (_, record) => {
-        const date = record.refund?.requestedAt || record.returnExchange?.requestedAt || record.updatedAt;
-        return (
-          <div className="text-xs">
-            {dayjs(date).format('DD/MM/YYYY HH:mm')}
-          </div>
-        );
-      },
-      width: 130,
-    },
-    {
-      title: 'Thao tác',
-      render: (_, record) => (
-        <Space orientation="vertical" size="small">
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetail(record)}
-            className="w-full"
-          >
-            Chi tiết
-          </Button>
-          {record.status === 'refund_pending' && (
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => handleOpenActionModal(record, 'refund')}
-              className="w-full"
-            >
+      title: "Hành động",
+      render: (_, r) => (
+        <Space size="small">
+          <Button type="link" icon={<EyeOutlined />} onClick={() => setDetail(r)}>Xem</Button>
+          {(r.status === "pending" || r.status === "processing") && (
+            <Button type="primary" size="small" className="bg-[#6272B6]"
+              onClick={() => { setProcessing(r); setBillPreview(""); form.resetFields(); }}>
               Xử lý
-            </Button>
-          )}
-          {record.status === 'return_requested' && (
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => handleOpenActionModal(record, 'return')}
-              className="w-full"
-            >
-              Xử lý
-            </Button>
-          )}
-          {record.status === 'exchange_requested' && (
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => handleOpenActionModal(record, 'exchange')}
-              className="w-full"
-            >
-              Xử lý
-            </Button>
-          )}
-          {record.status === 'return_requested' && (
-            <Button
-              size="small"
-              onClick={() => handleUpdateReturnStatus(record._id, 'return_shipping')}
-              className="w-full"
-            >
-              Đang ship về
-            </Button>
-          )}
-          {record.status === 'return_shipping' && (
-            <Button
-              size="small"
-              onClick={() => handleUpdateReturnStatus(record._id, 'return_received')}
-              className="w-full"
-            >
-              Đã nhận hàng
             </Button>
           )}
         </Space>
       ),
-      width: 120,
-      fixed: 'right' as const,
+      width: 160,
+      fixed: "right",
+    },
+  ];
+
+  // Cột bảng đổi/trả hàng chung
+  const returnColumns: ColumnsType<ReturnOrder> = [
+    {
+      title: "Mã đơn", render: (_, r) => <span className="font-mono text-xs font-bold">#{r._id.slice(-8).toUpperCase()}</span>, width: 110,
+    },
+    {
+      title: "Khách hàng", render: (_, r) => (
+        <div><div className="font-medium">{r.user?.name || r.customer?.name || "—"}</div><div className="text-xs text-gray-400">{r.user?.email || r.customer?.phone || "—"}</div></div>
+      ), width: 160,
+    },
+    {
+      title: "Loại yêu cầu", render: (_, r) => (
+        <Tag color={r.returnExchange?.type === "exchange" ? "blue" : "orange"} icon={r.returnExchange?.type === "exchange" ? <SwapOutlined /> : <RollbackOutlined />}>
+          {r.returnExchange?.type === "exchange" ? "Đổi hàng" : "Trả hàng"}
+        </Tag>
+      ), width: 110,
+    },
+    {
+      title: "Lý do", dataIndex: ["returnExchange", "reason"], ellipsis: true, width: 200,
+    },
+    {
+      title: "Tổng tiền", render: (_, r) => <span className="text-blue-600 font-bold">{fmt(r.totals.total)}đ</span>, width: 110,
+    },
+    {
+      title: "Trạng thái", render: (_, r) => {
+        const cfg = returnStatusConfig[r.returnStatus || "requested"];
+        return <Tag color={cfg?.color}>{cfg?.label}</Tag>;
+      }, width: 130,
+    },
+    {
+      title: "Ngày yêu cầu", render: (_, r) => (
+        <span className="text-xs">{new Date(r.returnExchange?.requestedAt || r.updatedAt).toLocaleDateString("vi-VN")}</span>
+      ), width: 100,
+    },
+    {
+      title: "Hành động", render: (_, r) => (
+        <Space size="small">
+          <Button type="link" icon={<EyeOutlined />} onClick={() => { setReturnDetail(r); }}>Xem</Button>
+          {r.returnStatus === "requested" && (
+            <Button type="primary" size="small" className="bg-[#6272B6]"
+              onClick={() => { setReturnProcessModal(r); returnForm.resetFields(); }}>
+              Xử lý
+            </Button>
+          )}
+        </Space>
+      ), width: 140, fixed: "right",
+    },
+  ];
+
+  const codColumns: ColumnsType<ReturnOrder> = [
+    ...returnColumns.slice(0, -1),
+    {
+      title: "Hành động", render: (_, r) => (
+        <Space size="small">
+          <Button type="link" icon={<EyeOutlined />} onClick={() => setCodDetail(r)}>Xem</Button>
+          {r.returnStatus === "requested" && (
+            <Button type="primary" size="small" className="bg-orange-500 border-0"
+              onClick={() => { setCodProcessModal(r); codForm.resetFields(); }}>
+              Xử lý
+            </Button>
+          )}
+        </Space>
+      ), width: 140, fixed: "right",
     },
   ];
 
   const tabItems = [
     {
-      key: 'refund',
-      label: (
-        <span>
-          <DollarOutlined /> Hoàn tiền
-          <Badge
-            count={orders.filter(o => o.status.startsWith('refund')).length}
-            className="ml-2"
-          />
-        </span>
+      key: "refund",
+      label: <span><DollarOutlined className="mr-1" />Hoàn tiền <Badge count={data.filter(r => r.status === "pending").length} color="blue" /></span>,
+      children: (
+        <div>
+          <Row gutter={16} className="mb-4">
+            <Col span={5}><Card size="small"><Statistic title="Tổng" value={stats.total} styles={{ content: { color: "#6272B6" } }} /></Card></Col>
+            <Col span={5}><Card size="small"><Statistic title="Chờ nhập info" value={stats.awaiting} styles={{ content: { color: "#fa8c16" } }} /></Card></Col>
+            <Col span={5}><Card size="small"><Statistic title="Chờ xử lý" value={stats.pending} styles={{ content: { color: "#1890ff" } }} /></Card></Col>
+            <Col span={5}><Card size="small"><Statistic title="Đã hoàn" value={stats.completed} styles={{ content: { color: "#52c41a" } }} /></Card></Col>
+            <Col span={4}><Card size="small"><Statistic title="Tổng đã hoàn" value={stats.totalAmount} suffix="đ" formatter={(v) => fmt(Number(v))} styles={{ content: { color: "#52c41a", fontSize: 16 } }} /></Card></Col>
+          </Row>
+          <div className="mb-3">
+            <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 200 }}>
+              <Select.Option value="all">Tất cả trạng thái</Select.Option>
+              <Select.Option value="awaiting_info">Chờ user nhập info</Select.Option>
+              <Select.Option value="pending">Chờ xử lý</Select.Option>
+              <Select.Option value="re_enter_info">Yêu cầu nhập lại STK</Select.Option>
+              <Select.Option value="processing">Đang chuyển khoản</Select.Option>
+              <Select.Option value="completed">Đã hoàn tiền</Select.Option>
+              <Select.Option value="rejected">Đã từ chối</Select.Option>
+            </Select>
+          </div>
+          <Table columns={columns} dataSource={data} rowKey="_id" loading={loading}
+            pagination={{ pageSize: 15, showTotal: (t) => `${t} yêu cầu` }} scroll={{ x: 1100 }} />
+        </div>
       ),
     },
     {
-      key: 'return',
-      label: (
-        <span>
-          <RollbackOutlined /> Trả hàng
-          <Badge
-            count={orders.filter(o => o.status.startsWith('return')).length}
-            className="ml-2"
-          />
-        </span>
+      key: "return_exchange",
+      label: <span><SwapOutlined className="mr-1" />Đổi/Trả hàng <Badge count={returnOrders.filter(o => o.returnStatus === "requested").length} color="orange" /></span>,
+      children: (
+        <div>
+          <div className="mb-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+            💡 Áp dụng cho đơn đã thanh toán VNPay + đã giao hàng/hoàn thành, trong hạn <strong>7 ngày</strong> bị lỗi sản phẩm.
+          </div>
+          <Table columns={returnColumns} dataSource={returnOrders} rowKey="_id" loading={returnLoading}
+            pagination={{ pageSize: 15, showTotal: (t) => `${t} yêu cầu` }} scroll={{ x: 1000 }} />
+        </div>
       ),
     },
     {
-      key: 'exchange',
-      label: (
-        <span>
-          <SwapOutlined /> Đổi hàng
-          <Badge
-            count={orders.filter(o => o.status.startsWith('exchange')).length}
-            className="ml-2"
-          />
-        </span>
+      key: "cod_return",
+      label: <span><ShoppingCartOutlined className="mr-1" />Hoàn hàng COD <Badge count={codOrders.filter(o => o.returnStatus === "requested").length} color="red" /></span>,
+      children: (
+        <div>
+          <div className="mb-3 p-3 bg-orange-50 rounded-lg text-sm text-orange-700">
+            📦 Khách đặt COD nhận hàng nhưng không ưng ý, muốn trả lại hàng.
+          </div>
+          <Table columns={codColumns} dataSource={codOrders} rowKey="_id" loading={codLoading}
+            pagination={{ pageSize: 15, showTotal: (t) => `${t} yêu cầu` }} scroll={{ x: 1000 }} />
+        </div>
       ),
     },
   ];
 
   return (
-    <div className="p-6">
-      <Card
-        title={
-          <div className="flex items-center justify-between">
-            <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#6272B6] to-purple-600 flex items-center gap-2">
-              
-              Quản lý Hoàn hủy đơn hàng
-            </span>
-            <Button onClick={loadOrders} loading={loading}>
-              Làm mới
-            </Button>
-          </div>
-        }
-      >
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-[#6272B6] flex items-center gap-2">
+          <DollarOutlined /> Quản lý Hoàn hủy
+        </h1>
+        <Button icon={<ReloadOutlined />} onClick={() => { load(); loadReturnOrders(); loadCodOrders(); }} loading={loading || returnLoading}>
+          Làm mới
+        </Button>
+      </div>
+
+      <Card>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           items={tabItems}
-          className="mb-4"
-        />
-
-        <Table
-          columns={columns}
-          dataSource={orders}
-          rowKey="_id"
-          loading={loading}
-          pagination={{
-            pageSize: 20,
-            showTotal: (total) => `Tổng ${total} đơn`,
-          }}
-          scroll={{ x: 1000 }}
+          size="large"
         />
       </Card>
 
-      {/* Detail Modal */}
+      {/* Modal chi tiết */}
       <Modal
-        title="Chi tiết đơn hàng"
-        open={detailModalVisible}
-        onCancel={() => setDetailModalVisible(false)}
-        footer={null}
-        width={800}
+        open={!!detail}
+        onCancel={() => setDetail(null)}
+        footer={<Button onClick={() => setDetail(null)}>Đóng</Button>}
+        title={<span className="text-[#6272B6] font-bold">Chi tiết yêu cầu hoàn tiền</span>}
+        width={700}
       >
-        {selectedOrder && (
-          <div className="space-y-4">
-            <Descriptions bordered column={2} size="small">
-              <Descriptions.Item label="Mã đơn" span={2}>
-                <span className="font-mono font-bold">
-                  #{selectedOrder._id.slice(-8).toUpperCase()}
-                </span>
-              </Descriptions.Item>
-              <Descriptions.Item label="Khách hàng">
-                {selectedOrder.customer.name}
-              </Descriptions.Item>
-              <Descriptions.Item label="Email">
-                {selectedOrder.user.email}
-              </Descriptions.Item>
-              <Descriptions.Item label="Số điện thoại">
-                {selectedOrder.customer.phone}
-              </Descriptions.Item>
-              <Descriptions.Item label="Địa chỉ">
-                {selectedOrder.customer.address}
-              </Descriptions.Item>
-              <Descriptions.Item label="Trạng thái đơn hàng">
-                {(() => {
-                  const orderSt = selectedOrder.orderStatus || 'pending';
-                  const cfg = orderStatusConfig[orderSt as keyof typeof orderStatusConfig];
-                  return <Tag icon={cfg?.icon} color={cfg?.color}>📦 {cfg?.label}</Tag>;
-                })()}
-              </Descriptions.Item>
-              <Descriptions.Item label="Trạng thái thanh toán">
-                {(() => {
-                  const paymentSt = selectedOrder.paymentStatus || 'unpaid';
-                  const cfg = paymentStatusConfig[paymentSt as keyof typeof paymentStatusConfig];
-                  return <Tag icon={cfg?.icon} color={cfg?.color}>💰 {cfg?.label}</Tag>;
-                })()}
-              </Descriptions.Item>
-              {selectedOrder.returnStatus && (
-                <Descriptions.Item label="Trạng thái hoàn trả" span={2}>
-                  {(() => {
-                    const cfg = returnStatusConfig[selectedOrder.returnStatus as keyof typeof returnStatusConfig];
-                    return <Tag icon={cfg?.icon} color={cfg?.color}>🔄 {cfg?.label}</Tag>;
-                  })()}
-                </Descriptions.Item>
-              )}
-              <Descriptions.Item label="Tổng tiền" span={2}>
-                <span className="text-lg font-bold text-blue-600">
-                  {selectedOrder.totals.total.toLocaleString()}đ
-                </span>
-              </Descriptions.Item>
-            </Descriptions>
-
-            {selectedOrder.refund && (
-              <Card title="Thông tin hoàn tiền" size="small">
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Lý do">
-                    {selectedOrder.refund.reason}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngân hàng">
-                    {selectedOrder.refund.bankName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Số tài khoản">
-                    {selectedOrder.refund.bankAccount}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Chủ tài khoản">
-                    {selectedOrder.refund.accountHolder}
-                  </Descriptions.Item>
-                  {selectedOrder.refund.qrCodeImage && (
-                    <Descriptions.Item label="QR Code">
-                      <Image
-                        src={selectedOrder.refund.qrCodeImage}
-                        width={150}
-                        alt="QR Code"
-                      />
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Card>
+        {detail && (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Mã đơn">#{String(detail.order?._id).slice(-8).toUpperCase()}</Descriptions.Item>
+            <Descriptions.Item label="Khách hàng">{detail.user?.name} — {detail.user?.email}</Descriptions.Item>
+            <Descriptions.Item label="Số tiền"><span className="text-green-600 font-bold text-lg">{fmt(detail.amount)}đ</span></Descriptions.Item>
+            <Descriptions.Item label="Lý do hủy">{detail.cancelReason}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái"><Tag color={statusConfig[detail.status]?.color}>{statusConfig[detail.status]?.label}</Tag></Descriptions.Item>
+            <Descriptions.Item label="Ngân hàng">{detail.bankInfo?.bankName || "—"}</Descriptions.Item>
+            <Descriptions.Item label="Số tài khoản">{detail.bankInfo?.accountNumber || "—"}</Descriptions.Item>
+            <Descriptions.Item label="Chủ tài khoản">{detail.bankInfo?.accountHolder || "—"}</Descriptions.Item>
+            {detail.bankInfo?.qrCodeImage && (
+              <Descriptions.Item label="QR Code"><Image src={detail.bankInfo.qrCodeImage} width={200} /></Descriptions.Item>
             )}
-
-            {selectedOrder.returnExchange && (
-              <Card title="Thông tin trả/đổi hàng" size="small">
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Loại">
-                    {selectedOrder.returnExchange.type === 'return' ? 'Trả hàng' : 'Đổi hàng'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Lý do">
-                    {selectedOrder.returnExchange.reason}
-                  </Descriptions.Item>
-                  {selectedOrder.returnExchange.images.length > 0 && (
-                    <Descriptions.Item label="Ảnh chứng minh">
-                      <Image.PreviewGroup>
-                        {selectedOrder.returnExchange.images.map((img, idx) => (
-                          <Image key={idx} src={img} width={100} className="mr-2" />
-                        ))}
-                      </Image.PreviewGroup>
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Card>
+            {detail.adminNote && <Descriptions.Item label="Ghi chú admin">{detail.adminNote}</Descriptions.Item>}
+            {detail.transactionRef && <Descriptions.Item label="Mã giao dịch">{detail.transactionRef}</Descriptions.Item>}
+            {detail.billImage && (
+              <Descriptions.Item label="Bill chuyển khoản"><Image src={detail.billImage} width={240} /></Descriptions.Item>
             )}
-
-            <Card title="Sản phẩm" size="small">
-              {selectedOrder.items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 mb-2 p-2 bg-gray-50 rounded">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-12 h-12 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-xs text-gray-500">
-                      {item.quantity} × {item.price.toLocaleString()}đ
-                    </div>
-                  </div>
-                  <div className="font-semibold">
-                    {(item.quantity * item.price).toLocaleString()}đ
-                  </div>
-                </div>
-              ))}
-            </Card>
-          </div>
+            <Descriptions.Item label="Ngày tạo">{new Date(detail.createdAt).toLocaleString("vi-VN")}</Descriptions.Item>
+            {detail.submittedAt && <Descriptions.Item label="User gửi lúc">{new Date(detail.submittedAt).toLocaleString("vi-VN")}</Descriptions.Item>}
+            {detail.processedAt && <Descriptions.Item label="Xử lý lúc">{new Date(detail.processedAt).toLocaleString("vi-VN")}</Descriptions.Item>}
+          </Descriptions>
         )}
       </Modal>
 
-      {/* Action Modal */}
+      {/* Modal xử lý */}
       <Modal
-        title={`Xử lý ${actionType === 'refund' ? 'hoàn tiền' : actionType === 'return' ? 'trả hàng' : 'đổi hàng'}`}
-        open={actionModalVisible}
-        onCancel={() => setActionModalVisible(false)}
+        open={!!processing}
+        onCancel={() => { setProcessing(null); form.resetFields(); }}
         footer={null}
+        title={<span className="text-[#6272B6] font-bold">Xử lý hoàn tiền</span>}
         width={600}
+        destroyOnHidden
       >
-        {selectedOrder && (
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={
-              actionType === 'refund'
-                ? handleProcessRefund
-                : actionType === 'return'
-                ? handleProcessReturn
-                : handleProcessExchange
-            }
-          >
-            {actionType === 'refund' && (
-              <>
-                <Form.Item
-                  name="status"
-                  label="Trạng thái"
-                  rules={[{ required: true }]}
-                >
-                  <Select>
-                    <Select.Option value="refund_processing">Đang xử lý</Select.Option>
-                    <Select.Option value="refund_completed">Hoàn tiền thành công</Select.Option>
-                    <Select.Option value="cancelled">Từ chối</Select.Option>
-                  </Select>
-                </Form.Item>
+        {processing && (
+          <>
+            <Card type="inner" className="bg-gray-50 mb-4">
+              <p><strong>Khách:</strong> {processing.user?.name} — {processing.user?.email}</p>
+              <p><strong>Số tiền hoàn:</strong> <span className="text-green-600 font-bold text-lg">{fmt(processing.amount)}đ</span></p>
+              <p><strong>Ngân hàng:</strong> {processing.bankInfo?.bankName || "—"}</p>
+              <p><strong>STK:</strong> {processing.bankInfo?.accountNumber || "—"}</p>
+              <p><strong>Chủ TK:</strong> {processing.bankInfo?.accountHolder || "—"}</p>
+              {processing.bankInfo?.qrCodeImage && (
+                <div className="mt-2">
+                  <p><strong>QR Code:</strong></p>
+                  <Image src={processing.bankInfo.qrCodeImage} width={150} />
+                </div>
+              )}
+            </Card>
 
-                <Alert
-                  message="Thông tin tài khoản khách hàng"
-                  description={
-                    <div>
-                      <p>Ngân hàng: {selectedOrder.refund?.bankName}</p>
-                      <p>Số TK: {selectedOrder.refund?.bankAccount}</p>
-                      <p>Chủ TK: {selectedOrder.refund?.accountHolder}</p>
+            <Form form={form} layout="vertical">
+              <Form.Item
+                name="transactionRef"
+                label="Mã chứng từ chuyển khoản"
+                extra="Bắt buộc khi chọn 'Đã chuyển xong'"
+              >
+                <Input placeholder="VD: FT2026051200001234" size="large" />
+              </Form.Item>
+
+              <Form.Item name="billImage" label="Ảnh bill chuyển khoản">
+                <div className="space-y-2">
+                  {billPreview && (
+                    <div className="flex justify-center">
+                      <Image src={billPreview} width={240} className="rounded-lg border shadow-sm" />
                     </div>
-                  }
-                  type="info"
-                  className="mb-4"
-                />
-              </>
+                  )}
+                  <input ref={billFileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadBill} />
+                  <Button
+                    icon={uploadingBill ? <LoadingOutlined /> : <UploadOutlined />}
+                    onClick={() => billFileRef.current?.click()}
+                    loading={uploadingBill}
+                    block
+                  >
+                    {uploadingBill ? "Đang tải..." : billPreview ? "Đổi ảnh bill" : "Tải lên ảnh bill chuyển khoản"}
+                  </Button>
+                  {billPreview && (
+                    <Button danger size="small" block onClick={() => { setBillPreview(""); form.setFieldValue("billImage", ""); }}>
+                      Xóa ảnh
+                    </Button>
+                  )}
+                </div>
+              </Form.Item>
+
+              <Form.Item name="adminNote" label="Ghi chú">
+                <Input.TextArea rows={2} placeholder="Ghi chú thêm (nếu có)" />
+              </Form.Item>
+            </Form>
+
+            <div className="flex gap-2 justify-end mt-4">
+              <Button onClick={() => { setProcessing(null); form.resetFields(); }}>Hủy</Button>
+              <Button danger icon={<CloseOutlined />} onClick={() => handleProcess("rejected")}>Từ chối</Button>
+              <Button
+                icon={<ReloadOutlined />}
+                className="border-orange-400 text-orange-500 hover:bg-orange-50"
+                onClick={() => handleProcess("re_enter_info")}
+              >
+                Yêu cầu nhập lại STK
+              </Button>
+              <Button type="primary" icon={<CheckOutlined />} className="bg-green-500" onClick={() => handleProcess("completed")}>
+                Đã chuyển xong
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
+      {/* Modal chi tiết đổi/trả hàng */}
+      <Modal open={!!returnDetail} onCancel={() => setReturnDetail(null)}
+        footer={<Button onClick={() => setReturnDetail(null)}>Đóng</Button>}
+        title={<span className="text-[#6272B6] font-bold">Chi tiết yêu cầu đổi/trả hàng</span>} width={680}>
+        {returnDetail && (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Mã đơn">#{returnDetail._id.slice(-8).toUpperCase()}</Descriptions.Item>
+            <Descriptions.Item label="Khách hàng">{returnDetail.user?.name || returnDetail.customer?.name}</Descriptions.Item>
+            <Descriptions.Item label="Loại">
+              <Tag color={returnDetail.returnExchange?.type === "exchange" ? "blue" : "orange"}>
+                {returnDetail.returnExchange?.type === "exchange" ? "🔄 Đổi hàng" : "↩️ Trả hàng"}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Lý do">{returnDetail.returnExchange?.reason || "—"}</Descriptions.Item>
+            <Descriptions.Item label="Tổng tiền"><span className="text-blue-600 font-bold">{fmt(returnDetail.totals.total)}đ</span></Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              <Tag color={returnStatusConfig[returnDetail.returnStatus || "requested"]?.color}>
+                {returnStatusConfig[returnDetail.returnStatus || "requested"]?.label}
+              </Tag>
+            </Descriptions.Item>
+            {returnDetail.returnExchange?.images && returnDetail.returnExchange.images.length > 0 && (
+              <Descriptions.Item label="Ảnh chứng minh">
+                <div className="flex gap-2 flex-wrap">
+                  {returnDetail.returnExchange.images.map((img, i) => (
+                    <Image key={i} src={img} width={80} height={80} style={{ objectFit: "cover", borderRadius: 4 }} />
+                  ))}
+                </div>
+              </Descriptions.Item>
             )}
+          </Descriptions>
+        )}
+      </Modal>
 
-            {(actionType === 'return' || actionType === 'exchange') && (
-              <>
-                <Form.Item
-                  name="action"
-                  label="Quyết định"
-                  rules={[{ required: true }]}
-                >
-                  <Select>
-                    <Select.Option value={actionType === 'return' ? 'approve_refund' : 'approve'}>
-                      Chấp nhận
-                    </Select.Option>
-                    <Select.Option value="reject">Từ chối</Select.Option>
-                  </Select>
-                </Form.Item>
+      {/* Modal xử lý đổi/trả hàng */}
+      <Modal open={!!returnProcessModal} onCancel={() => setReturnProcessModal(null)}
+        footer={null} title={<span className="text-[#6272B6] font-bold">Xử lý yêu cầu đổi/trả hàng</span>} width={520} destroyOnHidden>
+        {returnProcessModal && (
+          <>
+            <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm space-y-1">
+              <p><strong>Khách:</strong> {returnProcessModal.user?.name}</p>
+              <p><strong>Loại:</strong> {returnProcessModal.returnExchange?.type === "exchange" ? "Đổi hàng" : "Trả hàng"}</p>
+              <p><strong>Lý do:</strong> {returnProcessModal.returnExchange?.reason}</p>
+              <p><strong>Tổng tiền:</strong> <span className="text-blue-600 font-bold">{fmt(returnProcessModal.totals.total)}đ</span></p>
+            </div>
+            <Form form={returnForm} layout="vertical">
+              <Form.Item name="inspectionNote" label="Ghi chú kiểm tra sản phẩm">
+                <Input.TextArea rows={3} placeholder="Kết quả kiểm tra sản phẩm lỗi..." />
+              </Form.Item>
+              <Form.Item name="note" label="Ghi chú thêm">
+                <Input.TextArea rows={2} placeholder="Ghi chú thêm..." />
+              </Form.Item>
+            </Form>
+            <div className="flex gap-2 justify-end mt-3">
+              <Button onClick={() => setReturnProcessModal(null)}>Hủy</Button>
+              <Button danger icon={<CloseOutlined />}
+                onClick={() => handleProcessReturn(returnProcessModal._id, "reject", returnForm.getFieldsValue())}>
+                Từ chối
+              </Button>
+              <Button type="primary" icon={<CheckOutlined />} className="bg-green-500"
+                onClick={() => handleProcessReturn(returnProcessModal._id, "approve_refund", returnForm.getFieldsValue())}>
+                Chấp thuận
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
 
-                <Form.Item name="inspectionNote" label="Ghi chú kiểm tra">
-                  <TextArea rows={3} placeholder="Kết quả kiểm tra sản phẩm..." />
-                </Form.Item>
-
-                {actionType === 'return' && (
-                  <>
-                    <Form.Item name="bankAccount" label="Số tài khoản">
-                      <Input placeholder="Số tài khoản ngân hàng" />
-                    </Form.Item>
-                    <Form.Item name="bankName" label="Tên ngân hàng">
-                      <Input placeholder="Tên ngân hàng" />
-                    </Form.Item>
-                    <Form.Item name="accountHolder" label="Chủ tài khoản">
-                      <Input placeholder="Tên chủ tài khoản" />
-                    </Form.Item>
-                  </>
-                )}
-              </>
+      {/* Modal chi tiết COD */}
+      <Modal open={!!codDetail} onCancel={() => setCodDetail(null)}
+        footer={<Button onClick={() => setCodDetail(null)}>Đóng</Button>}
+        title={<span className="text-orange-500 font-bold">Chi tiết hoàn hàng COD</span>} width={680}>
+        {codDetail && (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Mã đơn">#{codDetail._id.slice(-8).toUpperCase()}</Descriptions.Item>
+            <Descriptions.Item label="Khách hàng">{codDetail.user?.name || codDetail.customer?.name}</Descriptions.Item>
+            <Descriptions.Item label="SĐT">{codDetail.customer?.phone}</Descriptions.Item>
+            <Descriptions.Item label="Địa chỉ">{codDetail.customer?.address}</Descriptions.Item>
+            <Descriptions.Item label="Lý do">{codDetail.returnExchange?.reason}</Descriptions.Item>
+            <Descriptions.Item label="Tổng đơn"><span className="font-bold">{fmt(codDetail.totals.total)}đ</span></Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              <Tag color={returnStatusConfig[codDetail.returnStatus || "requested"]?.color}>
+                {returnStatusConfig[codDetail.returnStatus || "requested"]?.label}
+              </Tag>
+            </Descriptions.Item>
+            {codDetail.returnExchange?.images && codDetail.returnExchange.images.length > 0 && (
+              <Descriptions.Item label="Ảnh chứng minh">
+                <div className="flex gap-2 flex-wrap">
+                  {codDetail.returnExchange.images.map((img, i) => (
+                    <Image key={i} src={img} width={80} height={80} style={{ objectFit: "cover", borderRadius: 4 }} />
+                  ))}
+                </div>
+              </Descriptions.Item>
             )}
+          </Descriptions>
+        )}
+      </Modal>
 
-            <Form.Item name="note" label="Ghi chú">
-              <TextArea rows={3} placeholder="Ghi chú thêm..." />
-            </Form.Item>
-
-            <Form.Item>
-              <Space className="w-full justify-end">
-                <Button onClick={() => setActionModalVisible(false)}>
-                  Hủy
-                </Button>
-                <Button type="primary" htmlType="submit">
-                  Xác nhận
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
+      {/* Modal xử lý COD */}
+      <Modal open={!!codProcessModal} onCancel={() => setCodProcessModal(null)}
+        footer={null} title={<span className="text-orange-500 font-bold">Xử lý hoàn hàng COD</span>} width={520} destroyOnHidden>
+        {codProcessModal && (
+          <>
+            <div className="bg-orange-50 p-3 rounded-lg mb-4 text-sm space-y-1">
+              <p><strong>Khách:</strong> {codProcessModal.user?.name || codProcessModal.customer?.name}</p>
+              <p><strong>Tổng đơn:</strong> <span className="font-bold">{fmt(codProcessModal.totals.total)}đ</span></p>
+              <p><strong>Lý do hoàn:</strong> {codProcessModal.returnExchange?.reason}</p>
+            </div>
+            <Form form={codForm} layout="vertical">
+              <Form.Item name="inspectionNote" label="Ghi chú kiểm tra hàng nhận lại">
+                <Input.TextArea rows={3} placeholder="Tình trạng hàng khi nhận lại..." />
+              </Form.Item>
+              <Form.Item name="note" label="Ghi chú">
+                <Input.TextArea rows={2} />
+              </Form.Item>
+            </Form>
+            <div className="flex gap-2 justify-end mt-3">
+              <Button onClick={() => setCodProcessModal(null)}>Hủy</Button>
+              <Button danger icon={<CloseOutlined />}
+                onClick={() => handleProcessReturn(codProcessModal._id, "reject", codForm.getFieldsValue())}>
+                Từ chối
+              </Button>
+              <Button type="primary" icon={<CheckOutlined />} className="bg-orange-500 border-0"
+                onClick={() => handleProcessReturn(codProcessModal._id, "approve_refund", codForm.getFieldsValue())}>
+                Chấp thuận hoàn hàng
+              </Button>
+            </div>
+          </>
         )}
       </Modal>
     </div>
